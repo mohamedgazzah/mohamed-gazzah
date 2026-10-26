@@ -1,0 +1,31 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+.next-e2e/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# local data (uploaded evidence in dev, exports)
+.data/
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# tests
+test-results/
+playwright-report/
+coverage/
+reports/
+
+# misc
+.DS_Store
+*.log
+
+# copied from node_modules by scripts/copy-vendor.mjs
+public/vendor/

@@ -1,0 +1,291 @@
+@import 'tailwindcss';
+@import '../styles/tokens.css';
+
+/* Only token colors exist: the default Tailwind palette is removed. */
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --text-*: initial;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--text-muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-confirmed: var(--status-confirmed);
+  --color-reported: var(--status-reported);
+  --color-severe: var(--status-severe);
+  --color-row-alt: var(--row-alt);
+  --color-row-hover: var(--row-hover);
+  --color-accent-tint: var(--accent-tint);
+  --color-on-accent: var(--on-accent);
+  --color-control: var(--control-border);
+  --color-mark: var(--mark-bg);
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --font-serif: var(--typeface-serif);
+  --font-sans: var(--typeface-sans);
+  --font-arabic: var(--typeface-arabic);
+
+  --text-sm: var(--step-0);
+  --text-sm--line-height: 1.5;
+  --text-base: var(--step-1);
+  --text-base--line-height: 1.55;
+  --text-reading: var(--reading);
+  --text-reading--line-height: 1.6;
+  --text-lg: var(--step-2);
+  --text-lg--line-height: 1.45;
+  --text-xl: var(--step-3);
+  --text-xl--line-height: 1.3;
+  --text-2xl: var(--step-4);
+  --text-2xl--line-height: 1.2;
+  --text-3xl: var(--step-5);
+  --text-3xl--line-height: 1.1;
+
+  --container-content: 1200px;
+  --container-reading: 720px;
+}
+
+@layer base {
+  html {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--typeface-sans);
+    font-size: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-size: var(--step-1);
+    line-height: 1.55;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--typeface-serif);
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  a {
+    color: var(--accent);
+    text-underline-offset: 0.18em;
+    text-decoration-thickness: 1px;
+  }
+  a:hover {
+    text-decoration-thickness: 2px;
+  }
+  :focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  ::selection {
+    background: var(--accent-tint);
+  }
+  [lang='ar'], .font-arabic {
+    font-family: var(--typeface-arabic);
+  }
+  mark {
+    background: var(--mark-bg);
+    color: inherit;
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+  input, select, textarea, button {
+    font: inherit;
+    color: inherit;
+  }
+  hr {
+    border-color: var(--rule);
+  }
+}
+
+@layer components {
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .reading {
+    font-size: var(--reading);
+    line-height: 1.6;
+    max-width: 72ch;
+  }
+  .reading p + p {
+    margin-top: 1em;
+  }
+  .control {
+    display: block;
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--control-border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    padding: 0.5rem 0.75rem;
+  }
+  .control:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+  }
+  textarea.control {
+    min-height: 7rem;
+    line-height: 1.5;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--on-accent);
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn:hover {
+    text-decoration: none;
+    filter: brightness(1.08);
+  }
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: var(--surface);
+    color: var(--accent);
+    border-color: var(--control-border);
+  }
+  .btn-quiet {
+    background: transparent;
+    color: var(--accent);
+    border-color: transparent;
+    padding-inline: 0.5rem;
+  }
+  .label {
+    display: block;
+    font-weight: 600;
+    font-size: var(--step-0);
+    margin-bottom: 0.25rem;
+  }
+  .hint {
+    color: var(--text-muted);
+    font-size: var(--step-0);
+  }
+  .field-error {
+    color: var(--status-severe);
+    font-size: var(--step-0);
+    font-weight: 600;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+  }
+  .sr-only-focusable:not(:focus):not(:focus-within) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  /* Accessible tooltip: shown on hover and keyboard focus, dismissed with Escape. */
+  .tip {
+    position: relative;
+    display: inline-flex;
+  }
+  .tip-body {
+    position: absolute;
+    inset-inline-start: 0;
+    top: calc(100% + 6px);
+    z-index: 30;
+    width: max-content;
+    max-width: min(18rem, calc(100vw - 2rem));
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--step-0);
+    font-weight: 400;
+    line-height: 1.45;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--text) 12%, transparent);
+    /* display:none, not visibility:hidden, so hidden tooltips never widen the page */
+    display: none;
+  }
+  .tip:hover .tip-body,
+  .tip:focus-within .tip-body {
+    display: block;
+  }
+  .tips-dismissed .tip-body {
+    display: none !important;
+  }
+  .table-scroll {
+    /* relative: keeps absolutely positioned descendants (sr-only text) inside the scroll box */
+    position: relative;
+    overflow-x: auto;
+    max-width: 100%;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: var(--step-0);
+  }
+  .data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    border-bottom: 2px solid var(--rule);
+    text-align: start;
+    font-weight: 600;
+    padding: 0.625rem 0.75rem;
+    white-space: nowrap;
+  }
+  .data-table td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  .data-table tbody tr:nth-child(even) {
+    background: var(--row-alt);
+  }
+  .data-table tbody tr:hover,
+  .data-table tbody tr:focus-within {
+    background: var(--row-hover);
+  }
+  .data-table .num {
+    text-align: end;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  header[role='banner'] nav, footer, .no-print {
+    display: none !important;
+  }
+}

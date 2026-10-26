@@ -1,0 +1,41 @@
+import type { IncidentDraftInput } from '@/lib/validation'
+
+export function emptyDraftForTest(): IncidentDraftInput {
+  const sid = crypto.randomUUID()
+  return {
+    id: null,
+    title: 'Test',
+    summary: 'A sentence.[1] Another.[1]',
+    dateStart: '2026-01-01',
+    dateEnd: null,
+    datePrecision: 'day',
+    stateFips: '26',
+    countyFips: null,
+    city: 'Dearborn',
+    lat: null,
+    lng: null,
+    locationPrecision: 'city',
+    incidentTypes: ['VAND'],
+    targetType: 'individual',
+    targetAttributes: [],
+    severity: 1,
+    deaths: null,
+    injuries: null,
+    propertyDamage: 'unknown',
+    perpetratorType: 'unknown',
+    perpetratorCount: null,
+    perpetratorNames: [],
+    biasIndicators: ['slur'],
+    verificationLevel: 'V2',
+    legalStatus: 'reported',
+    hateCrimeCharged: 'unknown',
+    agenciesInvolved: [],
+    relatedIncidentIds: [],
+    tags: [],
+    caseIds: [],
+    editorNotes: '',
+    sources: [{ id: sid, url: 'https://example.org/a', outlet: 'Outlet', title: 'Title', author: null, publishedDate: null, accessedDate: '2026-01-02', sourceType: 'news', claimAttribution: null }],
+    legalEvents: [],
+    statements: [],
+  }
+}

@@ -1,0 +1,295 @@
+/**
+ * The body of an incident record. Used by the public page and by the admin
+ * editor's live preview, so editors see exactly what will be published.
+ * Pure presentational: no data fetching, safe in server and client trees.
+ */
+import type { ReactNode } from 'react'
+import {
+  BIAS_INDICATOR_META,
+  CONVICTION_STATUSES,
+  INCIDENT_TYPE_META,
+  LOCATION_PRECISION_META,
+  PERPETRATOR_TYPE_META,
+  SOURCE_TYPE_META,
+  STATEMENT_TYPE_META,
+  STATEMENT_TYPES,
+  TARGET_ATTRIBUTE_META,
+  TARGET_TYPE_META,
+  YES_NO_UNKNOWN_META,
+  type BiasIndicator,
+  type DatePrecision,
+  type IncidentType,
+  type LegalStatus,
+  type LocationPrecision,
+  type PerpetratorType,
+  type Severity,
+  type SourceType,
+  type TargetAttribute,
+  type TargetType,
+  type VerificationLevel,
+  type YesNoUnknown,
+} from '@/db/enums'
+import type { PublicCase, PublicChange, PublicLegalEvent, PublicSource, PublicStatement } from '@/db/schema'
+import { formatDate, formatDateRange, formatPlace, formatTimestamp, plural } from '@/lib/format'
+import { stateName } from '@/lib/states'
+import { DemoBadge, LegalStatusBadges, SeverityMarker, VerificationBadge } from './Badges'
+import { SourceChip } from './SourceChip'
+import { Summary } from './Summary'
+import { Timeline } from './Timeline'
+
+export type IncidentViewData = {
+  id: string
+  title: string
+  summary: string
+  dateStart: string
+  dateEnd: string | null
+  datePrecision: DatePrecision
+  city: string | null
+  stateCode: string
+  locationPrecision: LocationPrecision
+  incidentTypes: IncidentType[]
+  targetType: TargetType
+  targetAttributes: TargetAttribute[]
+  severity: Severity
+  deaths: number | null
+  injuries: number | null
+  propertyDamage: YesNoUnknown
+  perpetratorType: PerpetratorType
+  perpetratorCount: number | null
+  perpetratorNames: string[]
+  biasIndicators: BiasIndicator[]
+  verificationLevel: VerificationLevel
+  legalStatus: LegalStatus | null
+  hateCrimeCharged: YesNoUnknown
+  agenciesInvolved: string[]
+  sourceTypes: SourceType[]
+  sources: PublicSource[]
+  legalEvents: PublicLegalEvent[]
+  statements: PublicStatement[]
+  cases: PublicCase[]
+  changeLog: PublicChange[]
+  isDemo: boolean
+  updatedAt: string | null
+}
+
+function casualties(deaths: number | null, injuries: number | null): string {
+  const parts: string[] = []
+  parts.push(deaths === null ? 'Deaths: unknown' : deaths === 0 ? 'No deaths reported' : plural(deaths, 'death'))
+  parts.push(injuries === null ? 'injuries: unknown' : injuries === 0 ? 'no injuries reported' : plural(injuries, 'person injured', 'people injured'))
+  return parts.join('; ')
+}
+
+function Fact({ term, children }: { term: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-x-4 border-b border-rule py-2.5 sm:grid-cols-[13rem_1fr]">
+      <dt className="text-sm font-semibold text-muted">{term}</dt>
+      <dd className="text-base">{children}</dd>
+    </div>
+  )
+}
+
+export function IncidentView({ data, preview = false }: { data: IncidentViewData; preview?: boolean }) {
+  const idPrefix = `rec-${data.id || 'draft'}`
+  const died = (data.deaths ?? 0) > 0 || data.severity === 5
+  const convicted = data.legalStatus ? CONVICTION_STATUSES.includes(data.legalStatus) : false
+  const publicLevel = data.verificationLevel === 'V0' ? null : data.verificationLevel
+  const statementsByType = STATEMENT_TYPES.map((t) => ({ type: t, items: data.statements.filter((s) => s.statement_type === t) })).filter(
+    (g) => g.items.length,
+  )
+
+  return (
+    <article aria-labelledby={`${idPrefix}-title`}>
+      <header className="mb-6">
+        {died ? <hr className="mb-4 border-t border-text" aria-hidden="true" /> : null}
+        <p className="text-sm text-muted tabular">
+          <span>{formatDateRange(data.dateStart, data.dateEnd, data.datePrecision)}</span>
+          <span aria-hidden="true"> · </span>
+          <span>{formatPlace(data.city, data.stateCode) || stateName(data.stateCode)}</span>
+          <span aria-hidden="true"> · </span>
+          <span>{data.incidentTypes.map((t) => INCIDENT_TYPE_META[t].label).join(', ')}</span>
+        </p>
+        <h1 id={`${idPrefix}-title`} className="mt-2 text-2xl font-semibold sm:text-3xl">
+          {data.title || 'Untitled draft'}
+        </h1>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {publicLevel ? (
+            <VerificationBadge level={publicLevel} sourceTypes={data.sourceTypes} idPrefix={idPrefix} />
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-dashed border-severe px-2 py-0.5 text-sm font-semibold text-severe">
+              V0 — unverified, cannot be published
+            </span>
+          )}
+          {data.legalStatus ? (
+            <LegalStatusBadges status={data.legalStatus} hateCrimeCharged={data.hateCrimeCharged} idPrefix={idPrefix} />
+          ) : (
+            <span className="inline-flex items-center rounded-full border border-dashed border-severe px-2 py-0.5 text-sm font-semibold text-severe">
+              Legal status not set
+            </span>
+          )}
+          <SeverityMarker severity={data.severity} idPrefix={idPrefix} />
+          {data.isDemo ? <DemoBadge /> : null}
+        </div>
+      </header>
+
+      <section aria-labelledby={`${idPrefix}-summary`} className="mb-8">
+        <h2 id={`${idPrefix}-summary`} className="sr-only">
+          Summary
+        </h2>
+        <p className="reading">{data.summary ? <Summary text={data.summary} idPrefix={`${idPrefix}-source`} /> : preview ? <em>No summary yet.</em> : null}</p>
+      </section>
+
+      <section aria-labelledby={`${idPrefix}-facts`} className="mb-8">
+        <h2 id={`${idPrefix}-facts`} className="mb-2 text-xl">
+          Key facts
+        </h2>
+        <dl className="border-t border-rule">
+          <Fact term="Date">
+            {formatDateRange(data.dateStart, data.dateEnd, data.datePrecision)}
+            {data.datePrecision !== 'day' ? <span className="text-muted"> (only the {data.datePrecision} is known)</span> : null}
+          </Fact>
+          <Fact term="Location">
+            {formatPlace(data.city, data.stateCode) || stateName(data.stateCode)}
+            <span className="block text-sm text-muted">Shown at: {LOCATION_PRECISION_META[data.locationPrecision].label.toLowerCase()}</span>
+          </Fact>
+          <Fact term="Target">
+            {TARGET_TYPE_META[data.targetType].label}
+            {data.targetAttributes.length ? (
+              <span className="text-muted"> — {data.targetAttributes.map((a) => TARGET_ATTRIBUTE_META[a].label).join(', ')}</span>
+            ) : null}
+          </Fact>
+          <Fact term="Perpetrator">
+            {PERPETRATOR_TYPE_META[data.perpetratorType].label}
+            {data.perpetratorCount ? `, ${plural(data.perpetratorCount, 'person', 'people')}` : ''}
+            {data.perpetratorNames.length ? (
+              <span className="block">
+                {convicted ? 'Convicted: ' : 'Charged (alleged): '}
+                {data.perpetratorNames.join(', ')}
+              </span>
+            ) : null}
+          </Fact>
+          <Fact term="Injuries and deaths">{casualties(data.deaths, data.injuries)}</Fact>
+          <Fact term="Property damage">{YES_NO_UNKNOWN_META[data.propertyDamage].label}</Fact>
+          <Fact term="Hate-crime charge">{YES_NO_UNKNOWN_META[data.hateCrimeCharged].label}</Fact>
+          <Fact term="Agencies involved">{data.agenciesInvolved.length ? data.agenciesInvolved.join('; ') : 'None named in sources'}</Fact>
+          <Fact term="Bias indicators stated by sources">
+            {data.biasIndicators.length ? data.biasIndicators.map((b) => BIAS_INDICATOR_META[b].label).join(', ') : 'None recorded'}
+          </Fact>
+          <Fact term="Record">
+            <span className="tabular">{data.id || 'New draft'}</span>
+            {data.updatedAt ? <span className="text-muted"> · last updated {formatTimestamp(data.updatedAt)}</span> : null}
+          </Fact>
+        </dl>
+      </section>
+
+      {data.legalEvents.length ? (
+        <section aria-labelledby={`${idPrefix}-legal`} className="mb-8">
+          <h2 id={`${idPrefix}-legal`} className="mb-3 text-xl">
+            Legal timeline
+          </h2>
+          <Timeline events={data.legalEvents} sourceIdPrefix={`${idPrefix}-source`} />
+          {data.cases.length ? (
+            <ul className="mt-4 space-y-1 text-base">
+              {data.cases.map((c) => (
+                <li key={c.id}>
+                  <span className="font-semibold">{c.name}</span>
+                  {c.court ? `, ${c.court}` : ''}
+                  {c.docket_number ? <span className="tabular"> · Docket {c.docket_number}</span> : null}
+                  {c.next_date ? <span className="text-muted"> · Next date {formatDate(c.next_date)}</span> : null}
+                  {c.courtlistener_url ? (
+                    <>
+                      {' · '}
+                      <a href={c.courtlistener_url} rel="noopener noreferrer nofollow">
+                        Docket on CourtListener
+                      </a>
+                    </>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </section>
+      ) : null}
+
+      {statementsByType.length ? (
+        <section aria-labelledby={`${idPrefix}-statements`} className="mb-8">
+          <h2 id={`${idPrefix}-statements`} className="mb-3 text-xl">
+            Statements
+          </h2>
+          {statementsByType.map((g) => (
+            <div key={g.type} className="mb-4">
+              <h3 className="mb-2 text-lg">{STATEMENT_TYPE_META[g.type].label}</h3>
+              <ul className="space-y-3">
+                {g.items.map((s, i) => (
+                  <li key={i} className="border-s-2 border-rule ps-4">
+                    {s.quote ? <blockquote className="reading">“{s.quote}”</blockquote> : <p className="reading">{s.paraphrase}</p>}
+                    <p className="text-sm text-muted">
+                      {s.quote ? '— ' : 'Paraphrased: '}
+                      {[s.speaker, s.speaker_role, s.organization].filter(Boolean).join(', ')}
+                      {s.date ? `, ${formatDate(s.date)}` : ''}
+                      {s.source_n ? (
+                        <>
+                          {' '}
+                          <a href={`#${idPrefix}-source-${s.source_n}`}>[{s.source_n}]</a>
+                        </>
+                      ) : null}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </section>
+      ) : null}
+
+      <section aria-labelledby={`${idPrefix}-sources`} className="mb-8">
+        <h2 id={`${idPrefix}-sources`} className="mb-3 text-xl">
+          Sources
+        </h2>
+        {data.sources.length ? (
+          <ol className="space-y-3">
+            {data.sources.map((s) => (
+              <li key={s.n} id={`${idPrefix}-source-${s.n}`} className="flex gap-3 scroll-mt-24">
+                <span className="w-6 shrink-0 text-end font-semibold tabular">{s.n}.</span>
+                <div className="min-w-0">
+                  <SourceChip source={s} idPrefix={idPrefix} />
+                  <p className="mt-1 text-base break-words">{s.title}</p>
+                  <p className="text-sm text-muted">
+                    {SOURCE_TYPE_META[s.source_type].label}
+                    {s.author ? ` · ${s.author}` : ''}
+                    {s.claim_attribution ? ` · ${s.claim_attribution}` : ''}
+                    {` · accessed ${formatDate(s.accessed_date)}`}
+                    {s.archived_url ? null : ' · archived copy pending'}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="field-error">No sources. A record cannot be published without at least one source.</p>
+        )}
+      </section>
+
+      <section aria-labelledby={`${idPrefix}-changes`} className="mb-8">
+        <h2 id={`${idPrefix}-changes`} className="mb-3 text-xl">
+          Change log
+        </h2>
+        {data.changeLog.length ? (
+          <ol className="space-y-2 text-base">
+            {data.changeLog.map((c, i) => (
+              <li key={i} className="tabular">
+                <time dateTime={c.date} className="text-muted">
+                  {formatTimestamp(c.date)}
+                </time>
+                {' — '}
+                {c.note}
+                {c.changed_fields.length ? <span className="text-sm text-muted"> (changed: {c.changed_fields.join(', ').replaceAll('_', ' ')})</span> : null}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="text-muted">{preview ? 'The first entry will read “Published.”' : 'No changes recorded.'}</p>
+        )}
+      </section>
+    </article>
+  )
+}

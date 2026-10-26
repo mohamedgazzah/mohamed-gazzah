@@ -1,0 +1,3941 @@
+{
+  "id": "758480d6-5bdf-4f39-b816-6a604c116635",
+  "prevId": "63e40761-1896-48f9-b7a8-dd4a55087729",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "record.audit_log": {
+      "name": "audit_log",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "at": {
+          "name": "at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action": {
+          "name": "action",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_type": {
+          "name": "entity_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entity_id": {
+          "name": "entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "details": {
+          "name": "details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::jsonb"
+        }
+      },
+      "indexes": {
+        "audit_log_at_idx": {
+          "name": "audit_log_at_idx",
+          "columns": [
+            {
+              "expression": "at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "audit_log_entity_idx": {
+          "name": "audit_log_entity_idx",
+          "columns": [
+            {
+              "expression": "entity_type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "entity_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "audit_log_actor_id_users_id_fk": {
+          "name": "audit_log_actor_id_users_id_fk",
+          "tableFrom": "audit_log",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.cases": {
+      "name": "cases",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "court": {
+          "name": "court",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "jurisdiction": {
+          "name": "jurisdiction",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "docket_number": {
+          "name": "docket_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "case_type": {
+          "name": "case_type",
+          "type": "case_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "parties": {
+          "name": "parties",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "stage": {
+          "name": "stage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_date": {
+          "name": "next_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "courtlistener_url": {
+          "name": "courtlistener_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_demo": {
+          "name": "is_demo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cases_created_by_users_id_fk": {
+          "name": "cases_created_by_users_id_fk",
+          "tableFrom": "cases",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "cases_id_format": {
+          "name": "cases_id_format",
+          "value": "\"record\".\"cases\".\"id\" ~ '^(CASE|DEMO-CASE)-[0-9]{4}-[0-9]{4,}$'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.change_log": {
+      "name": "change_log",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "field": {
+          "name": "field",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "old_value": {
+          "name": "old_value",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "new_value": {
+          "name": "new_value",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "change_log_incident_idx": {
+          "name": "change_log_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "change_log_incident_id_incidents_id_fk": {
+          "name": "change_log_incident_id_incidents_id_fk",
+          "tableFrom": "change_log",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "change_log_actor_id_users_id_fk": {
+          "name": "change_log_actor_id_users_id_fk",
+          "tableFrom": "change_log",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.correction_tickets": {
+      "name": "correction_tickets",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "record_id": {
+          "name": "record_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "submission_id": {
+          "name": "submission_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "correction_status",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'open'"
+        },
+        "is_privacy_request": {
+          "name": "is_privacy_request",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "response_due_at": {
+          "name": "response_due_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fix_due_at": {
+          "name": "fix_due_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_response_at": {
+          "name": "first_response_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "resolution_note": {
+          "name": "resolution_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "assigned_to": {
+          "name": "assigned_to",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "corrections_status_idx": {
+          "name": "corrections_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "response_due_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "correction_tickets_submission_id_submissions_id_fk": {
+          "name": "correction_tickets_submission_id_submissions_id_fk",
+          "tableFrom": "correction_tickets",
+          "columnsFrom": [
+            "submission_id"
+          ],
+          "tableTo": "submissions",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "correction_tickets_assigned_to_users_id_fk": {
+          "name": "correction_tickets_assigned_to_users_id_fk",
+          "tableFrom": "correction_tickets",
+          "columnsFrom": [
+            "assigned_to"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.dataset_releases": {
+      "name": "dataset_releases",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "methodology_version": {
+          "name": "methodology_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "record_count": {
+          "name": "record_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "csv": {
+          "name": "csv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json": {
+          "name": "json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "csv_sha256": {
+          "name": "csv_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json_sha256": {
+          "name": "json_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_version": {
+          "name": "previous_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changelog": {
+          "name": "changelog",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "dataset_releases_version_unique": {
+          "name": "dataset_releases_version_unique",
+          "columns": [
+            "version"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.id_counters": {
+      "name": "id_counters",
+      "schema": "record",
+      "columns": {
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "next": {
+          "name": "next",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.incident_cases": {
+      "name": "incident_cases",
+      "schema": "record",
+      "columns": {
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "case_id": {
+          "name": "case_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "incident_cases_incident_id_incidents_id_fk": {
+          "name": "incident_cases_incident_id_incidents_id_fk",
+          "tableFrom": "incident_cases",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "incident_cases_case_id_cases_id_fk": {
+          "name": "incident_cases_case_id_cases_id_fk",
+          "tableFrom": "incident_cases",
+          "columnsFrom": [
+            "case_id"
+          ],
+          "tableTo": "cases",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {
+        "incident_cases_incident_id_case_id_pk": {
+          "name": "incident_cases_incident_id_case_id_pk",
+          "columns": [
+            "incident_id",
+            "case_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.incident_edits": {
+      "name": "incident_edits",
+      "schema": "record",
+      "columns": {
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_at": {
+          "name": "first_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "incident_edits_incident_id_incidents_id_fk": {
+          "name": "incident_edits_incident_id_incidents_id_fk",
+          "tableFrom": "incident_edits",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "incident_edits_actor_id_users_id_fk": {
+          "name": "incident_edits_actor_id_users_id_fk",
+          "tableFrom": "incident_edits",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "incident_edits_incident_id_revision_actor_id_pk": {
+          "name": "incident_edits_incident_id_revision_actor_id_pk",
+          "columns": [
+            "incident_id",
+            "revision",
+            "actor_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.incidents": {
+      "name": "incidents",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(110)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "date_start": {
+          "name": "date_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_end": {
+          "name": "date_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_precision": {
+          "name": "date_precision",
+          "type": "temporal_precision",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'day'"
+        },
+        "state_fips": {
+          "name": "state_fips",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "county_fips": {
+          "name": "county_fips",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lat": {
+          "name": "lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lng": {
+          "name": "lng",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_lat": {
+          "name": "map_lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_lng": {
+          "name": "map_lng",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_precision": {
+          "name": "location_precision",
+          "type": "location_precision",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'city'"
+        },
+        "incident_types": {
+          "name": "incident_types",
+          "type": "incident_type[]",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_type": {
+          "name": "target_type",
+          "type": "target_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_attributes": {
+          "name": "target_attributes",
+          "type": "target_attribute[]",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "severity": {
+          "name": "severity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deaths": {
+          "name": "deaths",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injuries": {
+          "name": "injuries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "property_damage": {
+          "name": "property_damage",
+          "type": "yes_no_unknown",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "perpetrator_type": {
+          "name": "perpetrator_type",
+          "type": "perpetrator_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "perpetrator_count": {
+          "name": "perpetrator_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "perpetrator_names": {
+          "name": "perpetrator_names",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "bias_indicators": {
+          "name": "bias_indicators",
+          "type": "bias_indicator[]",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "hate_crime_charged": {
+          "name": "hate_crime_charged",
+          "type": "yes_no_unknown",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "agencies_involved": {
+          "name": "agencies_involved",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "related_incident_ids": {
+          "name": "related_incident_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "verification_level": {
+          "name": "verification_level",
+          "type": "verification_level",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'V0'"
+        },
+        "legal_status": {
+          "name": "legal_status",
+          "type": "legal_status",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "editor_notes": {
+          "name": "editor_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "workflow_status": {
+          "name": "workflow_status",
+          "type": "workflow_status",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'draft'"
+        },
+        "exclusion_reason": {
+          "name": "exclusion_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "revision_txid": {
+          "name": "revision_txid",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_demo": {
+          "name": "is_demo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "lead_id": {
+          "name": "lead_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "submitted_at": {
+          "name": "submitted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_published_at": {
+          "name": "first_published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "next_review_due": {
+          "name": "next_review_due",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "geom": {
+          "name": "geom",
+          "type": "geometry(point)",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "type": "stored",
+            "as": "CASE WHEN lat IS NULL OR lng IS NULL THEN NULL ELSE ST_SetSRID(ST_MakePoint(lng, lat), 4326) END"
+          }
+        }
+      },
+      "indexes": {
+        "incidents_status_idx": {
+          "name": "incidents_status_idx",
+          "columns": [
+            {
+              "expression": "workflow_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "incidents_date_idx": {
+          "name": "incidents_date_idx",
+          "columns": [
+            {
+              "expression": "date_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "incidents_geom_idx": {
+          "name": "incidents_geom_idx",
+          "columns": [
+            {
+              "expression": "geom",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "gist",
+          "concurrently": false
+        },
+        "incidents_title_trgm_idx": {
+          "name": "incidents_title_trgm_idx",
+          "columns": [
+            {
+              "expression": "\"title\" gin_trgm_ops",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "gin",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "incidents_lead_id_leads_id_fk": {
+          "name": "incidents_lead_id_leads_id_fk",
+          "tableFrom": "incidents",
+          "columnsFrom": [
+            "lead_id"
+          ],
+          "tableTo": "leads",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "incidents_created_by_users_id_fk": {
+          "name": "incidents_created_by_users_id_fk",
+          "tableFrom": "incidents",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "incidents_id_format": {
+          "name": "incidents_id_format",
+          "value": "\"record\".\"incidents\".\"id\" ~ '^(US|DEMO)-[0-9]{4}-[0-9]{4,}$'"
+        },
+        "incidents_demo_flag": {
+          "name": "incidents_demo_flag",
+          "value": "\"record\".\"incidents\".\"is_demo\" = (\"record\".\"incidents\".\"id\" LIKE 'DEMO-%')"
+        },
+        "incidents_title_length": {
+          "name": "incidents_title_length",
+          "value": "char_length(\"record\".\"incidents\".\"title\") BETWEEN 1 AND 110"
+        },
+        "incidents_dates": {
+          "name": "incidents_dates",
+          "value": "\"record\".\"incidents\".\"date_end\" IS NULL OR \"record\".\"incidents\".\"date_end\" >= \"record\".\"incidents\".\"date_start\""
+        },
+        "incidents_severity": {
+          "name": "incidents_severity",
+          "value": "\"record\".\"incidents\".\"severity\" BETWEEN 1 AND 5"
+        },
+        "incidents_types_nonempty": {
+          "name": "incidents_types_nonempty",
+          "value": "cardinality(\"record\".\"incidents\".\"incident_types\") >= 1"
+        },
+        "incidents_counts": {
+          "name": "incidents_counts",
+          "value": "coalesce(\"record\".\"incidents\".\"deaths\", 0) >= 0 AND coalesce(\"record\".\"incidents\".\"injuries\", 0) >= 0 AND coalesce(\"record\".\"incidents\".\"perpetrator_count\", 0) >= 0"
+        },
+        "incidents_lat": {
+          "name": "incidents_lat",
+          "value": "\"record\".\"incidents\".\"lat\" IS NULL OR \"record\".\"incidents\".\"lat\" BETWEEN -90 AND 90"
+        },
+        "incidents_lng": {
+          "name": "incidents_lng",
+          "value": "\"record\".\"incidents\".\"lng\" IS NULL OR \"record\".\"incidents\".\"lng\" BETWEEN -180 AND 180"
+        },
+        "incidents_county_fips": {
+          "name": "incidents_county_fips",
+          "value": "\"record\".\"incidents\".\"county_fips\" IS NULL OR \"record\".\"incidents\".\"county_fips\" ~ '^[0-9]{5}$'"
+        },
+        "incidents_excluded_reason": {
+          "name": "incidents_excluded_reason",
+          "value": "\"record\".\"incidents\".\"workflow_status\" <> 'excluded' OR coalesce(trim(\"record\".\"incidents\".\"exclusion_reason\"), '') <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.leads": {
+      "name": "leads",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "source": {
+          "name": "source",
+          "type": "lead_source",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "lead_status",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'new'"
+        },
+        "headline": {
+          "name": "headline",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outlet": {
+          "name": "outlet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_date": {
+          "name": "published_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "matched_terms": {
+          "name": "matched_terms",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "submission_id": {
+          "name": "submission_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "triage_reason": {
+          "name": "triage_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "triaged_by": {
+          "name": "triaged_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "triaged_at": {
+          "name": "triaged_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "leads_status_idx": {
+          "name": "leads_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "leads_submission_id_submissions_id_fk": {
+          "name": "leads_submission_id_submissions_id_fk",
+          "tableFrom": "leads",
+          "columnsFrom": [
+            "submission_id"
+          ],
+          "tableTo": "submissions",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "leads_triaged_by_users_id_fk": {
+          "name": "leads_triaged_by_users_id_fk",
+          "tableFrom": "leads",
+          "columnsFrom": [
+            "triaged_by"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "leads_out_of_scope_reason": {
+          "name": "leads_out_of_scope_reason",
+          "value": "\"record\".\"leads\".\"status\" <> 'out_of_scope' OR coalesce(trim(\"record\".\"leads\".\"triage_reason\"), '') <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.legal_events": {
+      "name": "legal_events",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "case_id": {
+          "name": "case_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "event_type": {
+          "name": "event_type",
+          "type": "legal_event_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "legal_events_incident_idx": {
+          "name": "legal_events_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "legal_events_incident_id_incidents_id_fk": {
+          "name": "legal_events_incident_id_incidents_id_fk",
+          "tableFrom": "legal_events",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "legal_events_case_id_cases_id_fk": {
+          "name": "legal_events_case_id_cases_id_fk",
+          "tableFrom": "legal_events",
+          "columnsFrom": [
+            "case_id"
+          ],
+          "tableTo": "cases",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "set null"
+        },
+        "legal_events_source_id_sources_id_fk": {
+          "name": "legal_events_source_id_sources_id_fk",
+          "tableFrom": "legal_events",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "sources",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.publications": {
+      "name": "publications",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "publication_action",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "public_note": {
+          "name": "public_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "changed_fields": {
+          "name": "changed_fields",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "actor_id": {
+          "name": "actor_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "review_id": {
+          "name": "review_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "publications_incident_idx": {
+          "name": "publications_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "publications_incident_id_incidents_id_fk": {
+          "name": "publications_incident_id_incidents_id_fk",
+          "tableFrom": "publications",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "publications_actor_id_users_id_fk": {
+          "name": "publications_actor_id_users_id_fk",
+          "tableFrom": "publications",
+          "columnsFrom": [
+            "actor_id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "publications_review_id_reviews_id_fk": {
+          "name": "publications_review_id_reviews_id_fk",
+          "tableFrom": "publications",
+          "columnsFrom": [
+            "review_id"
+          ],
+          "tableTo": "reviews",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "publications_note": {
+          "name": "publications_note",
+          "value": "btrim(\"record\".\"publications\".\"public_note\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.published_incidents": {
+      "name": "published_incidents",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(110)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "date_start": {
+          "name": "date_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_end": {
+          "name": "date_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_precision": {
+          "name": "date_precision",
+          "type": "temporal_precision",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'day'"
+        },
+        "state_fips": {
+          "name": "state_fips",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "county_fips": {
+          "name": "county_fips",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lat": {
+          "name": "lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lng": {
+          "name": "lng",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_lat": {
+          "name": "map_lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_lng": {
+          "name": "map_lng",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_precision": {
+          "name": "location_precision",
+          "type": "location_precision",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'city'"
+        },
+        "incident_types": {
+          "name": "incident_types",
+          "type": "incident_type[]",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_type": {
+          "name": "target_type",
+          "type": "target_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_attributes": {
+          "name": "target_attributes",
+          "type": "target_attribute[]",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "severity": {
+          "name": "severity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deaths": {
+          "name": "deaths",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injuries": {
+          "name": "injuries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "property_damage": {
+          "name": "property_damage",
+          "type": "yes_no_unknown",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "perpetrator_type": {
+          "name": "perpetrator_type",
+          "type": "perpetrator_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "perpetrator_count": {
+          "name": "perpetrator_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "perpetrator_names": {
+          "name": "perpetrator_names",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "bias_indicators": {
+          "name": "bias_indicators",
+          "type": "bias_indicator[]",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "hate_crime_charged": {
+          "name": "hate_crime_charged",
+          "type": "yes_no_unknown",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'unknown'"
+        },
+        "agencies_involved": {
+          "name": "agencies_involved",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "related_incident_ids": {
+          "name": "related_incident_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "state_code": {
+          "name": "state_code",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verification_level": {
+          "name": "verification_level",
+          "type": "verification_level",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "legal_status": {
+          "name": "legal_status",
+          "type": "legal_status",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "case_ids": {
+          "name": "case_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "source_types": {
+          "name": "source_types",
+          "type": "source_type[]",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_count": {
+          "name": "source_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sources": {
+          "name": "sources",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "legal_events": {
+          "name": "legal_events",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statements": {
+          "name": "statements",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cases": {
+          "name": "cases",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "methodology_version": {
+          "name": "methodology_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_demo": {
+          "name": "is_demo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "approved_review_id": {
+          "name": "approved_review_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "published_by": {
+          "name": "published_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "search_text": {
+          "name": "search_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "search_document": {
+          "name": "search_document",
+          "type": "tsvector",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "type": "stored",
+            "as": "to_tsvector('english'::regconfig, search_text)"
+          }
+        },
+        "geom": {
+          "name": "geom",
+          "type": "geometry(point)",
+          "primaryKey": false,
+          "notNull": false,
+          "generated": {
+            "type": "stored",
+            "as": "CASE WHEN lat IS NULL OR lng IS NULL THEN NULL ELSE ST_SetSRID(ST_MakePoint(lng, lat), 4326) END"
+          }
+        }
+      },
+      "indexes": {
+        "published_date_idx": {
+          "name": "published_date_idx",
+          "columns": [
+            {
+              "expression": "date_start",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "published_state_idx": {
+          "name": "published_state_idx",
+          "columns": [
+            {
+              "expression": "state_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "published_search_idx": {
+          "name": "published_search_idx",
+          "columns": [
+            {
+              "expression": "search_document",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "gin",
+          "concurrently": false
+        },
+        "published_search_trgm_idx": {
+          "name": "published_search_trgm_idx",
+          "columns": [
+            {
+              "expression": "\"search_text\" gin_trgm_ops",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "gin",
+          "concurrently": false
+        },
+        "published_types_idx": {
+          "name": "published_types_idx",
+          "columns": [
+            {
+              "expression": "incident_types",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "gin",
+          "concurrently": false
+        },
+        "published_geom_idx": {
+          "name": "published_geom_idx",
+          "columns": [
+            {
+              "expression": "geom",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "gist",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "published_incidents_id_incidents_id_fk": {
+          "name": "published_incidents_id_incidents_id_fk",
+          "tableFrom": "published_incidents",
+          "columnsFrom": [
+            "id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "published_incidents_approved_review_id_reviews_id_fk": {
+          "name": "published_incidents_approved_review_id_reviews_id_fk",
+          "tableFrom": "published_incidents",
+          "columnsFrom": [
+            "approved_review_id"
+          ],
+          "tableTo": "reviews",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "published_incidents_published_by_users_id_fk": {
+          "name": "published_incidents_published_by_users_id_fk",
+          "tableFrom": "published_incidents",
+          "columnsFrom": [
+            "published_by"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "published_not_v0": {
+          "name": "published_not_v0",
+          "value": "\"record\".\"published_incidents\".\"verification_level\" <> 'V0'"
+        },
+        "published_has_sources": {
+          "name": "published_has_sources",
+          "value": "\"record\".\"published_incidents\".\"source_count\" >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.rate_limits": {
+      "name": "rate_limits",
+      "schema": "record",
+      "columns": {
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "window_start": {
+          "name": "window_start",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "count": {
+          "name": "count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "rate_limits_key_window_start_pk": {
+          "name": "rate_limits_key_window_start_pk",
+          "columns": [
+            "key",
+            "window_start"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.reviews": {
+      "name": "reviews",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revision": {
+          "name": "revision",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reviewer_id": {
+          "name": "reviewer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision": {
+          "name": "decision",
+          "type": "review_decision",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "comments": {
+          "name": "comments",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "chk_sources_cited": {
+          "name": "chk_sources_cited",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "chk_allegations_labelled": {
+          "name": "chk_allegations_labelled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "chk_victim_privacy": {
+          "name": "chk_victim_privacy",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "chk_location_precision": {
+          "name": "chk_location_precision",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "chk_taxonomy_correct": {
+          "name": "chk_taxonomy_correct",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "reviews_incident_idx": {
+          "name": "reviews_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "revision",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "reviews_incident_id_incidents_id_fk": {
+          "name": "reviews_incident_id_incidents_id_fk",
+          "tableFrom": "reviews",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "reviews_reviewer_id_users_id_fk": {
+          "name": "reviews_reviewer_id_users_id_fk",
+          "tableFrom": "reviews",
+          "columnsFrom": [
+            "reviewer_id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "reviews_checklist_complete": {
+          "name": "reviews_checklist_complete",
+          "value": "\"record\".\"reviews\".\"decision\" <> 'approved' OR (\"record\".\"reviews\".\"chk_sources_cited\" AND \"record\".\"reviews\".\"chk_allegations_labelled\" AND \"record\".\"reviews\".\"chk_victim_privacy\" AND \"record\".\"reviews\".\"chk_location_precision\" AND \"record\".\"reviews\".\"chk_taxonomy_correct\")"
+        },
+        "reviews_return_comments": {
+          "name": "reviews_return_comments",
+          "value": "\"record\".\"reviews\".\"decision\" <> 'returned' OR btrim(\"record\".\"reviews\".\"comments\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.sessions": {
+      "name": "sessions",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mfa_verified_at": {
+          "name": "mfa_verified_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_seen_at": {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sessions_user_idx": {
+          "name": "sessions_user_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.sources": {
+      "name": "sources",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "archived_url": {
+          "name": "archived_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archive_status": {
+          "name": "archive_status",
+          "type": "archive_status",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "archive_attempts": {
+          "name": "archive_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "archive_job_id": {
+          "name": "archive_job_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archive_last_error": {
+          "name": "archive_last_error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "outlet": {
+          "name": "outlet",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "author": {
+          "name": "author",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_date": {
+          "name": "published_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "accessed_date": {
+          "name": "accessed_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "CURRENT_DATE"
+        },
+        "source_type": {
+          "name": "source_type",
+          "type": "source_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_attribution": {
+          "name": "claim_attribution",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "sources_incident_idx": {
+          "name": "sources_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "sources_archive_idx": {
+          "name": "sources_archive_idx",
+          "columns": [
+            {
+              "expression": "archive_status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "sources_incident_id_incidents_id_fk": {
+          "name": "sources_incident_id_incidents_id_fk",
+          "tableFrom": "sources",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "sources_created_by_users_id_fk": {
+          "name": "sources_created_by_users_id_fk",
+          "tableFrom": "sources",
+          "columnsFrom": [
+            "created_by"
+          ],
+          "tableTo": "users",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "sources_url_scheme": {
+          "name": "sources_url_scheme",
+          "value": "\"record\".\"sources\".\"url\" ~* '^https?://'"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.statements": {
+      "name": "statements",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "incident_id": {
+          "name": "incident_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speaker": {
+          "name": "speaker",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "speaker_role": {
+          "name": "speaker_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "organization": {
+          "name": "organization",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "statement_type": {
+          "name": "statement_type",
+          "type": "statement_type",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quote": {
+          "name": "quote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "paraphrase": {
+          "name": "paraphrase",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_id": {
+          "name": "source_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "statements_incident_idx": {
+          "name": "statements_incident_idx",
+          "columns": [
+            {
+              "expression": "incident_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "statements_incident_id_incidents_id_fk": {
+          "name": "statements_incident_id_incidents_id_fk",
+          "tableFrom": "statements",
+          "columnsFrom": [
+            "incident_id"
+          ],
+          "tableTo": "incidents",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        },
+        "statements_source_id_sources_id_fk": {
+          "name": "statements_source_id_sources_id_fk",
+          "tableFrom": "statements",
+          "columnsFrom": [
+            "source_id"
+          ],
+          "tableTo": "sources",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "restrict"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "statements_has_text": {
+          "name": "statements_has_text",
+          "value": "\"record\".\"statements\".\"quote\" IS NOT NULL OR \"record\".\"statements\".\"paraphrase\" IS NOT NULL"
+        },
+        "statements_quote_25_words": {
+          "name": "statements_quote_25_words",
+          "value": "\"record\".\"statements\".\"quote\" IS NULL OR cardinality(regexp_split_to_array(btrim(\"record\".\"statements\".\"quote\"), '\\s+')) <= 25"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.submission_files": {
+      "name": "submission_files",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "submission_id": {
+          "name": "submission_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "storage_key": {
+          "name": "storage_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_name_enc": {
+          "name": "original_name_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata_stripped": {
+          "name": "metadata_stripped",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "submission_files_submission_id_submissions_id_fk": {
+          "name": "submission_files_submission_id_submissions_id_fk",
+          "tableFrom": "submission_files",
+          "columnsFrom": [
+            "submission_id"
+          ],
+          "tableTo": "submissions",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.submission_private": {
+      "name": "submission_private",
+      "schema": "record",
+      "columns": {
+        "submission_id": {
+          "name": "submission_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "contact_enc": {
+          "name": "contact_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address_enc": {
+          "name": "address_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "submission_private_submission_id_submissions_id_fk": {
+          "name": "submission_private_submission_id_submissions_id_fk",
+          "tableFrom": "submission_private",
+          "columnsFrom": [
+            "submission_id"
+          ],
+          "tableTo": "submissions",
+          "schemaTo": "record",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "cascade"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.submissions": {
+      "name": "submissions",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "kind": {
+          "name": "kind",
+          "type": "submission_kind",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "what_happened": {
+          "name": "what_happened",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incident_date": {
+          "name": "incident_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state_fips": {
+          "name": "state_fips",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "links": {
+          "name": "links",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "reporter_relation": {
+          "name": "reporter_relation",
+          "type": "reporter_relation",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "correction_record_id": {
+          "name": "correction_record_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_privacy_request": {
+          "name": "is_privacy_request",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "keep_consent": {
+          "name": "keep_consent",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "has_contact": {
+          "name": "has_contact",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "file_count": {
+          "name": "file_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "purged_at": {
+          "name": "purged_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "submissions_state_fips_us_states_fips_fk": {
+          "name": "submissions_state_fips_us_states_fips_fk",
+          "tableFrom": "submissions",
+          "columnsFrom": [
+            "state_fips"
+          ],
+          "tableTo": "us_states",
+          "schemaTo": "record",
+          "columnsTo": [
+            "fips"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "submissions_city_required": {
+          "name": "submissions_city_required",
+          "value": "\"record\".\"submissions\".\"kind\" = 'correction' OR \"record\".\"submissions\".\"city\" IS NOT NULL"
+        },
+        "submissions_correction_record": {
+          "name": "submissions_correction_record",
+          "value": "\"record\".\"submissions\".\"kind\" = 'report' OR \"record\".\"submissions\".\"correction_record_id\" IS NOT NULL"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "record.us_states": {
+      "name": "us_states",
+      "schema": "record",
+      "columns": {
+        "fips": {
+          "name": "fips",
+          "type": "char(2)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "code": {
+          "name": "code",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "territory": {
+          "name": "territory",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "us_states_code_unique": {
+          "name": "us_states_code_unique",
+          "columns": [
+            "code"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "record.users": {
+      "name": "users",
+      "schema": "record",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "record",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "must_change_password": {
+          "name": "must_change_password",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "totp_secret_enc": {
+          "name": "totp_secret_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "totp_pending_secret_enc": {
+          "name": "totp_pending_secret_enc",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "totp_enabled_at": {
+          "name": "totp_enabled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "totp_last_step": {
+          "name": "totp_last_step",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failed_attempts": {
+          "name": "failed_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "locked_until": {
+          "name": "locked_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "is_demo": {
+          "name": "is_demo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "last_login_at": {
+          "name": "last_login_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "users_email_lower_idx": {
+          "name": "users_email_lower_idx",
+          "columns": [
+            {
+              "expression": "lower(\"email\")",
+              "isExpression": true,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "record.archive_status": {
+      "name": "archive_status",
+      "schema": "record",
+      "values": [
+        "pending",
+        "archived",
+        "failed"
+      ]
+    },
+    "record.bias_indicator": {
+      "name": "bias_indicator",
+      "schema": "record",
+      "values": [
+        "slur",
+        "stated_motive",
+        "symbol",
+        "target_selection",
+        "official_finding",
+        "hate_crime_charge"
+      ]
+    },
+    "record.case_type": {
+      "name": "case_type",
+      "schema": "record",
+      "values": [
+        "criminal",
+        "civil_rights",
+        "administrative"
+      ]
+    },
+    "record.correction_status": {
+      "name": "correction_status",
+      "schema": "record",
+      "values": [
+        "open",
+        "responded",
+        "resolved",
+        "declined"
+      ]
+    },
+    "record.temporal_precision": {
+      "name": "temporal_precision",
+      "schema": "record",
+      "values": [
+        "day",
+        "month",
+        "year"
+      ]
+    },
+    "record.incident_type": {
+      "name": "incident_type",
+      "schema": "record",
+      "values": [
+        "HOM",
+        "ASLT",
+        "THRT",
+        "HARS",
+        "VAND",
+        "ARSN",
+        "DESC",
+        "MASS",
+        "PLOT",
+        "OFCL",
+        "SCHL",
+        "EMPL"
+      ]
+    },
+    "record.lead_source": {
+      "name": "lead_source",
+      "schema": "record",
+      "values": [
+        "submission",
+        "news_monitor",
+        "org_feed",
+        "docket_alert",
+        "manual"
+      ]
+    },
+    "record.lead_status": {
+      "name": "lead_status",
+      "schema": "record",
+      "values": [
+        "new",
+        "new_incident",
+        "update",
+        "duplicate",
+        "out_of_scope"
+      ]
+    },
+    "record.legal_event_type": {
+      "name": "legal_event_type",
+      "schema": "record",
+      "values": [
+        "reported",
+        "under_investigation",
+        "suspect_identified",
+        "arrested",
+        "charged",
+        "hate_crime_charge_filed",
+        "arraignment",
+        "in_court",
+        "plea_entered",
+        "plea_deal",
+        "trial",
+        "verdict",
+        "convicted",
+        "acquitted",
+        "dismissed",
+        "deferred",
+        "sentenced",
+        "no_arrest",
+        "suspect_deceased",
+        "not_prosecuted",
+        "civil_suit",
+        "other"
+      ]
+    },
+    "record.legal_status": {
+      "name": "legal_status",
+      "schema": "record",
+      "values": [
+        "reported",
+        "under_investigation",
+        "suspect_identified",
+        "arrested",
+        "charged",
+        "in_court",
+        "convicted",
+        "acquitted",
+        "dismissed",
+        "plea_deal",
+        "deferred",
+        "sentenced",
+        "no_arrest",
+        "suspect_deceased",
+        "not_prosecuted",
+        "unknown"
+      ]
+    },
+    "record.location_precision": {
+      "name": "location_precision",
+      "schema": "record",
+      "values": [
+        "exact_public_place",
+        "neighborhood",
+        "city",
+        "state"
+      ]
+    },
+    "record.perpetrator_type": {
+      "name": "perpetrator_type",
+      "schema": "record",
+      "values": [
+        "individual",
+        "group",
+        "organized_extremist_group",
+        "public_official",
+        "law_enforcement",
+        "unknown"
+      ]
+    },
+    "record.publication_action": {
+      "name": "publication_action",
+      "schema": "record",
+      "values": [
+        "published",
+        "updated",
+        "unpublished"
+      ]
+    },
+    "record.reporter_relation": {
+      "name": "reporter_relation",
+      "schema": "record",
+      "values": [
+        "victim",
+        "witness",
+        "other",
+        "prefer_not_to_say"
+      ]
+    },
+    "record.review_decision": {
+      "name": "review_decision",
+      "schema": "record",
+      "values": [
+        "approved",
+        "returned"
+      ]
+    },
+    "record.source_type": {
+      "name": "source_type",
+      "schema": "record",
+      "values": [
+        "news",
+        "police",
+        "prosecutor",
+        "court_record",
+        "government",
+        "advocacy_org",
+        "academic",
+        "social_media",
+        "victim_statement"
+      ]
+    },
+    "record.statement_type": {
+      "name": "statement_type",
+      "schema": "record",
+      "values": [
+        "official",
+        "defense",
+        "community"
+      ]
+    },
+    "record.submission_kind": {
+      "name": "submission_kind",
+      "schema": "record",
+      "values": [
+        "report",
+        "correction"
+      ]
+    },
+    "record.target_attribute": {
+      "name": "target_attribute",
+      "schema": "record",
+      "values": [
+        "woman_wearing_hijab",
+        "child",
+        "student",
+        "religious_leader",
+        "arab",
+        "south_asian",
+        "black_muslim",
+        "perceived_muslim"
+      ]
+    },
+    "record.target_type": {
+      "name": "target_type",
+      "schema": "record",
+      "values": [
+        "individual",
+        "multiple_individuals",
+        "mosque_islamic_center",
+        "school",
+        "business",
+        "home",
+        "vehicle",
+        "other"
+      ]
+    },
+    "record.user_role": {
+      "name": "user_role",
+      "schema": "record",
+      "values": [
+        "contributor",
+        "editor",
+        "senior_editor",
+        "admin"
+      ]
+    },
+    "record.verification_level": {
+      "name": "verification_level",
+      "schema": "record",
+      "values": [
+        "V0",
+        "V1",
+        "V2",
+        "V3"
+      ]
+    },
+    "record.workflow_status": {
+      "name": "workflow_status",
+      "schema": "record",
+      "values": [
+        "draft",
+        "in_review",
+        "returned",
+        "approved",
+        "published",
+        "unpublished",
+        "excluded"
+      ]
+    },
+    "record.yes_no_unknown": {
+      "name": "yes_no_unknown",
+      "schema": "record",
+      "values": [
+        "yes",
+        "no",
+        "unknown"
+      ]
+    }
+  },
+  "schemas": {
+    "record_public": "record_public",
+    "record": "record"
+  },
+  "views": {
+    "record_public.dataset_files": {
+      "name": "dataset_files",
+      "schema": "record_public",
+      "columns": {
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "csv": {
+          "name": "csv",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json": {
+          "name": "json",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "csv_sha256": {
+          "name": "csv_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json_sha256": {
+          "name": "json_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "materialized": false,
+      "isExisting": true
+    },
+    "record_public.dataset_releases": {
+      "name": "dataset_releases",
+      "schema": "record_public",
+      "columns": {
+        "version": {
+          "name": "version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "methodology_version": {
+          "name": "methodology_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "record_count": {
+          "name": "record_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "csv_sha256": {
+          "name": "csv_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json_sha256": {
+          "name": "json_sha256",
+          "type": "char(64)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "csv_bytes": {
+          "name": "csv_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "json_bytes": {
+          "name": "json_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "previous_version": {
+          "name": "previous_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "changelog": {
+          "name": "changelog",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "materialized": false,
+      "isExisting": true
+    },
+    "record_public.incidents": {
+      "name": "incidents",
+      "schema": "record_public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "summary": {
+          "name": "summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_start": {
+          "name": "date_start",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date_end": {
+          "name": "date_end",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_precision": {
+          "name": "date_precision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state_fips": {
+          "name": "state_fips",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state_code": {
+          "name": "state_code",
+          "type": "char(2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "county_fips": {
+          "name": "county_fips",
+          "type": "char(5)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lat": {
+          "name": "lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lng": {
+          "name": "lng",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_lat": {
+          "name": "map_lat",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "map_lng": {
+          "name": "map_lng",
+          "type": "double precision",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "location_precision": {
+          "name": "location_precision",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "incident_types": {
+          "name": "incident_types",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_type": {
+          "name": "target_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "target_attributes": {
+          "name": "target_attributes",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deaths": {
+          "name": "deaths",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "injuries": {
+          "name": "injuries",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "property_damage": {
+          "name": "property_damage",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "perpetrator_type": {
+          "name": "perpetrator_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "perpetrator_count": {
+          "name": "perpetrator_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "perpetrator_names": {
+          "name": "perpetrator_names",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bias_indicators": {
+          "name": "bias_indicators",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verification_level": {
+          "name": "verification_level",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "legal_status": {
+          "name": "legal_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hate_crime_charged": {
+          "name": "hate_crime_charged",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agencies_involved": {
+          "name": "agencies_involved",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "case_ids": {
+          "name": "case_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "related_incident_ids": {
+          "name": "related_incident_ids",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tags": {
+          "name": "tags",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_types": {
+          "name": "source_types",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_count": {
+          "name": "source_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sources": {
+          "name": "sources",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "legal_events": {
+          "name": "legal_events",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "statements": {
+          "name": "statements",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cases": {
+          "name": "cases",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "change_log": {
+          "name": "change_log",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "methodology_version": {
+          "name": "methodology_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_demo": {
+          "name": "is_demo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "search_text": {
+          "name": "search_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "search_document": {
+          "name": "search_document",
+          "type": "tsvector",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "materialized": false,
+      "isExisting": true
+    }
+  },
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
