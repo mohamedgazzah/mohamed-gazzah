@@ -7,6 +7,7 @@ import '@fontsource/noto-naskh-arabic/arabic-600.css'
 import './globals.css'
 import { THEME_SCRIPT } from '@/components/ThemeToggle'
 import { TooltipDismisser } from '@/components/TooltipDismisser'
+import { indexingEnabled } from '@/lib/indexing'
 import { SITE } from '@/lib/site'
 import { inter, sourceSerif } from './fonts'
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   title: { default: SITE.fullName, template: `%s — ${SITE.name}` },
   description: SITE.description,
   openGraph: { siteName: SITE.fullName, type: 'website' },
-  robots: { index: true, follow: true },
+  robots: indexingEnabled() ? { index: true, follow: true } : { index: false, follow: false },
   // No favicon until the project has its final name and mark (avoids a 404 request).
   icons: { icon: 'data:,' },
 }

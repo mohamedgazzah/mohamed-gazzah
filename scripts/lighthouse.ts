@@ -21,7 +21,12 @@ if (!existsSync('.next-e2e/BUILD_ID')) {
   process.exit(1)
 }
 
-const server = spawn('npx', ['next', 'start', '-p', String(PORT)], { env: { ...e2eEnv(), NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}` }, stdio: 'ignore' })
+// Its own process group, so stopping it also stops the server npx starts.
+const server = spawn('npx', ['next', 'start', '-p', String(PORT)], {
+  env: { ...e2eEnv(), NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}` },
+  stdio: 'ignore',
+  detached: true,
+})
 for (let i = 0; i < 60; i++) {
   try {
     await fetch(`http://localhost:${PORT}/robots.txt`)
@@ -50,7 +55,7 @@ try {
   }
 } finally {
   await chrome.kill()
-  server.kill('SIGTERM')
+  process.kill(-server.pid!, 'SIGTERM')
 }
 writeFileSync('reports/lighthouse/summary.json', `${JSON.stringify({ date: new Date().toISOString(), formFactor: 'mobile', scores: summary }, null, 2)}\n`)
 if (failed) {

@@ -10,7 +10,7 @@ Incident pages, Methodology, the Report form, and the nightly CSV/JSON export.
 See [What is built](#what-is-built-phase-1) and [What remains](#what-remains).
 
 - Decisions made where the specification was silent: [`DECISIONS.md`](DECISIONS.md)
-- Deploying to Vercel and Supabase: [`docs/DEPLOY.md`](docs/DEPLOY.md)
+- Going live (Cloudflare, Supabase, Vercel, all on free plans): [`docs/DEPLOY.md`](docs/DEPLOY.md)
 - Acceptance tests and their results: [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md)
 - Data dictionary (generated from the schema): [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md)
 
@@ -38,7 +38,7 @@ See [What is built](#what-is-built-phase-1) and [What remains](#what-remains).
 
 ## Quick start (local)
 
-Requirements: Node.js 20.9+ (22 recommended) and PostgreSQL 16 with PostGIS.
+Requirements: Node.js 22 and PostgreSQL 16 with PostGIS.
 
 ```bash
 # macOS: brew install postgresql@16 postgis
@@ -59,7 +59,8 @@ an authenticator app (or compute codes from it) for the second step.
 
 To create a real first admin instead: `npm run admin:create -- --email you@example.org --name "Your Name"`.
 It prints a temporary password; at first sign-in the person must enroll two-factor
-authentication and choose a new password.
+authentication and choose a new password. A new deployment can also create its
+first admin in the browser at `/admin/setup` (see `docs/DEPLOY.md`, step 7).
 
 Reset the local database at any time with `npm run db:setup -- --reset`.
 
@@ -71,7 +72,8 @@ Reset the local database at any time with `npm run db:setup -- --reset`.
 | `npm run typecheck` | Route types + `tsc --noEmit` |
 | `npm run db:generate` | Diff `src/db/schema.ts` into a new SQL migration |
 | `npm run db:setup [-- --reset]` | Local database: roles, extensions, migrations (development only) |
-| `npm run db:migrate` | Apply migrations as the schema owner (production deploys) |
+| `npm run db:migrate` | Apply migrations as the schema owner, then give the runtime roles their passwords from their URLs (every deploy) |
+| `npm run build:vercel` | What Vercel runs: `db:migrate`, `check:no-demo`, `build` |
 | `npm run db:seed` | Demo data (refuses in production) |
 | `npm run admin:create` | Create a user from the command line |
 | `npm run check:no-demo` | Fail if demo data exists (use before production deploys) |
@@ -80,6 +82,7 @@ Reset the local database at any time with `npm run db:setup -- --reset`.
 | `npm run test:e2e` | End-to-end tests (Playwright): builds the app against a fresh `record_e2e` database |
 | `npm run test:db-down` | After `test:e2e`: incident pages load with the database unreachable |
 | `npm run test:lighthouse` | After `test:e2e`: mobile Lighthouse scores for Home, Explore, Incident |
+| `scripts/backup.sh` | Encrypted database backup to R2 (run daily by `.github/workflows/backup.yml`) |
 
 ## How it fits together
 

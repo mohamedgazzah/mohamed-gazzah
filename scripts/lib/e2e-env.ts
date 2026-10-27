@@ -19,6 +19,8 @@ export function e2eEnv(): NodeJS.ProcessEnv {
     PUBLIC_DATABASE_URL: swap('PUBLIC_DATABASE_URL'),
     NEXT_DIST_DIR: '.next-e2e',
     NEXT_PUBLIC_SITE_URL: `http://localhost:${E2E_PORT}`,
+    // Test the launched site: robots, sitemap and Lighthouse SEO.
+    SITE_INDEXING: 'on',
     NEXT_PUBLIC_MAP_STYLE_LIGHT: `http://localhost:${E2E_PORT}/map/empty-style.json`,
     NEXT_PUBLIC_MAP_STYLE_DARK: `http://localhost:${E2E_PORT}/map/empty-style.json`,
     TURNSTILE_DISABLED: 'true',

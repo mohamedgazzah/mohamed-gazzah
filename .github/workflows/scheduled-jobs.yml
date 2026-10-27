@@ -15,8 +15,9 @@ on:
   workflow_dispatch:
     inputs:
       job:
-        description: 'Job to run (archive, export, retention, nightly)'
-        required: true
+        description: 'Job to run'
+        type: choice
+        options: [archive, export, retention, nightly]
         default: archive
 
 permissions: {}
@@ -27,28 +28,36 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Choose jobs
+      - name: Choose the job
         id: pick
+        # Event values reach the script as environment variables, never as code.
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_JOB: ${{ github.event.inputs.job }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "jobs=${{ github.event.inputs.job }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "*/5 * * * *" ]; then
-            echo "jobs=archive" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            job="$INPUT_JOB"
+          elif [ "$SCHEDULE" = "*/5 * * * *" ]; then
+            job=archive
           else
-            echo "jobs=nightly" >> "$GITHUB_OUTPUT"
+            job=nightly
           fi
-      - name: Call job endpoints
+          case "$job" in
+            archive|export|retention|nightly) echo "job=$job" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown job: $job"; exit 1 ;;
+          esac
+      - name: Call the job endpoint
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          JOB: ${{ steps.pick.outputs.job }}
         run: |
           if [ -z "$SITE_URL" ] || [ -z "$CRON_SECRET" ]; then
             echo "SITE_URL and CRON_SECRET secrets are not set; skipping."
             exit 0
           fi
-          for job in ${{ steps.pick.outputs.jobs }}; do
-            echo "Running $job"
-            curl --fail-with-body --silent --show-error --max-time 90 \
-              -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/$job"
-            echo
-          done
+          echo "Running $JOB"
+          curl --fail-with-body --silent --show-error --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/$JOB"
+          echo

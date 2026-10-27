@@ -9,7 +9,9 @@ import { decryptText, encryptText } from '@/lib/crypto'
 import { hashPassword, passwordProblems, verifyPassword } from '@/lib/passwords'
 import { verifyTotp } from '@/lib/totp'
 import { audit } from '@/server/admin/audit'
+import { WorkflowError } from '@/server/admin/incidents'
 import { completeMfa, endOtherSessions, endSession, getSession, requireSignedIn, startPendingSession } from '@/server/admin/session'
+import { createFirstAdmin, setupOpen, setupTokenMatches } from '@/server/admin/setup'
 import { clientIp } from '@/server/shared/request'
 import { rateLimit } from '@/server/shared/ratelimit'
 
@@ -115,6 +117,24 @@ export async function changePassword(_prev: ActionState, fd: FormData): Promise<
   if (s) await endOtherSessions(me.id, s.id)
   await audit(null, me.id, 'auth.password_changed', 'user', me.id)
   redirect('/admin')
+}
+
+/** First-run setup (see src/server/admin/setup.ts). Ends in two-factor enrollment. */
+export async function setupFirstAdmin(_prev: ActionState, fd: FormData): Promise<ActionState> {
+  if (!(await rateLimit('setup', await clientIp(), 10, 3600)).ok) return { error: 'Too many attempts from this connection. Wait an hour.' }
+  if (!(await setupOpen())) return { error: 'Setup is already complete. Sign in instead.' }
+  if (!setupTokenMatches(String(fd.get('token') ?? ''))) return { error: 'The setup token is not correct.' }
+  const password = String(fd.get('password') ?? '')
+  if (password !== String(fd.get('confirm') ?? '')) return { error: 'The passwords do not match.' }
+  let created: { id: string }
+  try {
+    created = await createFirstAdmin({ email: String(fd.get('email') ?? ''), displayName: String(fd.get('name') ?? ''), password })
+  } catch (err) {
+    if (err instanceof WorkflowError) return { error: err.message }
+    throw err
+  }
+  await startPendingSession(created.id)
+  redirect('/admin/login/enroll')
 }
 
 export async function logout() {

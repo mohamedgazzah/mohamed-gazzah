@@ -51,10 +51,13 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: '4mb' },
   },
   async headers() {
+    // Pre-launch mode, see src/lib/indexing.ts.
+    const indexing = process.env.SITE_INDEXING === 'on'
     return [
       {
         source: '/:path*',
         headers: [
+          ...(indexing ? [] : [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }]),
           { key: 'Content-Security-Policy', value: csp },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

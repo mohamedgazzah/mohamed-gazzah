@@ -5,13 +5,14 @@
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=20.9"
+    "node": "22.x"
   },
   "scripts": {
     "postinstall": "node scripts/copy-vendor.mjs",
     "prebuild": "node scripts/copy-vendor.mjs",
     "dev": "next dev",
     "build": "next build",
+    "build:vercel": "npm run db:migrate && npm run check:no-demo && npm run build",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "db:generate": "drizzle-kit generate",

@@ -1,6 +1,6 @@
 # Acceptance tests (Phase 1)
 
-Results from the build environment on 2026-10-26: Node 22, PostgreSQL 16.15 with
+Results from the build environment on 2026-10-27: Node 22, PostgreSQL 16.15 with
 PostGIS, Chromium 147 (Playwright 1.63). Re-run everything with:
 
 ```bash
@@ -10,8 +10,8 @@ npm run typecheck && npm test && npm run test:e2e && npm run test:db-down && npm
 | Suite | Result |
 | --- | --- |
 | Type check (`tsc --noEmit`, app + tests) | clean |
-| Unit tests (Vitest, `tests/unit`) | 77 passed |
-| Database integration tests (Vitest, `tests/db`, real Postgres) | 50 passed |
+| Unit tests (Vitest, `tests/unit`) | 83 passed |
+| Database integration tests (Vitest, `tests/db`, real Postgres) | 56 passed |
 | End-to-end tests (Playwright, `tests/e2e`, production build) | 69 passed (67 desktop, 2 mobile) |
 | Database-down check (`scripts/test-db-down.ts`) | 9 of 9 pages served |
 | Lighthouse, mobile (`scripts/lighthouse.ts`) | see item 6 |
@@ -71,9 +71,9 @@ mobile emulation, production build on localhost):
 
 | Page | Performance | Accessibility | Best practices | SEO |
 | --- | --- | --- | --- | --- |
-| Home `/` | 97 | 100 | 100 | 100 |
-| Explore `/incidents` | 96 | 100 | 100 | 100 |
-| Incident `/incidents/DEMO-2026-0002…` | 97 | 100 | 100 | 66* |
+| Home `/` | 99 | 100 | 100 | 100 |
+| Explore `/incidents` | 95 | 100 | 100 | 100 |
+| Incident `/incidents/DEMO-2026-0002…` | 99 | 100 | 100 | 66* |
 
 \* Demo records are deliberately `noindex`; real records are indexable.
 
@@ -90,9 +90,9 @@ to the confirmation (`report.spec.ts`).
 **Pass for the mechanism; the live archive was not reachable here.** Each save
 archives its new sources right away (normally within a minute), and the archive
 job retries pending ones: nightly on Vercel's free plan, every 5 minutes once the
-included GitHub Actions schedule is switched on (see `docs/DEPLOY.md`, step 4.4;
-choose that or Vercel Pro so a failed first attempt is retried within 10
-minutes). `tests/db/archive.test.ts` runs
+included GitHub Actions schedule is switched on (free here, since the repository is
+public; see `docs/DEPLOY.md`, step 8.2), so a failed first attempt is retried within
+10 minutes. `tests/db/archive.test.ts` runs
 the job against a local stand-in for Save Page Now: archived URL stored, the live
 page updated without a new review, failures retried and marked failed after six
 attempts. Confirm against web.archive.org after deploying.
@@ -120,3 +120,29 @@ down.** **Pass.** The build prerenders every published record. `npm run test:db-
 starts the production build with both database URLs pointing at a closed port:
 all 5 incident pages and the static pages return 200 with their content. Explore
 search needs the database and shows the error page (expected).
+
+## Deployment safeguards (added for going live)
+
+Not on the specification's list, but they protect the production setup in
+`docs/DEPLOY.md`:
+
+- **First admin from the browser.** `tests/db/setup.test.ts`, on its own empty
+  database: `/admin/setup` stays closed without a setup token of 32+ characters,
+  rejects a wrong token, lets exactly one of two simultaneous attempts create an
+  admin (who must still enroll two-factor authentication), and then closes for
+  good. `tests/e2e/privacy.spec.ts`: it is a 404 on a site that has accounts.
+- **Runtime role passwords.** `tests/db/logins.test.ts`: the sign-in step of
+  `db:migrate` sets a role's password from its connection string as a SCRAM
+  verifier that Postgres accepts, leaves a working password alone, follows a
+  changed one, and refuses a connection string for another role or a short
+  password.
+- **Client IP for rate limits.** `tests/unit/security.test.ts`:
+  `CF-Connecting-IP` counts only when the connection came from a Cloudflare range.
+- **Pre-launch mode.** `tests/unit/indexing.test.ts`: `X-Robots-Tag: noindex` on
+  every page and no sitemap in robots.txt until `SITE_INDEXING=on`.
+- **Backups.** Checked by hand: `scripts/backup.sh` against the development
+  database, decrypted with the age key and restored into an empty database.
+  Incident, audit-log and migration-journal counts matched, all 23 triggers and
+  23 row-level security policies came back, and the audit log still refused
+  deletes. The GitHub Actions run and the upload to R2 could not be tried from
+  the build environment.

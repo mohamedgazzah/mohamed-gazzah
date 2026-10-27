@@ -74,6 +74,8 @@ test('admin pages and evidence files are not reachable without signing in', asyn
   expect(res.headers()['location']).toContain('/admin/login')
   const file = await request.get('/admin/files/00000000-0000-0000-0000-000000000000')
   expect(file.status()).toBe(404)
+  // First-run setup exists only on a site with no accounts and a setup token.
+  expect((await request.get('/admin/setup')).status()).toBe(404)
   const login = await request.get('/admin/login')
   expect(login.headers()['x-robots-tag']).toContain('noindex')
 })
@@ -85,5 +87,7 @@ test('security headers are set', async ({ request }) => {
   expect(h['x-content-type-options']).toBe('nosniff')
   expect(h['referrer-policy']).toBe('strict-origin-when-cross-origin')
   expect(h['x-powered-by']).toBeUndefined()
+  // The e2e build is a launched site (SITE_INDEXING=on); before launch every page is noindex.
+  expect(h['x-robots-tag']).toBeUndefined()
   expect(h['set-cookie']).toBeUndefined()
 })

@@ -126,8 +126,8 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
     Each new source is archived immediately after the save (`after()`), so archiving normally
     finishes within a minute. For a 5-minute retry, `.github/workflows/scheduled-jobs.yml` is
     included but **off until enabled** with a repository variable: it is free on public
-    repositories but would exceed the free Actions minutes on a private one. On Vercel Pro
-    the schedule can live in `vercel.json` instead.
+    repositories (this one is public) but would exceed the free Actions minutes on a private
+    one. On Vercel Pro the schedule can live in `vercel.json` instead.
 32. **Archived links reach live pages without a new review**: `record.refresh_archived_urls()`
     only fills in the archived copy of a source that was already reviewed.
 33. **Content Security Policy** allows inline scripts because statically generated pages
@@ -136,10 +136,58 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
 34. **Sentry is not included** in Phase 1, to avoid adding a third-party service without
     approval. Errors go to the platform logs; the code never logs submitter data.
 
+## Deployment
+
+35. **Supabase Free for the database, not Neon or Cloudflare D1.** Supabase keeps a small
+    compute running all the time, so the public site never waits for a database to wake and
+    there is no compute-hours cap to run out of mid-month (Neon's free plan stops at 100
+    compute-hours a month, which steady crawler traffic alone can use up). Its one catch, a
+    pause after 7 days without database activity, cannot happen while the nightly release job
+    writes every night. D1 (SQLite) has no roles, row-level security or PL/pgSQL, so the
+    two-person rule and the public/private split would have to move from the database into
+    application code.
+36. **Cloudflare R2 for evidence files and backups.** 10 GB free against Supabase Storage's 1 GB,
+    no egress fees, and the evidence sits in a different account from the database. The
+    Cloudflare account is needed anyway for the domain, DNS and Turnstile. The S3 driver works
+    with either.
+37. **Domain from Cloudflare Registrar, `.org`.** At-cost pricing with renewals at the same price
+    and WHOIS privacy by default. `.us` is cheaper but forbids WHOIS privacy, which would
+    publish the registrant's name and address on a project that may be targeted.
+38. **Cloudflare proxied in front of Vercel**, as the specification asks (Vercel advises against
+    reverse proxies, but supports them). Because Vercel overwrites `X-Forwarded-For`, the
+    visitor's address arrives in `CF-Connecting-IP`; the app believes that header only when the
+    connecting address is in Cloudflare's published ranges, so requests sent straight to the
+    `.vercel.app` origin cannot pick their own rate-limit bucket.
+39. **Pre-launch mode by default.** Until `SITE_INDEXING=on`, every response carries
+    `X-Robots-Tag: noindex` and robots.txt leaves out the sitemap: a deployed site with a
+    placeholder name and an unreviewed About page should not be indexed. Turning it on is the
+    last launch step.
+40. **First admin from the browser.** `/admin/setup` creates the first account while no account
+    exists and `ADMIN_SETUP_TOKEN` (32+ characters) is set, under an advisory lock so two people
+    cannot both succeed; it then forces two-factor enrollment. The terminal command remains.
+41. **Runtime role passwords come from their connection strings.** `npm run db:migrate` checks
+    that `DATABASE_URL` and `PUBLIC_DATABASE_URL` can sign in and, if not, sets those passwords
+    as SCRAM verifiers (so statement logs never see them). It refuses a connection string for any
+    other role, so a misconfigured URL can never change, say, the owner. It also reapplies the
+    roles' search path and `extensions` grant, which a restored backup lacks.
+42. **Production database connections always use verified TLS.** Without `DATABASE_CA_CERT` (or a
+    publicly trusted certificate) the deploy fails instead of falling back to plain text.
+43. **Previews are skipped by default** (`vercel.json` ignore step). A preview build runs
+    migrations against the Preview database, and Vercel's import screen gives Preview the
+    production values. `ENABLE_PREVIEW_DEPLOYMENTS=true` turns them on once Preview points at a
+    separate database.
+44. **Daily backups with GitHub Actions**: `pg_dump` of the app's schemas, encrypted with `age` to
+    a public key (the private key stays offline, so neither GitHub nor Cloudflare can read the
+    backups), uploaded to R2 with a 35-day lifecycle rule. Supabase's free plan expects you to keep
+    your own copies. Restore was tested locally: row counts, the migration journal, triggers and
+    policies all came back.
+45. **Role addresses follow the domain** (`editors@` and so on at the host of
+    `NEXT_PUBLIC_SITE_URL`); Cloudflare Email Routing forwards them for free.
+46. **Node.js 22** is pinned in `package.json` (`engines`), the version the tests ran on.
+
 ## Open questions (**Ask**)
 
 - Organizational home, media lawyer, and the contents of About (team, board, funding).
-- Final project name and domain; then the favicon and role email addresses in `src/lib/site.ts`.
+- Final project name and domain; then the favicon in `src/lib/site.ts`. Suggested neutral `.org` names: antimuslimincidents.org (matches the working subtitle), amirecord.org ("Anti-Muslim Incident Record"), antimuslimincidentrecord.org. Avoid names that could be read either way, such as muslimincidents or antimuslimrecord.
 - Whether submissions should create drafts directly (item 16).
-- How to run the 5-minute archive retry: public-repo GitHub Actions, a slower schedule, or Vercel Pro (item 31).
 - A US Muslim population source for per-capita rates (Phase 2 choropleth).

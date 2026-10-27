@@ -6,13 +6,18 @@ pg.types.setTypeParser(1082, (v) => v)
 type PoolName = 'app' | 'public'
 
 /**
- * TLS for hosted Postgres. Supabase signs its certificates with its own root
- * CA; put that certificate (PEM) in DATABASE_CA_CERT to verify the server
- * fully instead of turning verification off.
+ * TLS for hosted Postgres. Production always uses TLS and verifies the
+ * server, so a missing setting fails loudly instead of falling back to an
+ * unencrypted connection. Supabase signs its certificates with its own root
+ * CA: put that certificate (PEM) in DATABASE_CA_CERT. Providers with publicly
+ * trusted certificates need nothing. Local databases connect without TLS
+ * unless DATABASE_CA_CERT is set.
  */
 export function sslOptions(): pg.PoolConfig['ssl'] {
-  const ca = process.env.DATABASE_CA_CERT
-  return ca ? { ca: ca.replace(/\\n/g, '\n'), rejectUnauthorized: true } : undefined
+  const ca = process.env.DATABASE_CA_CERT?.replace(/\\n/g, '\n')
+  const production = process.env.APP_ENV === 'production' || process.env.VERCEL_ENV === 'production'
+  if (ca) return { ca, rejectUnauthorized: true }
+  return production ? { rejectUnauthorized: true } : undefined
 }
 const globalPools = globalThis as unknown as { __recordPools?: Partial<Record<PoolName, pg.Pool>> }
 

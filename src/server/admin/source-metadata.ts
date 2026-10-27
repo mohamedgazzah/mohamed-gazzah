@@ -9,6 +9,7 @@ import { lookup as dnsLookup, type LookupAddress } from 'node:dns'
 import http from 'node:http'
 import https from 'node:https'
 import { isIP } from 'node:net'
+import { SITE } from '@/lib/site'
 
 export type SourceMetadata = { outlet: string | null; title: string | null; author: string | null; publishedDate: string | null; finalUrl: string }
 
@@ -57,7 +58,7 @@ function get(u: URL): Promise<{ status: number; location: string | null; body: s
       {
         lookup: safeLookup as never,
         timeout: TIMEOUT_MS,
-        headers: { 'User-Agent': 'TheRecordBot/1.0 (source metadata; +https://example.org/about)', Accept: 'text/html,application/xhtml+xml' },
+        headers: { 'User-Agent': `TheRecordBot/1.0 (source metadata; +${SITE.url}/about)`, Accept: 'text/html,application/xhtml+xml' },
       },
       (res) => {
         const chunks: Buffer[] = []
