@@ -4,7 +4,7 @@ import { ChevronDown, CircleAlert, CircleCheck, LoaderCircle, Paperclip, SendHor
 import Link from 'next/link'
 import Script from 'next/script'
 import { useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { REPORTER_RELATIONS, REPORTER_RELATION_META } from '@/db/enums'
+import { REPORTER_RELATIONS, REPORTER_RELATION_META, SLA } from '@/db/enums'
 import { CITY_MESSAGE, RECORD_ID_MESSAGE, WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN } from '@/lib/report-rules'
 import { isRecordId } from '@/lib/slug'
 import { US_STATES } from '@/lib/states'
@@ -105,9 +105,9 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
         <ol className="mt-2 list-decimal space-y-1.5 ps-5 text-[16px]">
           {isCorrection ? (
             <>
-              <li>An editor replies within 72 hours.</li>
-              <li>Material errors are fixed within 7 days, with a note in the record’s change log.</li>
-              <li>Requests to remove identifying details are handled within 48 hours.</li>
+              <li>An editor replies within {SLA.correctionResponseHours} hours.</li>
+              <li>Material errors are fixed within {SLA.correctionFixDays} days, with a note in the record’s change log.</li>
+              <li>Requests to remove identifying details are handled within {SLA.privacyRemovalHours} hours.</li>
             </>
           ) : (
             <>

@@ -42,6 +42,7 @@ export default async function ReportPage(props: PageProps<'/report'>) {
 
       <ReadingLayout
         railSide="end"
+        railClassName="report-rail"
         rail={
           <div className="glass rounded-[var(--radius-md)] p-5">
             <p className="kicker">What happens next</p>

@@ -95,7 +95,8 @@ test.describe('Explore URLs', () => {
     await expect(page.locator('#map-heading')).toHaveText('California, by city')
     expect((await tableIds(page)).length).toBe(n)
     await expect(page.locator('.map-bubbles a')).toHaveCount(1)
-    await page.getByRole('list', { name: 'Records by city in California' }).getByRole('link', { name: /Riverside/ }).click()
+    // With one or two cities the list beside the map is a sentence, not a bar list.
+    await page.getByRole('link', { name: 'Riverside', exact: true }).click()
     await expect(page).toHaveURL(/state=CA&city=Riverside/)
     await page.getByRole('link', { name: 'All states' }).click()
     await expect(page).toHaveURL(/\/incidents$/)

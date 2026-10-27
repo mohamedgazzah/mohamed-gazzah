@@ -15,17 +15,20 @@ export function ReadingLayout({
   contents,
   rail,
   railSide = 'start',
+  railClassName,
   children,
 }: {
   contents?: Contents
   rail?: ReactNode
   railSide?: 'start' | 'end'
+  /** Extra classes for the rail's column, so a page can hide it in some states. */
+  railClassName?: string
   children: ReactNode
 }) {
   const items = contents?.map(([id, title, short]) => ({ id, title: short ?? title })) ?? []
   const aside = (
     <aside
-      className={railSide === 'end' ? 'md:col-span-4 lg:col-span-3 lg:col-start-10' : 'md:col-span-4 lg:col-span-3'}
+      className={[railSide === 'end' ? 'md:col-span-4 lg:col-span-3 lg:col-start-10' : 'md:col-span-4 lg:col-span-3', railClassName].filter(Boolean).join(' ')}
       aria-label={contents ? undefined : 'Notes'}
     >
       <div className="space-y-6 md:sticky md:top-24">

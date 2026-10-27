@@ -2140,8 +2140,9 @@
     }
   }
 
-  /* The report form's notice and switch give way to the confirmation once it is sent. */
-  main:has([data-done]) .report-intro {
+  /* The report form's notice, switch and notes give way to the confirmation once it is sent;
+     the confirmation repeats what happens next. */
+  main:has([data-done]) :is(.report-intro, .report-rail) {
     display: none;
   }
 

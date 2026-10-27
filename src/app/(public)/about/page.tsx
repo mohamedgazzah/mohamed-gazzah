@@ -142,7 +142,9 @@ export default function AboutPage() {
                   </a>
                   {extra ? (
                     <span className="block text-[14px] text-muted">
-                      <Link href={extra.href}>{extra.text}</Link>
+                      <Link href={extra.href} className="inline-block py-1">
+                        {extra.text}
+                      </Link>
                     </span>
                   ) : null}
                 </span>

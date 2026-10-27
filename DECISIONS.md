@@ -15,10 +15,10 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
    TypeScript next to hand-written SQL, generates migrations without a running database,
    and lets the public view be declared once and reused for queries, types and the data
    dictionary.
-4. **Self-hosted fonts.** Newsreader, Libre Franklin, IBM Plex Mono and Noto Naskh Arabic
-   are bundled from npm (`@fontsource`, with `next/font/local` loading the Latin files).
-   No request goes to Google: fewer third parties see readers' IP addresses, and builds
-   need no network. (The typefaces themselves changed in the redesign; see item 47.)
+4. **Self-hosted fonts.** Instrument Sans and Noto Naskh Arabic are bundled from npm
+   (`@fontsource`, with `next/font/local` loading the Latin file). No request goes to
+   Google: fewer third parties see readers' IP addresses, and builds need no network.
+   (The typefaces changed twice in the redesigns; see items 47 and 62.)
 
 ## Authentication
 
@@ -189,7 +189,7 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
 The first build followed Section 5 literally and looked like a template. At the project's
 request the look was redone; the colors, tone rules and components of Section 5 stand.
 
-47. **Typefaces replace Source Serif 4 and Inter** (the project's call). Newsreader, drawn for
+47. **Typefaces replace Source Serif 4 and Inter** (the project's call; replaced again by item 62). Newsreader, drawn for
     news reading, sets headlines and reading text; its optical-size axis gives the finer
     display cut at headline sizes. Libre Franklin, a revival of the American newspaper gothic,
     sets the interface, labels and tables. IBM Plex Mono sets record ids, dates and other
@@ -199,14 +199,14 @@ request the look was redone; the colors, tone rules and components of Section 5 
     (400–600: 90 KB instead of 132 KB), the home headline's italic comes from a 14 KB cut that
     is preloaded, the full italic loads only where running text uses it, and record pages set
     quotations upright (`src/fonts/README.md`).
-48. **Type scale extended** beyond 14–40 px with fluid display steps (up to 60, 88 and 112 px)
+48. **Type scale extended** (reading size changed by item 62) beyond 14–40 px with fluid display steps (up to 60, 88 and 112 px)
     for page titles, the home headline and headline numbers. Reading text is the serif at
     19 px / 1.6, which reads like the specified 17 px because Newsreader's x-height is
     smaller than a UI sans.
-49. **Badges** are a mark and a word (verification: solid, half or ring; severity: a square)
+49. **Badges** (shape changed by item 65) are a mark and a word (verification: solid, half or ring; severity: a square)
     or a square-cornered stamp (legal status, demo), instead of rounded pills. They are still
     text, never color alone, and each keeps its tooltip and link to the method.
-50. **Layout as a register**: ruled lists with the reference data in the margin instead of card
+50. **Layout as a register** (replaced by items 64–65): ruled lists with the reference data in the margin instead of card
     grids, numbered sections with ink rules, contents rails on long pages, square corners, and
     an ink band for the footer and tooltips (new `--band-*` tokens, contrast-tested in both
     themes like every other pair).
@@ -284,6 +284,40 @@ state, a table beside every chart, and downloads.
 61. **Untested against the live sources from the build environment**, whose network blocks
     them: the feed formats are tested with samples, and the first live mornings should be
     checked in the scan log (`docs/DEPLOY.md`, step 8.5).
+
+## Design, second pass (October 27, 2026)
+
+At the project's request — cleaner, a modern look, icons that respond on hover, and glass
+for parts of the page — the look was redone again and then reviewed in three rounds, each
+by one design critic per page working from screenshots (desktop and phone, light and dark);
+the findings that held up were applied after each round. Section 5's colors, tone rules
+and components stand.
+
+62. **One typeface, Instrument Sans** (SIL Open Font License), for headlines, reading text,
+    the interface and tables, replacing Newsreader, Libre Franklin and IBM Plex Mono. A
+    modern grotesque that is plain at 12 px in a table and still has character at headline
+    sizes; Inter and Geist were rendered beside it and read as default app type. One
+    variable file (30 KB, weights 400–700) serves the whole site, preloaded with a
+    metric-matched fallback so nothing reflows; the italic loads only where a page uses it.
+    Record ids and code use the reader's system monospace, so no second file is fetched.
+    Reading text is 17.5 px / 1.65 (`src/fonts/README.md`).
+63. **Icons from Lucide** (`lucide-react`, ISC license), rendered on the server as inline SVG,
+    so they add no JavaScript. They mark navigation, section heads, actions and stat tiles,
+    sit in tinted chips that lift and nudge on hover or focus (unless the reader asks for
+    reduced motion), and never stand alone as a label.
+64. **Glass for what floats above the page**: the header bar and menu sheet, the Explore
+    toolbar and results bar, tooltips, side notes and the panels of the home page. A
+    translucent fill with backdrop blur, a lit rim and a soft shadow, over a faint wash of
+    the accent colors so there is something to frost. Running text, forms and tables sit
+    on solid surfaces. The glass colors are tokens, and the contrast tests composite them
+    over the backdrops they sit on in both themes. Printing drops the effect.
+65. **Shapes**: rounded corners (8–26 px), pill badges and buttons, and cards with a shadow
+    that lifts on hover, instead of square stamps and ink rules. Whole cards and table rows
+    open their record; badges inside keep their own tooltips and links.
+66. **Map ramp re-stepped**: the five classes keep Section 5's end points (`--accent`, and its
+    dark-theme pair) with evenly spaced steps between, checked with a palette validator in
+    both themes so neighboring classes stay apart for common color-vision deficiencies and
+    the lightest class stays visible against an empty state.
 
 ## Open questions (**Ask**)
 
