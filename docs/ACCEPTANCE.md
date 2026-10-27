@@ -10,9 +10,9 @@ npm run typecheck && npm test && npm run test:e2e && npm run test:db-down && npm
 | Suite | Result |
 | --- | --- |
 | Type check (`tsc --noEmit`, app + tests) | clean |
-| Unit tests (Vitest, `tests/unit`) | 116 passed |
+| Unit tests (Vitest, `tests/unit`) | 147 passed |
 | Database integration tests (Vitest, `tests/db`, real Postgres) | 73 passed |
-| End-to-end tests (Playwright, `tests/e2e`, production build) | 80 passed (78 desktop, 2 mobile) |
+| End-to-end tests (Playwright, `tests/e2e`, production build) | 83 passed (81 desktop, 2 mobile) |
 | Database-down check (`scripts/test-db-down.ts`) | 9 of 9 pages served |
 | Lighthouse, mobile (`scripts/lighthouse.ts`) | see item 6 |
 
@@ -78,23 +78,24 @@ mobile emulation, production build on localhost):
 
 | Page | Performance | Accessibility | Best practices | SEO |
 | --- | --- | --- | --- | --- |
-| Home `/` (map and charts) | 92, 94, 95 | 100 | 100 | 100 |
-| Explore `/incidents` (map and list) | 94, 94, 94 | 100 | 100 | 100 |
-| Incident `/incidents/DEMO-2026-0002…` | 95, 92, 92 | 100 | 100 | 66* |
+| Home `/` (map and charts) | 96 | 100 | 100 | 100 |
+| Explore `/incidents` (map and list) | 96 | 100 | 100 | 100 |
+| Incident `/incidents/DEMO-2026-0002…` | 96 | 100 | 100 | 66* |
 
 \* Demo records are deliberately `noindex`; real records are indexable.
 
-Three runs on the final build. Each page is measured in a fresh browser, as the
+Measured on the final build of the third design-critique round (`npm run test:lighthouse`,
+which serves the e2e build on port 3400; nothing else may listen there, or Lighthouse
+measures that server instead). Each page is measured in a fresh browser, as the
 Lighthouse CLI does: when one browser measured all three in turn, a one-second task
-left over from the previous page (a script with no source URL, which none of the
-site's scripts are) sometimes landed in the incident page's trace and cost it up to
-20 points. Performance still moves by a few points from run to run on this machine.
+left over from the previous page sometimes landed in the incident page's trace and cost
+it up to 20 points. Performance still moves by a few points from run to run.
 
-These are the scores after the redesign (new typefaces). Keeping them above 90 took
-trimmed font files: Newsreader limited to the weights used (90 KB instead of 132 KB),
-a 14 KB italic cut for the home headline so it paints once without reflowing, no
-italics on record pages, and drawn arrows instead of ↑ and ↓, which the typefaces
-lack: asking for them fetched a second copy of a font (see `src/fonts/README.md`).
+The site is set in one variable family, Instrument Sans (30 KB for the Latin file, weights
+400–700, preloaded with a metric-matched fallback so text does not jump); the italic is
+fetched only by pages that show italics. Icons are lucide-react SVGs drawn on the server,
+so they add no client JavaScript, and arrows are drawn rather than typed, since the Latin
+file lacks ↑ and ↓ (see `src/fonts/README.md`).
 
 **7. axe-core reports zero serious accessibility violations. Full keyboard
 navigation works on Explore and the Report form.** **Pass.**

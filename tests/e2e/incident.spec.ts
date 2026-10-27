@@ -5,10 +5,11 @@ test('an incident page shows facts, sources, timeline, change log and citations'
   // The id alone redirects to the canonical slug URL.
   await expect(page).toHaveURL(/\/incidents\/DEMO-2026-0002-demo-man-charged/)
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Man charged with hate crime')
-  await expect(page.getByRole('link', { name: /Confirmed by court record/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: /Charged — hate crime/ })).toBeVisible()
-  // The status panel says in words that a charge is not a conviction.
-  await expect(page.getByRole('region', { name: 'Record status' })).toContainText('Not convicted.')
+  // The status panel names both, and says in words that a charge is not a conviction.
+  const status = page.getByRole('region', { name: 'Record status' })
+  await expect(status).toContainText('Confirmed by court record')
+  await expect(status).toContainText('Charged — hate crime')
+  await expect(status).toContainText('Not convicted.')
   await expect(page.getByRole('heading', { name: 'Key facts' })).toBeVisible()
   await expect(page.getByText('Charged, not convicted: Demo Defendant A')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Legal timeline' })).toBeVisible()
@@ -35,11 +36,14 @@ test('badge tooltips explain each badge and link to the method', async ({ page }
   await page.keyboard.press('Escape')
   await expect(page.locator(`[id="${tipId}"]`)).toBeHidden()
   await expect(badge).toHaveAttribute('href', '/methodology#verification-v3')
-  // On a record page the status panel explains its badges in words, without tooltips.
+  // On a record page the status panel explains its badges in words, with one link to the method:
+  // the badges themselves are plain text, with no tooltip and no second link to the same place.
   await page.goto('/incidents/DEMO-2026-0001')
   const panel = page.getByRole('region', { name: 'Record status' })
-  await expect(panel.getByRole('link', { name: /Confirmed by police/ })).not.toHaveAttribute('aria-describedby', /.+/)
+  await expect(panel).toContainText('Confirmed by police')
+  await expect(panel.getByRole('link', { name: /Confirmed by police/ })).toHaveCount(0)
   await expect(panel).toContainText('Police, prosecutor, or court record confirms the incident occurred.')
+  await expect(panel.getByRole('link', { name: /How we verify/ })).toHaveAttribute('href', '/methodology#verification-v3')
 })
 
 test('every id on a record page is unique, so its contents links land', async ({ page }) => {
