@@ -226,7 +226,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
               <section id="map" aria-labelledby="map-heading" className="map-card mt-6">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
                   <h3 id="map-heading" tabIndex={-1} className="text-xl leading-tight outline-none">
-                    {focusName ? `${focusName}, by city` : 'By state'}
+                    {focusName ? (zoomedEmpty ? focusName : `${focusName}, by city`) : 'By state'}
                   </h3>
                   {focusName ? (
                     <nav aria-label="Map level" className="no-print map-crumbs text-sm">
@@ -245,9 +245,11 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                   )}
                 </div>
                 <p className="sr-only">
-                  {focusName
-                    ? `Map of ${focusName} with a circle for each city, sized by the number of records. The list gives each city's count.`
-                    : 'Map of the United States with each state shaded by its number of records. The list gives every state with records.'}
+                  {zoomedEmpty
+                    ? `Map of ${focusName}. No records for these filters.`
+                    : focusName
+                      ? `Map of ${focusName} with a circle for each city, sized by the number of records. The list gives each city's count.`
+                      : 'Map of the United States with each state shaded by its number of records. The list gives every state with records.'}
                 </p>
                 <div className="min-w-0">
                   {focusCode && !stateShape(focusCode) ? (
@@ -299,7 +301,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                         <p className="text-muted">None for these filters.</p>
                       )}
                       {focusName && cities?.stateOnly ? (
-                        <p className="mt-2 text-sm text-muted">{plural(cities.stateOnly, 'record')} shown at state level only, without a city.</p>
+                        <p className="mt-2 text-sm text-muted">{plural(cities.stateOnly, 'record')} with no city, not on the map.</p>
                       ) : null}
                       {listRows.length > 10 ? (
                         <details className="mt-3">
@@ -416,33 +418,30 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
     </main>
   )
 
-  /** No records: say so plainly, why that is not evidence, and offer only the ways out that apply. */
+  /**
+   * No records: say so plainly, why that is not evidence, and offer only the ways out that apply.
+   * Zoomed into a state it sits in the map card, under its heading, and the card's "All states" is the way back.
+   */
   function EmptyResult() {
+    const Heading = zoomedEmpty ? 'h4' : 'h3'
     return (
       <div className="empty-result">
         <span className="icon-chip" aria-hidden="true">
           <SearchX />
         </span>
         <div>
-          <h3 id="empty-heading" className="text-xl">
+          <Heading id="empty-heading" className={zoomedEmpty ? 'text-lg' : 'text-xl'}>
             {focusName && !filters.q
               ? `No records in ${filters.city ? `${filters.city}, ` : ''}${focusName} for these filters`
               : filters.q
                 ? `Nothing matches “${filters.q}”`
                 : tryInstead}
-          </h3>
+          </Heading>
           <p className="mt-2 max-w-[62ch] text-muted">
             {filters.q ? 'Search looks in titles, summaries, places and case names. Check the spelling, or try a city or case name. ' : ''}
             The Record lists only incidents with published sources, so an empty result is not evidence that nothing happened.
           </p>
           <ul className="mt-4 flex flex-wrap gap-2">
-            {focusName ? (
-              <li>
-                <Link href={allStatesHref} className="btn btn-secondary btn-sm" scroll={false}>
-                  Show all states
-                </Link>
-              </li>
-            ) : null}
             {filters.q ? (
               <li>
                 <Link href={explorePath({ ...filters, q: null }, base)} className="btn btn-secondary btn-sm">

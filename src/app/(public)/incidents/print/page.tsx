@@ -46,6 +46,17 @@ function list(words: string[], joiner: 'or' | 'and'): string {
   return words.length <= 2 ? words.join(` ${joiner} `) : `${words.slice(0, -1).join(', ')} ${joiner} ${words.at(-1)}`
 }
 
+/** A date that wraps, if it must, only before its year: "Sept. 14," then "2026". */
+function DateText({ text }: { text: string }) {
+  const cut = text.lastIndexOf(', ')
+  if (cut < 0) return <span className="whitespace-nowrap">{text}</span>
+  return (
+    <>
+      <span className="whitespace-nowrap">{text.slice(0, cut + 1)}</span> <span className="whitespace-nowrap">{text.slice(cut + 2)}</span>
+    </>
+  )
+}
+
 /**
  * The current Explore filters as a report to print or save as PDF: the map,
  * the totals, and every matching record rather than one page of them.
@@ -248,8 +259,10 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
             {result.rows.map((r) => (
               <tr key={r.id}>
                 {/* One line on paper and on a sheet as wide as paper; a narrower sheet lets them wrap, so every column still fits. */}
-                <td className="lg:whitespace-nowrap print:whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</td>
-                <td className="lg:whitespace-nowrap print:whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</td>
+                <td className="min-[54rem]:whitespace-nowrap print:whitespace-nowrap">
+                  <DateText text={formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)} />
+                </td>
+                <td className="min-[54rem]:whitespace-nowrap print:whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</td>
                 <td>
                   <Link href={incidentPath(r.id, r.slug)} className="text-text">
                     {r.title}

@@ -3412,12 +3412,14 @@
   .print-totals .data-table thead th {
     position: static;
   }
-  /* Many places: the list as two tables side by side (one above the other on a narrow phone). */
-  .print-places-columns {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-    gap: 0 1.5rem;
-    align-items: start;
+  /* Many places: the list as two tables side by side (one above the other on a phone). */
+  @media (min-width: 40rem) {
+    .print-places-columns {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0 1.5rem;
+      align-items: start;
+    }
   }
   /* The records table fits the sheet, as it does the paper: the incident column has no minimum and the cells are tighter. */
   .print-sheet .table-scroll .data-table :is(th, td) {

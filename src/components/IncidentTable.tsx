@@ -46,25 +46,28 @@ export function IncidentTable({
   return (
     <TableKeyboardNav>
       <div className={sticky ? 'table-scroll sticky-head' : 'table-scroll'} role="region" aria-label={caption} tabIndex={0}>
-        <table className="data-table records-table">
+        {/* Explicit roles: below 30rem the rows are laid out as blocks, and WebKit drops a table's semantics when its display changes. */}
+        <table className="data-table records-table" role="table">
           <caption className="sr-only">{caption}</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="records-when" aria-sort={dateSort?.active ? dateSort.direction : undefined}>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader" className="records-when" aria-sort={dateSort?.active ? dateSort.direction : undefined}>
                 {dateSort ? <SortHeader sort={dateSort} /> : 'Date'}
                 <span className="text-muted"> · place</span>
               </th>
-              <th scope="col">Incident and status</th>
+              <th scope="col" role="columnheader">
+                Incident and status
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {rows.map((r) => (
-              <tr key={r.id} data-record-id={r.id} className="row-link">
-                <td className="records-when">
+              <tr key={r.id} data-record-id={r.id} className="row-link" role="row">
+                <td className="records-when" role="cell">
                   <span className="tabular whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</span>
                   <span className="block text-muted sm:whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</span>
                 </td>
-                <td>
+                <td role="cell">
                   <Link href={incidentPath(r.id, r.slug)} className="text-base leading-snug font-semibold text-text no-underline hover:underline">
                     <Highlight text={r.title} query={query} />
                   </Link>
