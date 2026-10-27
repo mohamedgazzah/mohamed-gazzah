@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { INCIDENT_TYPES, INCIDENT_TYPE_META, type IncidentType } from '@/db/enums'
 import { activePreset, datePresets, describeDates, explorePath, serializeFilters, type Filters, type ViewState } from '@/lib/filters'
 import { formatNumber } from '@/lib/format'
+import { FilterSheetButton } from './FilterDrawer'
 
 /** Hidden inputs that carry every filter except the ones a form sets itself. */
 function Carry({ filters, view, except }: { filters: Filters; view: ViewState; except: string[] }) {
@@ -29,11 +30,14 @@ export function ExploreToolbar({
   view,
   today,
   typeCounts,
+  sheetCount,
 }: {
   filters: Filters
   view: ViewState
   today: string
   typeCounts: Record<IncidentType, number>
+  /** Filters set inside the sheet, for its button (below 64rem). */
+  sheetCount: number
 }) {
   const base = { ...view, page: 1 }
   const preset = activePreset(filters, today)
@@ -47,9 +51,9 @@ export function ExploreToolbar({
           <Search aria-hidden="true" />
           Search
         </label>
-        <div className="toolbar-controls">
+        <div className="toolbar-controls toolbar-search">
           <Carry filters={filters} view={view} except={['q']} />
-          <div className="relative min-w-0 flex-1 basis-60">
+          <div className="relative min-w-0 flex-1">
             <input
               id="f-q"
               name="q"
@@ -146,6 +150,11 @@ export function ExploreToolbar({
             )
           })}
         </ul>
+      </div>
+
+      {/* Below 64rem the rest of the filters open in a sheet. */}
+      <div className="toolbar-row lg:hidden">
+        <FilterSheetButton activeCount={sheetCount} className="w-full" />
       </div>
     </div>
   )

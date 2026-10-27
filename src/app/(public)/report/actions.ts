@@ -31,6 +31,8 @@ export async function submitReport(_prev: ReportState, fd: FormData): Promise<Re
     result.values = Object.fromEntries(KEEP.map((k) => [k, text(fd, k) ?? '']))
     if (fd.get('keepConsent') === 'on') result.values.keepConsent = 'on'
     if (fd.get('privacyRequest') === 'on') result.values.privacyRequest = 'on'
+    // A page sent back without JavaScript cannot refill a file input; the form says so.
+    if (fd.getAll('files').some((f) => typeof f !== 'string' && f.size > 0)) result.values.hadFiles = '1'
   }
   return result
 }

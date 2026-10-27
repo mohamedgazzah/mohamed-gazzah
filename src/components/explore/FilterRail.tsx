@@ -37,7 +37,7 @@ function Checks<T extends string | number>({ name, values, checked, label }: { n
         const id = `f-${name}-${v}`
         return (
           <li key={String(v)}>
-            <label htmlFor={id} className="flex min-h-9 cursor-pointer items-start gap-2.5 py-1 text-[15px] hover:text-accent">
+            <label htmlFor={id} className="flex min-h-9 cursor-pointer items-start gap-2.5 py-1 text-base hover:text-accent">
               <input id={id} type="checkbox" name={name} value={String(v)} defaultChecked={checked.includes(v)} className="mt-[3px] h-4 w-4 shrink-0" />
               <span>{label(v)}</span>
             </label>
@@ -64,7 +64,7 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
       {filters.type.length ? <input type="hidden" name="type" value={filters.type.join(',')} /> : null}
       {filters.q ? <input type="hidden" name="q" value={filters.q} /> : null}
 
-      <p className="px-4 pt-4 text-[15px] font-semibold md:px-5">More filters</p>
+      <p className="px-4 pt-4 text-base font-semibold md:px-5">More filters</p>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5">
 
       <Group legend="State and city" open={!!(filters.state.length || filters.city)}>

@@ -39,7 +39,7 @@ import {
   type YesNoUnknown,
 } from '@/db/enums'
 import { US_STATES, stateByCode } from './states'
-import { addDays, formatDate } from './format'
+import { addDays, formatDate, formatDateRange } from './format'
 
 export const SORTS = ['newest', 'oldest', 'severity'] as const
 export type Sort = (typeof SORTS)[number]
@@ -231,7 +231,7 @@ export function chips(f: Filters, view: Partial<ViewState> = {}, today?: string)
   // One chip for the date range: removing half a range is never what anyone means.
   if (f.from || f.to) {
     const preset = today ? activePreset(f, today) : null
-    const label = preset ? preset.label : `${f.from ? formatDate(f.from) : 'The start'} to ${f.to ? formatDate(f.to) : 'today'}`
+    const label = preset ? preset.label : rangeLabel(f.from, f.to)
     list.push({ key: 'dates', label, removeHref: without({ from: null, to: null }) })
   }
   for (const s of f.state)
@@ -284,10 +284,17 @@ export function activePreset(f: Pick<Filters, 'from' | 'to'>, today: string): Da
 }
 
 /** The filters' date range in words: "all dates", "2026", "the last 30 days", "Jan. 1, 2026 to today". */
+/** A custom range in the site's date style: "June 1 – Aug. 31, 2026", "Feb. 1, 2026 to today", "Up to Aug. 31, 2026". */
+export function rangeLabel(from: string | null, to: string | null): string {
+  if (from && to) return formatDateRange(from, to, 'day')
+  if (from) return `${formatDate(from)} to today`
+  return to ? `Up to ${formatDate(to)}` : 'All dates'
+}
+
 export function describeDates(f: Pick<Filters, 'from' | 'to'>, today: string): string {
   const preset = activePreset(f, today)
   if (preset?.key === 'all') return 'all dates'
   if (preset) return preset.label.replace(/^Last/, 'the last')
-  return `${f.from ? formatDate(f.from) : 'the start'} to ${f.to ? formatDate(f.to) : 'today'}`
+  return rangeLabel(f.from, f.to)
 }
 

@@ -37,7 +37,7 @@ test.describe('Explore URLs', () => {
       expect(await tableIds(p2)).toEqual(first)
       await other.close()
       // The CSV download has exactly the listed records.
-      const href = await page.getByRole('link', { name: 'Download incidents (CSV)' }).getAttribute('href')
+      const href = await page.getByRole('link', { name: 'CSV file of these incidents' }).getAttribute('href')
       const csv = await (await request.get(href!)).text()
       const rows = csv.trim().split('\r\n').slice(1)
       expect(rows.length).toBe(first.length)
@@ -80,16 +80,15 @@ test.describe('Explore URLs', () => {
     await page.getByRole('button', { name: 'Apply dates' }).click()
     await expect(page).toHaveURL(/from=2026-06-01&to=2026-08-31/)
     expect((await tableIds(page)).sort()).toEqual(['DEMO-2026-0002', 'DEMO-2026-0003'])
-    await expect(page.locator('#results-heading')).toContainText('June 1, 2026 to Aug. 31, 2026')
+    await expect(page.locator('#results-heading')).toContainText('June 1 – Aug. 31, 2026')
   })
 
   test('the state map zooms into a state, with its cities and records', async ({ page }) => {
     await page.goto('/incidents')
     await expect(page.locator('.state-map .map-states a')).toHaveCount(51)
-    // The list beside the map is the keyboard route into a state.
-    const ranked = page.getByRole('list', { name: 'Records by state' })
-    const ca = ranked.getByRole('link', { name: /California/ })
-    const n = Number((await ca.locator('.bar-value').innerText()).replace(/\D/g, ''))
+    // The list under the map (bars, or a sentence for a few states) is the keyboard route into a state.
+    const ca = page.locator('#map a[data-count]').filter({ hasText: 'California' }).first()
+    const n = Number(await ca.getAttribute('data-count'))
     await ca.click()
     await expect(page).toHaveURL(/\/incidents\?state=CA$/)
     await expect(page.locator('#map-heading')).toHaveText('California, by city')
@@ -152,7 +151,7 @@ test.describe('home stat tiles', () => {
     const tiles = page.getByRole('region', { name: /Headline numbers/ }).getByRole('link')
     const n = await tiles.count()
     expect(n).toBe(4)
-    await expect(page.getByText(/^Counts as of /)).toBeVisible()
+    await expect(page.getByText('Verified incidents only. Select a number to see its records.')).toBeVisible()
     for (let i = 0; i < n; i++) {
       await page.goto('/')
       const tile = page.getByRole('region', { name: /Headline numbers/ }).getByRole('link').nth(i)

@@ -21,17 +21,17 @@ const PROJECT_LINKS = [
 
 export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   return (
-    <footer className="band mt-28 rounded-t-[32px]">
+    <footer className="band mt-16 rounded-t-[32px] md:mt-24">
       <div className="wrap pt-14 pb-8 md:pt-16">
         <div className="grid gap-x-8 gap-y-12 md:grid-cols-12">
           <div className="md:col-span-6 lg:col-span-5">
-            <p className="flex items-center gap-3 text-[19px] font-semibold tracking-[-0.02em]">
-              <span className="brand-mark">
+            <p className="flex items-center gap-3 text-lg font-semibold tracking-[-0.02em]">
+              <span className="brand-mark brand-mark-band">
                 <BrandMark />
               </span>
               {SITE.name}
             </p>
-            <p className="mt-4 max-w-[38ch] text-[17px] leading-relaxed">
+            <p className="mt-4 max-w-[38ch] text-base leading-relaxed">
               A public record of anti-Muslim incidents in the United States. Every entry is sourced, and allegations are never presented as
               convictions.
             </p>

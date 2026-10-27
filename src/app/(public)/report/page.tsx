@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarClock, Clock3, EyeOff, LockKeyhole, Phone } from 'lucide-react'
+import { ArrowRight, CalendarClock, EyeOff, Landmark, LockKeyhole, Mail, Phone } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/PageHeader'
@@ -8,9 +8,15 @@ import { todayIso } from '@/lib/format'
 import { SITE } from '@/lib/site'
 import { ReportForm } from './ReportForm'
 
-export const metadata: Metadata = {
-  title: 'Report an incident or a correction',
-  description: 'Send an incident or a correction to the editors. Submissions are reviewed and never published automatically.',
+export async function generateMetadata(props: PageProps<'/report'>): Promise<Metadata> {
+  const sp = await props.searchParams
+  const correction = sp.mode === 'correction'
+  return {
+    title: correction ? 'Request a correction' : 'Report an incident',
+    description: correction
+      ? 'Point out an error in a published record, or ask for details that identify you to be removed.'
+      : 'Send an incident to the editors. Submissions are reviewed and never published automatically.',
+  }
 }
 
 export default async function ReportPage(props: PageProps<'/report'>) {
@@ -20,21 +26,35 @@ export default async function ReportPage(props: PageProps<'/report'>) {
   const siteKey = process.env.TURNSTILE_DISABLED === 'true' ? null : (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? null)
   const isCorrection = mode === 'correction'
 
+  // The notice says what is protected; these steps say what happens and when. Each promise is made once.
   const steps = isCorrection
     ? [
-        `An editor replies within ${SLA.correctionResponseHours} hours.`,
+        `If you leave an email, an editor replies within ${SLA.correctionResponseHours} hours.`,
         `Material errors are fixed within ${SLA.correctionFixDays} days, with a note in the record’s change log.`,
         `Requests to remove identifying details are handled within ${SLA.privacyRemovalHours} hours.`,
       ]
     : [
-        'Editors read every submission. Nothing is published automatically.',
+        'Editors read every submission.',
         'They look for public sources: news reports, police statements, court records.',
-        'A record is published only after a second editor reviews it, and never with your name, contact details or exact address.',
+        'A second editor reviews a record before it is published.',
+        'If you left an email, an editor may write to you.',
       ]
+  const title = isCorrection ? 'Request a correction' : 'Report an incident'
 
   return (
-    <main className="wrap pt-6 pb-4 md:pt-8">
-      <PageHeader kicker="Private and encrypted" icon={<LockKeyhole aria-hidden="true" />} title={isCorrection ? 'Request a correction' : 'Report an incident'}>
+    <main className="wrap pt-6 md:pt-8">
+      <PageHeader
+        compact
+        kicker="Private and encrypted"
+        icon={<LockKeyhole aria-hidden="true" />}
+        title={
+          // Once the form is sent the title says so (globals.css swaps them).
+          <>
+            <span className="when-editing">{title}</span>
+            <span className="when-done">{isCorrection ? 'Request received' : 'Report received'}</span>
+          </>
+        }
+      >
         {isCorrection
           ? 'Point out an error in a published record, or ask us to remove details that identify you.'
           : 'Tell us what happened, in your own words. Only two questions are required, and you don’t have to give your name.'}
@@ -46,10 +66,10 @@ export default async function ReportPage(props: PageProps<'/report'>) {
         rail={
           <div className="glass rounded-[var(--radius-md)] p-5">
             <p className="kicker">What happens next</p>
-            <ol className="mt-4 space-y-4 text-[14.5px]">
+            <ol className="mt-4 space-y-4 text-sm">
               {steps.map((step, i) => (
                 <li key={i} className="flex gap-3">
-                  <span aria-hidden="true" className="tabular inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-accent-tint text-[12.5px] font-semibold text-accent">
+                  <span aria-hidden="true" className="tabular inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-accent-tint text-xs font-semibold text-accent">
                     {i + 1}
                   </span>
                   <span>{step}</span>
@@ -60,8 +80,8 @@ export default async function ReportPage(props: PageProps<'/report'>) {
         }
       >
         <div className="report-intro">
-          <div id="report-notice" className="notice text-[15.5px]">
-            <p className="flex items-center gap-3 border-b border-rule pb-4 text-[17px]">
+          <div id="report-notice" className="notice text-base">
+            <p className="flex items-center gap-3 border-b border-rule pb-4 text-lg">
               <span className="icon-chip" aria-hidden="true">
                 <Phone />
               </span>
@@ -70,7 +90,7 @@ export default async function ReportPage(props: PageProps<'/report'>) {
             <ul className="mt-4 space-y-3">
               <li className="flex gap-3">
                 <LockKeyhole aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-accent" />
-                <span>Encrypted, and seen only by the project’s editors after they sign in with two-factor authentication.</span>
+                <span>Encrypted, and seen only by the project’s editors, after two-factor sign-in.</span>
               </li>
               <li className="flex gap-3">
                 <EyeOff aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-accent" />
@@ -88,16 +108,23 @@ export default async function ReportPage(props: PageProps<'/report'>) {
               </li>
               {isCorrection ? (
                 <li className="flex gap-3">
-                  <Clock3 aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-accent" />
+                  <Mail aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-accent" />
                   <span>
-                    We respond within {SLA.correctionResponseHours} hours and fix material errors within {SLA.correctionFixDays} days. You can also write
-                    to <a href={`mailto:${SITE.emails.corrections}`}>{SITE.emails.corrections}</a>.
+                    You can also write to <a href={`mailto:${SITE.emails.corrections}`}>{SITE.emails.corrections}</a>.
                   </span>
                 </li>
-              ) : null}
+              ) : (
+                <li className="flex gap-3">
+                  <Landmark aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-accent" />
+                  <span>
+                    This does not report it to the police. To report a crime, contact your local police or the FBI at{' '}
+                    <a href="https://tips.fbi.gov">tips.fbi.gov</a>.
+                  </span>
+                </li>
+              )}
             </ul>
           </div>
-          <p className="mt-5 mb-10 text-[15px] text-muted">
+          <p className="mt-5 mb-10 text-sm text-muted">
             {isCorrection ? 'Want to report an incident instead? ' : 'Found a mistake in a published record? '}
             <Link
               href={isCorrection ? '/report' : `/report?mode=correction${recordId ? `&record=${encodeURIComponent(recordId)}` : ''}`}

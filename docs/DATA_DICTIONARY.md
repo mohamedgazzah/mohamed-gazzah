@@ -18,7 +18,7 @@ Generated from `src/db/schema.ts` by `npm run dictionary`. Do not edit by hand.
 | `lat` | number (nullable) |  | Latitude at the stated location precision. City-level records use the city centroid. |
 | `lng` | number (nullable) |  | Longitude at the stated location precision. |
 | `map_lat` | number (nullable) |  | Latitude used on the map. For city, neighborhood and state precision this includes a small random offset, stored once, so markers do not stack. Positions are approximate. |
-| `map_lng` | number (nullable) |  | Longitude used on the map (see map_lat). |
+| `map_lng` | number (nullable) |  | Longitude used on the map (see `map_lat`). |
 | `location_precision` | enum | `exact_public_place`, `neighborhood`, `city`, `state` | How precisely the location is shown. Private homes are never shown more precisely than the neighborhood. |
 | `incident_types` | enum[] | `HOM`, `ASLT`, `THRT`, `HARS`, `VAND`, `ARSN`, `DESC`, `MASS`, `PLOT`, `OFCL`, `SCHL`, `EMPL` | One or more taxonomy codes. See /methodology#taxonomy. |
 | `target_type` | enum | `individual`, `multiple_individuals`, `mosque_islamic_center`, `school`, `business`, `home`, `vehicle`, `other` | What was targeted. |
@@ -35,7 +35,7 @@ Generated from `src/db/schema.ts` by `npm run dictionary`. Do not edit by hand.
 | `legal_status` | enum | `reported`, `under_investigation`, `suspect_identified`, `arrested`, `charged`, `in_court`, `convicted`, `acquitted`, `dismissed`, `plea_deal`, `deferred`, `sentenced`, `no_arrest`, `suspect_deceased`, `not_prosecuted`, `unknown` | Current stage in the legal status lifecycle. |
 | `hate_crime_charged` | enum | `yes`, `no`, `unknown` | Whether a hate-crime or bias-enhancement charge was filed. |
 | `agencies_involved` | string[] |  | Police, prosecutors and other agencies named in sources. |
-| `case_ids` | string[] |  | Ids of court cases tied to this incident. |
+| `case_ids` | string[] |  | IDs of court cases tied to this incident. |
 | `related_incident_ids` | string[] |  | Other records with the same perpetrator or in the same series. |
 | `tags` | string[] |  | Free editorial tags, e.g. campus, election-related. |
 | `source_types` | enum[] | `news`, `police`, `prosecutor`, `court_record`, `government`, `advocacy_org`, `academic`, `social_media`, `victim_statement` | Distinct types of the sources cited. |

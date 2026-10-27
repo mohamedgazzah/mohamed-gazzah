@@ -60,5 +60,6 @@ test('correction mode is tied to a record id and offers privacy removal', async 
   await page.getByLabel(/I am a person described in this record/).check()
   await page.getByRole('button', { name: 'Send correction request' }).click()
   await expect(page.getByRole('heading', { name: /We received your correction request/ })).toBeVisible()
-  await expect(page.getByText(/within 48 hours/)).toBeVisible()
+  // The confirmation says what happens next (the notes beside the form are hidden once it is sent).
+  await expect(page.getByRole('status').getByText(/within 48 hours/)).toBeVisible()
 })

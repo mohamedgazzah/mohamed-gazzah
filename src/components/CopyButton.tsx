@@ -22,10 +22,10 @@ export function CopyButton({ text, label, className = 'btn btn-secondary', icon 
         }}
       >
         {copied ? <Check aria-hidden="true" className="pop-in" /> : icon}
-        <span className="inline-grid">
-          {/* Both labels take up space, so the button never changes width. */}
-          <span className={`col-start-1 row-start-1 ${copied ? 'invisible' : ''}`}>{label}</span>
-          <span aria-hidden="true" className={`col-start-1 row-start-1 ${copied ? '' : 'invisible'}`}>
+        <span className="inline-grid justify-items-start text-start">
+          {/* Both labels take up space, so the button never changes width; the label is only faded, so the button keeps its name. */}
+          <span className={`col-start-1 row-start-1 ${copied ? 'opacity-0' : ''}`}>{label}</span>
+          <span aria-hidden="true" className={`col-start-1 row-start-1 ${copied ? '' : 'opacity-0'}`}>
             Copied
           </span>
         </span>

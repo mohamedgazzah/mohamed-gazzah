@@ -1,3 +1,4 @@
+import { Gavel } from 'lucide-react'
 import Link from 'next/link'
 import {
   ALLEGATION_STATUSES,
@@ -24,27 +25,32 @@ const TONE: Record<BadgeTone, string> = {
 }
 
 /**
- * A mark and a word, linked to the method, with a tooltip that explains it.
- * Verification and severity carry a mark; legal status is boxed like a stamp.
+ * A mark and a word, linked to the method, with a tooltip that explains it
+ * (off where the explanation is already printed beside the badge).
  */
-function Pill({ tone, href, label, tip, tipId, marker }: {
+function Pill({ tone, href, label, tip, tipId, marker, tooltip = true }: {
   tone: BadgeTone
   href: string
   label: string
   tip: string
   tipId: string
   marker?: ReactNode
+  tooltip?: boolean
 }) {
+  const badge = (
+    <Link href={href} aria-describedby={tooltip ? tipId : undefined} className={`badge ${marker ? '' : 'badge-box'} ${TONE[tone]}`}>
+      {marker ? (
+        <span aria-hidden="true" className="inline-flex w-2.5 items-center justify-center">
+          {marker}
+        </span>
+      ) : null}
+      {label}
+    </Link>
+  )
+  if (!tooltip) return badge
   return (
-    <Tooltip id={tipId} tip={<>{tip} <span className="text-muted">Select to see how this is decided.</span></>}>
-      <Link href={href} aria-describedby={tipId} className={`badge ${marker ? '' : 'badge-box'} ${TONE[tone]}`}>
-        {marker ? (
-          <span aria-hidden="true" className="inline-flex w-2.5 items-center justify-center">
-            {marker}
-          </span>
-        ) : null}
-        {label}
-      </Link>
+    <Tooltip id={tipId} tip={<>{tip} <span className="text-muted">Select for the full definition.</span></>}>
+      {badge}
     </Tooltip>
   )
 }
@@ -58,15 +64,27 @@ export function verificationLabel(level: PublicVerificationLevel, sourceTypes: r
   return VERIFICATION_META.V3.label
 }
 
-export function VerificationBadge({ level, sourceTypes, idPrefix }: { level: PublicVerificationLevel; sourceTypes?: readonly SourceType[]; idPrefix: string }) {
+// Tooltip ids carry "-tip-" so they never collide with the page's section ids.
+export function VerificationBadge({
+  level,
+  sourceTypes,
+  idPrefix,
+  tooltip,
+}: {
+  level: PublicVerificationLevel
+  sourceTypes?: readonly SourceType[]
+  idPrefix: string
+  tooltip?: boolean
+}) {
   return (
     <Pill
       tone={level === 'V3' ? 'confirmed' : 'reported'}
       marker={<VerificationMark level={level} />}
       href={`/methodology#verification-${level.toLowerCase()}`}
       label={verificationLabel(level, sourceTypes)}
-      tip={`Level ${level}. ${VERIFICATION_META[level].rule}`}
-      tipId={`${idPrefix}-verification`}
+      tip={VERIFICATION_META[level].rule}
+      tipId={`${idPrefix}-tip-verification`}
+      tooltip={tooltip}
     />
   )
 }
@@ -77,27 +95,43 @@ export function legalLabel(status: LegalStatus, hateCrimeCharged: YesNoUnknown):
   return base
 }
 
+/** The legal-status tooltip names a hate-crime charge once, before the presumption of innocence. */
+function legalTip(status: LegalStatus, hateCrimeCharged: YesNoUnknown): string {
+  if (hateCrimeCharged === 'yes' && status === 'charged') return 'Charges were filed, including a hate-crime or bias charge. The accused is presumed innocent.'
+  if (hateCrimeCharged === 'yes' && status === 'in_court') return 'The case, which includes a hate-crime or bias charge, is before a court. The accused is presumed innocent.'
+  return LEGAL_STATUS_META[status].description
+}
+
+/**
+ * Where the case stands, as one group with a gavel: the status, and
+ * "Alleged" joined to it while no one is convicted, so a reader never takes
+ * the verification beside it for a verdict.
+ */
 export function LegalStatusBadges({
   status,
   hateCrimeCharged,
   idPrefix,
   alleged: showAlleged = true,
+  tooltip,
 }: {
   status: LegalStatus
   hateCrimeCharged: YesNoUnknown
   idPrefix: string
-  /** The "Alleged" pill; off where the status is explained in words beside it. */
+  /** The "Alleged" part; off where the status is explained in words beside it. */
   alleged?: boolean
+  tooltip?: boolean
 }) {
   const alleged = showAlleged && ALLEGATION_STATUSES.includes(status)
   return (
-    <>
+    <span className="badge-group">
+      <Gavel aria-hidden="true" className="badge-group-icon" />
       <Pill
         tone="neutral"
         href={`/methodology#legal-${status}`}
         label={legalLabel(status, hateCrimeCharged)}
-        tip={`${LEGAL_STATUS_META[status].description}${hateCrimeCharged === 'yes' ? ' A hate-crime or bias charge was filed.' : ''}`}
-        tipId={`${idPrefix}-legal`}
+        tip={legalTip(status, hateCrimeCharged)}
+        tipId={`${idPrefix}-tip-legal`}
+        tooltip={tooltip}
       />
       {alleged ? (
         <Pill
@@ -105,10 +139,11 @@ export function LegalStatusBadges({
           href="/methodology#language"
           label="Alleged"
           tip="No one has been convicted. Anyone accused is presumed innocent."
-          tipId={`${idPrefix}-alleged`}
+          tipId={`${idPrefix}-tip-alleged`}
+          tooltip={tooltip}
         />
       ) : null}
-    </>
+    </span>
   )
 }
 
@@ -122,7 +157,7 @@ export function SeverityMarker({ severity, idPrefix }: { severity: Severity; idP
       href={`/methodology#severity-${severity}`}
       label={SEVERITY_META[severity].label}
       tip={`Severity ${severity}: ${SEVERITY_META[severity].description}`}
-      tipId={`${idPrefix}-severity`}
+      tipId={`${idPrefix}-tip-severity`}
     />
   )
 }

@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react'
+import { Link2 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { ContentsNav } from './ContentsNav'
 
@@ -7,50 +7,38 @@ export type Contents = readonly (readonly [id: string, title: string, short?: st
 
 /**
  * Long pages: a contents card (sticky on wide screens) beside a reading
- * column. On phones the contents fold into a closed disclosure. A rail can
+ * column. On phones the contents fold into a disclosure that stays under the
+ * header. A rail can
  * come before the text (contents) or after it (notes beside a form), so the
  * reading order on small screens follows what matters most.
  */
 export function ReadingLayout({
   contents,
+  icons,
   rail,
   railSide = 'start',
   railClassName,
   children,
 }: {
   contents?: Contents
+  /** Icons for the contents list, by section id, where the sections show icons instead of numbers. */
+  icons?: Partial<Record<string, ReactNode>>
   rail?: ReactNode
   railSide?: 'start' | 'end'
   /** Extra classes for the rail's column, so a page can hide it in some states. */
   railClassName?: string
   children: ReactNode
 }) {
-  const items = contents?.map(([id, title, short]) => ({ id, title: short ?? title })) ?? []
+  const items = contents?.map(([id, title, short]) => ({ id, title: short ?? title, icon: icons?.[id] })) ?? []
+  // On phones a contents-only rail sticks under the header, so the list is always a tap away.
+  const sticky = contents && !rail ? 'max-md:sticky max-md:top-[calc(var(--header-h)+0.25rem)] max-md:z-20' : ''
   const aside = (
     <aside
-      className={[railSide === 'end' ? 'md:col-span-4 lg:col-span-3 lg:col-start-10' : 'md:col-span-4 lg:col-span-3', railClassName].filter(Boolean).join(' ')}
+      className={[railSide === 'end' ? 'md:col-span-4 lg:col-span-3 lg:col-start-10' : 'md:col-span-4 lg:col-span-3', sticky, railClassName].filter(Boolean).join(' ')}
       aria-label={contents ? undefined : 'Notes'}
     >
-      <div className="space-y-6 md:sticky md:top-24">
-        {contents ? (
-          <>
-            <details className="glass contents-mobile rounded-[var(--radius-md)] md:hidden">
-              <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 font-semibold">
-                <span>
-                  On this page <span className="font-normal text-muted">· {items.length} sections</span>
-                </span>
-                <ChevronDown aria-hidden="true" size={18} className="contents-chevron text-muted" />
-              </summary>
-              <nav aria-label="On this page" className="px-2 pb-3">
-                <ContentsNav items={items} />
-              </nav>
-            </details>
-            <nav aria-label="On this page" className="contents-card hidden md:block">
-              <p className="kicker px-2 pt-1">On this page</p>
-              <ContentsNav items={items} className="mt-2" />
-            </nav>
-          </>
-        ) : null}
+      <div className="space-y-6 md:sticky md:top-[calc(var(--header-h)+1rem)]">
+        {contents ? <ContentsNav items={items} /> : null}
         {rail}
       </div>
     </aside>
@@ -66,7 +54,10 @@ export function ReadingLayout({
   )
 }
 
-/** A numbered section of a reading page; an icon can stand in for the number. */
+/**
+ * A section of a reading page. Its number is set as type before the title
+ * (muted, the title's size); an icon can stand in for the number.
+ */
 export function ReadingSection({ id, n, icon, title, children }: { id: string; n?: number; icon?: ReactNode; title: string; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-h`} className="reading-section">
@@ -75,14 +66,19 @@ export function ReadingSection({ id, n, icon, title, children }: { id: string; n
           <span aria-hidden="true" className="icon-chip mt-0.5">
             {icon}
           </span>
-        ) : n ? (
-          <span aria-hidden="true" className="tabular mt-1 inline-grid h-8 min-w-8 place-items-center rounded-full bg-accent-tint px-2 text-[13px] font-semibold text-accent">
-            {n}
-          </span>
         ) : null}
-        <h2 id={`${id}-h`} className="text-[28px] leading-[1.15] md:text-[32px]">
+        <h2 id={`${id}-h`} className="text-h2">
+          {n && !icon ? (
+            <span aria-hidden="true" className="section-num tabular">
+              {n}
+            </span>
+          ) : null}
           {title}
         </h2>
+        {/* A link to the section, for citing it; shown on hover and focus. */}
+        <a href={`#${id}`} className="heading-anchor" aria-label={`Link to this section: ${title}`}>
+          <Link2 aria-hidden="true" />
+        </a>
       </div>
       <div className="reading mt-5 space-y-4">{children}</div>
     </section>

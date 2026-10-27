@@ -870,7 +870,7 @@ export const PUBLIC_FIELD_DOCS: Record<keyof PublicIncident, FieldDoc> = {
     exported: true,
     nullable: true,
   },
-  mapLng: { type: 'number', description: 'Longitude used on the map (see map_lat).', exported: true, nullable: true },
+  mapLng: { type: 'number', description: 'Longitude used on the map (see `map_lat`).', exported: true, nullable: true },
   locationPrecision: {
     type: 'enum',
     description: 'How precisely the location is shown. Private homes are never shown more precisely than the neighborhood.',
@@ -926,7 +926,7 @@ export const PUBLIC_FIELD_DOCS: Record<keyof PublicIncident, FieldDoc> = {
     exported: true,
   },
   agenciesInvolved: { type: 'string[]', description: 'Police, prosecutors and other agencies named in sources.', exported: true },
-  caseIds: { type: 'string[]', description: 'Ids of court cases tied to this incident.', exported: true },
+  caseIds: { type: 'string[]', description: 'IDs of court cases tied to this incident.', exported: true },
   relatedIncidentIds: { type: 'string[]', description: 'Other records with the same perpetrator or in the same series.', exported: true },
   tags: { type: 'string[]', description: 'Free editorial tags, e.g. campus, election-related.', exported: true },
   sourceTypes: { type: 'enum[]', description: 'Distinct types of the sources cited.', allowed: allowed(E.SOURCE_TYPES), exported: true },

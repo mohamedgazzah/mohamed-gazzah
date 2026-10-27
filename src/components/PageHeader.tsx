@@ -11,15 +11,21 @@ export function PageHeader({
   kicker?: string
   icon?: ReactNode
   title: ReactNode
-  /** A smaller opening for working pages (Explore), so the data starts sooner. */
+  /** A smaller opening for working pages (Explore, Report), so the task starts sooner. */
   compact?: boolean
   children?: ReactNode
 }) {
   if (compact) {
     return (
       <header className="pt-2 pb-1 md:pt-4">
-        <h1 className="display text-[32px] md:text-[40px]">{title}</h1>
-        {children ? <div className="mt-2 max-w-[70ch] text-[16px] text-muted">{children}</div> : null}
+        {kicker ? (
+          <p className="glass eyebrow mb-4">
+            {icon}
+            {kicker}
+          </p>
+        ) : null}
+        <h1 className="display text-h1">{title}</h1>
+        {children ? <p className="page-lede mt-2 max-w-[70ch] text-base text-muted">{children}</p> : null}
       </header>
     )
   }
@@ -32,7 +38,7 @@ export function PageHeader({
         </p>
       ) : null}
       <h1 className="display mt-5 max-w-[22ch] text-5xl">{title}</h1>
-      {children ? <div className="lede mt-5 max-w-[64ch]">{children}</div> : null}
+      {children ? <p className="page-lede lede mt-5 max-w-[64ch]">{children}</p> : null}
     </header>
   )
 }

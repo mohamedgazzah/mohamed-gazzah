@@ -61,6 +61,7 @@ describe('URL filters', () => {
     expect(activePreset({ from: '2026-02-01', to: null }, '2026-10-26')).toBeNull()
     expect(describeDates({ from: '2026-09-27', to: '2026-10-26' }, '2026-10-26')).toBe('the last 30 days')
     expect(describeDates({ from: '2026-02-01', to: null }, '2026-10-26')).toBe('Feb. 1, 2026 to today')
+    expect(describeDates({ from: '2026-06-01', to: '2026-08-31' }, '2026-10-26')).toBe('June 1 – Aug. 31, 2026')
   })
 
   it('detects non-canonical incoming queries', () => {

@@ -12,7 +12,20 @@ import { correctionTickets, leads, submissionFiles, submissionPrivate, submissio
 import { REPORTER_RELATIONS, SLA } from '@/db/enums'
 import { encryptBytes, encryptText, sha256Hex } from '@/lib/crypto'
 import { stateByFips } from '@/lib/states'
-import { CITY_MESSAGE, RECORD_ID_MESSAGE, WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN } from '@/lib/report-rules'
+import {
+  CITY_MESSAGE,
+  EMAIL_MESSAGE,
+  LINKS_MESSAGE,
+  MAX_LENGTH,
+  MAX_LINKS,
+  RECORD_ID_MESSAGE,
+  WHAT_HAPPENED_MESSAGE,
+  WHAT_HAPPENED_MIN,
+  isEmail,
+  isLink,
+  splitLinks,
+  tooLong,
+} from '@/lib/report-rules'
 import { isRecordId } from '@/lib/slug'
 import { putObject } from '../shared/storage'
 import { UPLOAD_LIMITS, sniffType, stripImageMetadata } from '../shared/uploads'
@@ -21,8 +34,8 @@ const optional = (max: number) =>
   z
     .string()
     .trim()
-    .max(max)
     .optional()
+    .refine((v) => !v || v.length <= max, { error: (iss) => tooLong(String(iss.input ?? '').length, max) })
     .transform((v) => (v ? v : null))
 
 /** Shared with the form, which runs the same check before sending so attachments are not lost. */
@@ -31,32 +44,31 @@ export { WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN } from '@/lib/report-rules'
 export const reportFields = z
   .object({
     mode: z.enum(['report', 'correction']),
-    whatHappened: z.string().trim().max(5000),
+    whatHappened: z
+      .string()
+      .trim()
+      .refine((v) => v.length <= MAX_LENGTH.whatHappened, { error: (iss) => tooLong(String(iss.input ?? '').length, MAX_LENGTH.whatHappened) }),
     incidentDate: z
       .string()
       .optional()
       .transform((v) => (v ? v : null))
       .refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Use the date picker or YYYY-MM-DD.'),
-    city: optional(100),
+    city: optional(MAX_LENGTH.city),
     stateFips: optional(2).refine((v) => v === null || !!stateByFips(v), 'Choose a state from the list.'),
-    address: optional(300),
+    address: optional(MAX_LENGTH.address),
+    // "www.freep.com/…" is accepted as https://www.freep.com/…
     links: z
       .string()
       .optional()
-      .transform((v) =>
-        (v ?? '')
-          .split(/\s+/)
-          .map((s) => s.trim())
-          .filter(Boolean),
-      )
-      .refine((l) => l.length <= 10, 'Add at most 10 links.')
-      .refine((l) => l.every((u) => /^https?:\/\/[^\s]+$/i.test(u) && u.length <= 2000), 'Links must start with http:// or https://'),
+      .transform((v) => splitLinks(v ?? ''))
+      .refine((l) => l.length <= MAX_LINKS, `Add at most ${MAX_LINKS} links.`)
+      .refine((l) => l.every(isLink), LINKS_MESSAGE),
     relation: z.enum(REPORTER_RELATIONS).optional().transform((v) => v ?? null),
-    contactName: optional(200),
-    contactEmail: optional(254).refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Check the email address.'),
-    contactPhone: optional(40),
+    contactName: optional(MAX_LENGTH.contactName),
+    contactEmail: optional(MAX_LENGTH.contactEmail).refine((v) => v === null || isEmail(v), EMAIL_MESSAGE),
+    contactPhone: optional(MAX_LENGTH.contactPhone),
     keepConsent: z.boolean(),
-    recordId: optional(40),
+    recordId: optional(MAX_LENGTH.recordId),
     privacyRequest: z.boolean(),
   })
   .superRefine((d, ctx) => {

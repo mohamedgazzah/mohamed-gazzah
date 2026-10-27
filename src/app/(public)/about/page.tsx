@@ -1,4 +1,4 @@
-import { CircleDashed, Eraser, EyeOff, Handshake, Inbox, Info, Mail, PenLine, Scale, ShieldAlert, ShieldCheck, UserLock, Users } from 'lucide-react'
+import { CircleDashed, Eraser, EyeOff, Handshake, Inbox, Info, Mail, PenLine, Phone, Scale, ShieldCheck, UserLock, Users } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
@@ -67,30 +67,37 @@ const CONTACTS = [
 
 export default function AboutPage() {
   return (
-    <main className="wrap pt-6 pb-4 md:pt-8">
-      <PageHeader kicker="About the project" icon={<Info aria-hidden="true" />} title="About and privacy">
-        {SITE.fullName} is a public, searchable record of anti-Muslim incidents in the United States. Each incident is linked to its sources and
+    <main className="wrap pt-6 md:pt-8">
+      <PageHeader kicker="The project and your data" icon={<Info aria-hidden="true" />} title="About and privacy">
+        {SITE.name} is a public, searchable record of anti-Muslim incidents in the United States. Each incident is linked to its sources and
         followed through its legal outcome.
       </PageHeader>
 
-      <ul aria-label="Privacy at a glance" className="glass mt-6 grid max-w-[60rem] gap-1 rounded-[var(--radius-lg)] p-2 md:grid-cols-3">
+      <ul aria-label="Privacy at a glance" className="glass mt-6 grid gap-1 rounded-[var(--radius-lg)] p-2 md:grid-cols-3">
         {[
           { Icon: EyeOff, title: 'No ad trackers', text: 'Public pages set no cookies.' },
           { Icon: UserLock, title: 'Only editors see what you send', text: 'After two-factor sign-in. Never published automatically.' },
-          { Icon: Eraser, title: `Removed within ${SLA.privacyRemovalHours} hours`, text: 'Identifying details, on request.', link: true },
+          {
+            Icon: Eraser,
+            title: `Identifying details removed within ${SLA.privacyRemovalHours} hours`,
+            text: 'Ask at any time if a published record describes you.',
+            link: true,
+          },
         ].map(({ Icon, title, text, link }) => (
           <li key={title} className="flex items-start gap-3 p-3">
             <span className="icon-chip h-9 w-9" aria-hidden="true">
               <Icon />
             </span>
             <span>
-              <span className="block text-[15px] font-semibold">{title}</span>
-              <span className="block text-[14.5px] text-muted">
+              <span className="block text-base font-semibold">{title}</span>
+              <span className="block text-sm text-muted">
                 {text}
                 {link ? (
                   <>
                     {' '}
-                    <a href="#privacy">Privacy policy</a>
+                    <a href="#privacy" className="whitespace-nowrap underline decoration-1 underline-offset-[0.2em]">
+                      How to ask
+                    </a>
                   </>
                 ) : null}
               </span>
@@ -99,9 +106,9 @@ export default function AboutPage() {
         ))}
       </ul>
 
-      <ReadingLayout contents={SECTIONS}>
-        <p className="text-[19px] leading-[1.65]">
-          It exists because the available data — police-reported hate crimes, complaints to advocacy groups, surveys, and state counts — is spread
+      <ReadingLayout contents={SECTIONS} icons={ICONS}>
+        <p className="text-reading">
+          {SITE.name} exists because the available data — police-reported hate crimes, complaints to advocacy groups, surveys, and state counts — is spread
           across systems that cannot be joined, and none lists individual incidents with sources and case status. It is a record, not a campaign:
           the dataset stands on its stated <Link href="/methodology">methodology</Link>.
         </p>
@@ -119,32 +126,32 @@ export default function AboutPage() {
         </Section>
 
         <Section id="contact" title="Contact">
-          <div className="notice flex gap-4 text-[15.5px]">
-            <span className="icon-chip hidden sm:inline-grid" aria-hidden="true">
-              <ShieldAlert />
+          {/* The same message as the report form, set the same way; a quiet panel, not a fifth card. */}
+          <div className="notice-quiet flex items-start gap-3">
+            <span className="icon-chip" aria-hidden="true">
+              <Phone />
             </span>
-            <p>
-              <strong>If someone is in danger, call 911.</strong> To report an incident, use the <Link href="/report">report form</Link>. Nothing
-              you send is published automatically.
+            <p className="text-base">
+              <strong className="block text-lg">If someone is in danger, call 911.</strong>
+              To report an incident, use the <Link href="/report">report form</Link>. Nothing you send is published automatically.
             </p>
           </div>
-          <ul className="ledger mt-5 sm:grid-cols-2">
+          {/* Cards lift only while their address is pointed at: the address is the link, and it stays easy to copy. */}
+          <ul className="ledger ledger-static mt-5 sm:grid-cols-2">
             {CONTACTS.map(({ Icon, label, email, purpose, extra }) => (
-              <li key={label} className="hover-icon flex items-start gap-4 p-4 sm:p-5">
+              <li key={label} className="flex items-start gap-4 p-4 sm:p-5">
                 <span className="icon-chip" aria-hidden="true">
                   <Icon />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[16px] font-semibold">{label}</span>
-                  <span className="block text-[14.5px] leading-snug text-muted">{purpose}</span>
-                  <a href={`mailto:${email}`} className="mt-2 inline-block text-[16px] font-medium [overflow-wrap:anywhere]">
-                    {email}
-                  </a>
+                  <span className="block text-base font-semibold">{label}</span>
+                  <span className="block text-sm leading-snug text-muted">{purpose}</span>
+                  <span className="mt-2 block text-base font-medium [overflow-wrap:anywhere]">
+                    <a href={`mailto:${email}`}>{email}</a>
+                  </span>
                   {extra ? (
-                    <span className="block text-[14px] text-muted">
-                      <Link href={extra.href} className="inline-block py-1">
-                        {extra.text}
-                      </Link>
+                    <span className="mt-0.5 block text-sm text-muted [&>a]:inline-block [&>a]:py-1">
+                      <Link href={extra.href}>{extra.text}</Link>
                     </span>
                   ) : null}
                 </span>
@@ -154,13 +161,26 @@ export default function AboutPage() {
         </Section>
 
         <Section id="privacy" title="Privacy policy">
-          <p className="text-[14.5px] text-muted">Covers this website and the report form.</p>
+          <p className="text-sm text-muted">Covers this website and the report form.</p>
           <h3>When you browse</h3>
-          <ul className="list-disc space-y-2.5 ps-6">
-            <li>Public pages set no cookies. If you choose a light or dark theme, that choice is kept in your own browser and never sent to us.</li>
-            <li>There are no ad trackers. Visits are counted with a cookie-free analytics tool that does not identify you.</li>
-            <li>Searches are not stored on our servers.</li>
-          </ul>
+          <dl className="terms">
+            <div>
+              <dt>Cookies</dt>
+              <dd>Public pages set none. If you choose a light or dark theme, that choice is kept in your own browser and never sent to us.</dd>
+            </div>
+            <div>
+              <dt>Ad trackers</dt>
+              <dd>None.</dd>
+            </div>
+            <div>
+              <dt>Analytics</dt>
+              <dd>Visits are counted with a cookie-free analytics tool that does not identify you.</dd>
+            </div>
+            <div>
+              <dt>Searches</dt>
+              <dd>Not stored on our servers.</dd>
+            </div>
+          </dl>
           <h3>When you send a report or a correction</h3>
           <dl className="terms">
             <div>
@@ -188,7 +208,7 @@ export default function AboutPage() {
             <div>
               <dt>How long we keep it</dt>
               <dd>
-                Contact details and files are deleted <strong className="tabular">{SLA.submitterDataRetentionMonths} months</strong> after the
+                Contact details and files are deleted <strong className="tabular whitespace-nowrap">{SLA.submitterDataRetentionMonths} months</strong> after the
                 matter is resolved, unless you ask us to keep them.
               </dd>
             </div>
@@ -197,7 +217,7 @@ export default function AboutPage() {
               <dd>
                 Write to <a href={`mailto:${SITE.emails.privacy}`}>{SITE.emails.privacy}</a> and we will delete what you sent. If a published
                 record describes you, you can ask for identifying details to be removed at any time; we do this within{' '}
-                <strong className="tabular">{SLA.privacyRemovalHours} hours</strong>.
+                <strong className="tabular whitespace-nowrap">{SLA.privacyRemovalHours} hours</strong>.
               </dd>
             </div>
             <div>

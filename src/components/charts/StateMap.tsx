@@ -23,10 +23,17 @@ export type MapFocus = {
 // by --u (map units per pixel), which MapFrame keeps current; this is its
 // value until then (and without JavaScript).
 const FRAME_PX = 900
+// Labels are placed for the narrowest map that shows them, so they never
+// collide on a phone: the top three show from 320px (where pins are drawn at
+// 0.8 size), the next three from 520px (globals.css, .state-map).
+const NARROW_PX = 320 / 0.8
+const MID_PX = 520
 // Smallest map width a zoomed view shows, so tiny states keep some context.
 const MIN_FRAME = 120
-const LABEL_PX = 12.5
+const LABEL_PX = 13
 const MAX_LABELS = 6
+// Circle sizes never stretch a handful of records to the largest circle: one record is a dot until a city reaches 20.
+const SIZE_FLOOR = 20
 
 type Box = [number, number, number, number]
 const overlaps = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]
@@ -62,24 +69,44 @@ export function StateMap({
   const viewBox = shape ? frameAround(shape.bbox, MAP_WIDTH / MAP_HEIGHT, 0.08, MIN_FRAME) : ([0, 0, MAP_WIDTH, MAP_HEIGHT] as const)
   const unit = viewBox[2] / FRAME_PX
   const classes = mapClasses(Math.max(0, ...Object.values(counts)))
-  // Alaska and Hawaii are insets: zoomed into one, the other shapes are not its neighbors.
-  const shapes = focus && (focus.code === 'AK' || focus.code === 'HI') ? STATE_SHAPES.filter((s) => s.code === focus.code) : STATE_SHAPES
+  // Alaska and Hawaii are insets: zoomed into one, the other shapes are not its neighbors, and zoomed into
+  // any other state, the insets are not either (Hawaii's box sits where Mexico would be).
+  const inset = (code: string) => code === 'AK' || code === 'HI'
+  const shapes = !focus
+    ? STATE_SHAPES
+    : inset(focus.code)
+      ? STATE_SHAPES.filter((s) => s.code === focus.code)
+      : STATE_SHAPES.filter((s) => !inset(s.code))
 
   const placed = (focus?.cities ?? [])
     .map((c) => ({ c, p: project(c.lng, c.lat) }))
     .filter((x): x is { c: CityCount; p: [number, number] } => x.p !== null)
     .sort((a, b) => b.c.count - a.c.count)
   const maxCity = Math.max(0, ...placed.map((x) => x.c.count))
-  const sizeMax = Math.max(maxCity, focus?.sizeMax ?? 0)
+  const sizeMax = Math.max(maxCity, focus?.sizeMax ?? 0, SIZE_FLOOR)
   const radius = (n: number) => bubbleRadius(n, sizeMax, 22, 4)
+  const selectedKey = focus?.selectedCity?.toLowerCase() ?? null
+  const isSelected = (city: string) => selectedKey === city.toLowerCase()
 
-  // Name the largest cities, with their counts: the top three always (labels
-  // may overlap circles; the halo keeps them legible), then others while they
-  // fit. Each label tries the right, left, top and bottom of its circle.
+  // Name the selected city and the largest ones, with their counts: the top
+  // three always (with a halo where they cannot avoid a circle), then others
+  // while they fit. Each label tries the right, left, top and bottom of its
+  // circle, avoiding every circle and every label placed before it, at the
+  // size it has on the narrowest map that shows it.
   const labels = new Map<string, { x: number; y: number; anchor: 'start' | 'end' | 'middle'; rank: number }>()
-  const taken: Box[] = []
-  for (const { c, p } of placed.slice(0, 12)) {
+  const circleBox = ({ c, p }: (typeof placed)[number], u: number): Box => {
+    const r = radius(c.count) * u
+    return [p[0] - r, p[1] - r, p[0] + r, p[1] + r]
+  }
+  const order = [...placed.filter((x) => isSelected(x.c.city)), ...placed.filter((x) => !isSelected(x.c.city))]
+  const takenAt = new Map<number, Box[]>()
+  for (const x of order.slice(0, 12)) {
     if (labels.size === MAX_LABELS) break
+    const { c, p } = x
+    const rank = labels.size + 1
+    const u = viewBox[2] / (rank <= 3 ? NARROW_PX : MID_PX)
+    if (!takenAt.has(u)) takenAt.set(u, placed.map((o) => circleBox(o, u)))
+    const taken = takenAt.get(u)!
     const r = radius(c.count)
     const w = (c.city.length + String(c.count).length + 1) * LABEL_PX * 0.56
     const h = LABEL_PX
@@ -89,46 +116,59 @@ export function StateMap({
       { x: 0, y: -r - 5, anchor: 'middle', box: [-w / 2, -r - 5 - h, w / 2, -r - 3] },
       { x: 0, y: r + h + 2, anchor: 'middle', box: [-w / 2, r + 2, w / 2, r + h + 4] },
     ]
-    // Boxes in map units (pixels × unit), to compare with other labels.
-    const inMap = (b: Box): Box => [p[0] + b[0] * unit, p[1] + b[1] * unit, p[0] + b[2] * unit, p[1] + b[3] * unit]
+    const inMap = (b: Box): Box => [p[0] + b[0] * u, p[1] + b[1] * u, p[0] + b[2] * u, p[1] + b[3] * u]
+    const inside = (b: Box) => b[0] >= viewBox[0] && b[2] <= viewBox[0] + viewBox[2] && b[1] >= viewBox[1] && b[3] <= viewBox[1] + viewBox[3]
     const fit = options.find((o) => {
       const b = inMap(o.box)
-      return b[0] >= viewBox[0] && b[2] <= viewBox[0] + viewBox[2] && !taken.some((t) => overlaps(t, b))
+      return inside(b) && !taken.some((t) => overlaps(t, b))
     })
-    const chosen = fit ?? (labels.size < 3 ? options[0]! : null)
+    const chosen = fit ?? (rank <= 3 || isSelected(c.city) ? options.find((o) => inside(inMap(o.box))) ?? options[0]! : null)
     if (!chosen) continue
-    taken.push(inMap(chosen.box))
-    labels.set(c.city, { x: chosen.x, y: chosen.y, anchor: chosen.anchor, rank: labels.size + 1 })
+    for (const list of takenAt.values()) list.push(inMap(chosen.box))
+    labels.set(c.city, { x: chosen.x, y: chosen.y, anchor: chosen.anchor, rank })
   }
 
   const unmapped = UNMAPPED_STATES.filter((s) => (counts[s.code] ?? 0) > 0)
   const sizes = keySizes(sizeMax)
   const keyMax = radius(sizes[sizes.length - 1] ?? 1)
 
+  // Largest first, so smaller circles sit on top; the selected city last of all. Labels go in a layer of
+  // their own above every circle, so no circle drawn later covers a name.
+  const drawn = [...placed.filter((x) => !isSelected(x.c.city)), ...placed.filter((x) => isSelected(x.c.city))]
   const pins = placed.length ? (
-    <g className="map-bubbles">
-      {placed.map(({ c, p }) => {
-        const r = radius(c.count)
-        const selected = focus?.selectedCity?.toLowerCase() === c.city.toLowerCase()
-        const label = labels.get(c.city)
-        return (
-          <g key={c.city} transform={`translate(${p[0]} ${p[1]})`}>
-            <g className="map-pin">
-              <a href={focus!.cityHref(c.city)} tabIndex={-1} data-tip={c.city} data-tip-value={plural(c.count, noun)}>
-                <circle r={Math.max(r + 4, 12)} className="map-hit" />
-                <circle r={r} className={selected ? 'map-bubble map-bubble-selected' : 'map-bubble'} />
-              </a>
-              {label ? (
-                <text x={label.x} y={label.y} textAnchor={label.anchor} className={`map-label-rank-${label.rank}`}>
+    <>
+      <g className="map-bubbles" data-selected={selectedKey ? '' : undefined}>
+        {drawn.map(({ c, p }) => {
+          const r = radius(c.count)
+          return (
+            <g key={c.city} transform={`translate(${p[0]} ${p[1]})`}>
+              <g className="map-pin">
+                <a href={focus!.cityHref(c.city)} tabIndex={-1} data-tip={c.city} data-tip-value={plural(c.count, noun)}>
+                  <circle r={Math.max(r + 4, 12)} className="map-hit" />
+                  <circle r={r} className={isSelected(c.city) ? 'map-bubble map-bubble-selected' : 'map-bubble'} />
+                </a>
+              </g>
+            </g>
+          )
+        })}
+      </g>
+      <g className="map-labels" aria-hidden="true">
+        {drawn.map(({ c, p }) => {
+          const label = labels.get(c.city)
+          if (!label) return null
+          return (
+            <g key={c.city} transform={`translate(${p[0]} ${p[1]})`}>
+              <g className="map-pin">
+                <text x={label.x} y={label.y} textAnchor={label.anchor} className={isSelected(c.city) ? 'map-label-selected' : `map-label-rank-${label.rank}`}>
                   {c.city}
                   <tspan dx="4">{formatNumber(c.count)}</tspan>
                 </text>
-              ) : null}
+              </g>
             </g>
-          </g>
-        )
-      })}
-    </g>
+          )
+        })}
+      </g>
+    </>
   ) : null
 
   return (
@@ -146,7 +186,8 @@ export function StateMap({
                   tabIndex={-1}
                   data-state={s.code}
                   data-tip={s.name}
-                  data-tip-value={focus && s.code !== focus.code ? `${plural(n, noun)} · select to view` : plural(n, noun)}
+                  data-tip-value={plural(n, noun)}
+                  data-tip-hint={focus && s.code !== focus.code ? 'Select to view' : undefined}
                 >
                   <use href={s.href} className={fill} />
                 </a>
@@ -167,7 +208,13 @@ export function StateMap({
           <span className="map-legend">
             {placed.length ? (
               <>
-                <svg aria-hidden="true" width={keyMax * 2 + 2} height={keyMax * 2 + 2} viewBox={`0 0 ${keyMax * 2 + 2} ${keyMax * 2 + 2}`} className="shrink-0">
+                {/* Drawn at the pins' scale (--pin-scale), so the key's circles match the map's. */}
+                <svg
+                  aria-hidden="true"
+                  viewBox={`0 0 ${keyMax * 2 + 2} ${keyMax * 2 + 2}`}
+                  className="map-key-circles shrink-0"
+                  style={{ ['--key' as string]: `${keyMax * 2 + 2}px` }}
+                >
                   {[...sizes].reverse().map((v) => {
                     const r = radius(v)
                     return <circle key={v} cx={keyMax + 1} cy={keyMax * 2 + 1 - r} r={r} className="map-bubble" />
@@ -177,8 +224,12 @@ export function StateMap({
                   {sizes.length > 1 ? `Circles: ${sizes.map((v) => formatNumber(v)).join(' · ')} ${noun}s` : `Circle: 1 ${noun}`}
                 </span>
               </>
+            ) : focus.stateOnly ? (
+              <span>None of these {noun}s has a city.</span>
             ) : (
-              <span>No {noun}s with a city here.</span>
+              <span>
+                No {noun}s in {focus.name} for these filters.
+              </span>
             )}
             {focus.stateOnly ? <span className="text-muted">+ {plural(focus.stateOnly, noun)} with no city</span> : null}
           </span>

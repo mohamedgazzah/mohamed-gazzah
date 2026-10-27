@@ -9,7 +9,7 @@ import { Pagination } from '@/components/Pagination'
 import { BarList } from '@/components/charts/BarList'
 import { StateMap } from '@/components/charts/StateMap'
 import { ExploreToolbar } from '@/components/explore/ExploreToolbar'
-import { FilterDrawer } from '@/components/explore/FilterDrawer'
+import { FilterDrawer, FilterSheet } from '@/components/explore/FilterDrawer'
 import { FilterRail } from '@/components/explore/FilterRail'
 import { DEFAULT_VERIFICATION_LEVELS, INCIDENT_TYPE_META } from '@/db/enums'
 import {
@@ -90,14 +90,27 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
   const cities = focusData
   const cityRows = (cities?.cities ?? []).map((c) => ({ key: c.city, label: c.city, value: c.count, href: explorePath({ ...filters, city: c.city }, base) }))
   const sizeMax = Math.max(0, ...(everyCity?.cities ?? []).map((c) => c.count))
-  const slice = filters.type.length ? ` (${typesInWords(filters.type)})` : ''
-  const where = focusName ? `in ${filters.city ? `${filters.city}, ` : ''}${focusName}` : `in ${plural(stateCount, 'state')}`
+  // "Threat or vandalism · 2 states · all dates": what the count covers, in the order of the filters above.
+  const place = focusName ? `${filters.city ? `${filters.city}, ` : ''}${focusName}` : plural(stateCount, 'state')
+  const scope = result.total ? [filters.type.length ? typesInWords(filters.type) : null, place, when] : [focusName ? place : null, when]
+  const subline = scope.filter(Boolean).join(' · ')
+  const subLine = subline.charAt(0).toUpperCase() + subline.slice(1)
 
   const listRows = focusName ? cityRows : ranked
   const listLabel = focusName ? `Records by city in ${focusName}` : 'Records by state'
+  // A few rows, or all the same, read better as a sentence than as bars of equal length.
+  const asSentence = listRows.length > 0 && (listRows.length <= 3 || listRows.every((r) => r.value === listRows[0]!.value))
+  const zoomedEmpty = result.total === 0 && !!focusCode
+
+  // Each link's full name starts with its visible words, so speech input can say what it sees.
+  const downloads = [
+    { href: withQs('/incidents/download'), label: 'Incidents (CSV)', short: 'CSV', name: 'CSV file of these incidents', Icon: Download, download: true },
+    { href: withQs('/incidents/download/states'), label: 'Totals by state (CSV)', short: 'Totals by state', name: 'Totals by state (CSV)', Icon: FileSpreadsheet, download: true },
+    { href: withQs('/incidents/print'), label: 'Print or save as PDF', short: 'Print', name: 'Print or save as PDF', Icon: Printer, download: false },
+  ]
 
   return (
-    <main className="wrap pt-6 pb-4 md:pt-8">
+    <main className="wrap pt-6 md:pt-8">
       <a href="#results-heading" className="sr-only-focusable rounded-full bg-surface px-4 py-2 font-semibold text-accent shadow">
         Skip to results
       </a>
@@ -105,173 +118,127 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
         Every published record, by date, place and type. <Link href="/methodology#inclusion">What is included</Link>.
       </PageHeader>
 
-      <div className="no-print mt-5">
-        <ExploreToolbar key={canonical} filters={filters} view={vs} today={today} typeCounts={typeCounts} />
-      </div>
+      <FilterSheet>
+        <div className="no-print mt-5">
+          <ExploreToolbar key={canonical} filters={filters} view={vs} today={today} typeCounts={typeCounts} sheetCount={railCount} />
+        </div>
 
-      <div className="explore-grid mt-8 grid gap-8 md:grid-cols-[17rem_minmax(0,1fr)]">
-        <aside aria-label="More filters" className="no-print md:sticky md:top-24 md:self-start">
-          <FilterDrawer activeCount={railCount}>
-            {/* Keyed by the filters, so after a link changes them the form shows the new values. */}
-            <FilterRail key={canonical} filters={filters} view={vs} />
-          </FilterDrawer>
-        </aside>
+        <div className="explore-grid mt-8 grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
+          <aside aria-label="More filters" className="no-print lg:sticky lg:top-[var(--sticky-top)] lg:self-start">
+            <FilterDrawer>
+              {/* Keyed by the filters, so after a link changes them the form shows the new values. */}
+              <FilterRail key={canonical} filters={filters} view={vs} />
+            </FilterDrawer>
+          </aside>
 
-        <div className="min-w-0">
-          <div className="results-bar glass">
-            <h2 id="results-heading" tabIndex={-1} className="text-[24px] leading-tight outline-none md:text-[26px]" aria-live="polite">
-              {result.total ? plural(result.total, noun) : `No ${noun}s`}
-              <span className="mt-1 block text-[15px] leading-snug font-normal text-muted">
-                {slice ? `${slice.slice(2, -1)}, ` : ''}
-                {where}, {when}
-              </span>
-            </h2>
-            <div className="no-print hidden flex-wrap items-center gap-2 sm:flex">
-              <a href={withQs('/incidents/download')} className="btn btn-secondary btn-sm" download>
-                <Download aria-hidden="true" className="nudge-down" />
-                Download incidents (CSV)
-              </a>
-              <a href={withQs('/incidents/download/states')} className="btn btn-secondary btn-sm" download>
-                <FileSpreadsheet aria-hidden="true" />
-                Download totals by state (CSV)
-              </a>
-              <Link href={withQs('/incidents/print')} className="btn btn-secondary btn-sm">
-                <Printer aria-hidden="true" />
-                Print or save as PDF
-              </Link>
-            </div>
-            <details className="no-print relative sm:hidden">
-              <summary className="btn btn-secondary btn-sm list-none">
-                <Download aria-hidden="true" />
-                Download or print
-                <ChevronDown aria-hidden="true" />
-              </summary>
-              <div className="glass-strong absolute end-0 z-30 mt-2 grid w-64 gap-1 rounded-[var(--radius-md)] p-2">
-                <a href={withQs('/incidents/download')} className="menu-item" download>
-                  <Download aria-hidden="true" size={16} /> Incidents (CSV)
-                </a>
-                <a href={withQs('/incidents/download/states')} className="menu-item" download>
-                  <FileSpreadsheet aria-hidden="true" size={16} /> Totals by state (CSV)
-                </a>
-                <Link href={withQs('/incidents/print')} className="menu-item">
-                  <Printer aria-hidden="true" size={16} /> Print or save as PDF
-                </Link>
-              </div>
-            </details>
-          </div>
-
-          {active.length ? (
-            <ul aria-label="Active filters" className="no-print mt-4 flex flex-wrap items-center gap-2">
-              {active.map((c) => (
-                <li key={c.key}>
-                  <Link href={c.removeHref} className="chip" aria-label={`Remove filter: ${c.label}`}>
-                    {c.label}
-                    <X aria-hidden="true" />
-                  </Link>
-                </li>
-              ))}
-              {active.length > 1 ? (
-                <li>
-                  <Link href="/incidents" className="ms-1 text-[14px] font-semibold text-accent">
-                    Clear all
-                  </Link>
-                </li>
+          <div className="min-w-0">
+            <div className="results-bar glass">
+              <h2 id="results-heading" tabIndex={-1} className="results-heading outline-none" aria-live="polite">
+                <span className="results-count">{result.total ? plural(result.total, noun) : `No ${noun}s`}</span>
+                <span className="results-scope">{subLine}</span>
+              </h2>
+              {result.total ? (
+                <>
+                  {/* Wide screens: three short buttons, each named in full for screen readers. */}
+                  <div className="no-print hidden items-center gap-1.5 xl:flex">
+                    {downloads.map(({ href, short, name, Icon, download }) =>
+                      download ? (
+                        <a key={href} href={href} className="btn btn-secondary btn-sm" aria-label={name} download>
+                          <Icon aria-hidden="true" className={short === 'CSV' ? 'nudge-down' : undefined} />
+                          {short}
+                        </a>
+                      ) : (
+                        <Link key={href} href={href} className="btn btn-secondary btn-sm" aria-label={name}>
+                          <Icon aria-hidden="true" />
+                          {short}
+                        </Link>
+                      ),
+                    )}
+                  </div>
+                  <details className="no-print results-menu relative xl:hidden">
+                    <summary className="btn btn-secondary btn-sm list-none">
+                      <Download aria-hidden="true" />
+                      Download or print
+                      <ChevronDown aria-hidden="true" />
+                    </summary>
+                    <div className="glass-strong results-menu-sheet">
+                      {downloads.map(({ href, label, Icon, download }) =>
+                        download ? (
+                          <a key={href} href={href} className="menu-item" download>
+                            <Icon aria-hidden="true" size={16} /> {label}
+                          </a>
+                        ) : (
+                          <Link key={href} href={href} className="menu-item">
+                            <Icon aria-hidden="true" size={16} /> {label}
+                          </Link>
+                        ),
+                      )}
+                    </div>
+                  </details>
+                </>
               ) : null}
-            </ul>
-          ) : null}
-          <p className="print-only mt-3 text-[13px]">
-            <strong>Filters:</strong> {active.length ? active.map((c) => c.label).join(' · ') : 'none (all published records, V2 and V3)'}
-          </p>
+            </div>
 
-          {result.total === 0 ? (
-            <section aria-labelledby="empty-heading" className="panel mt-6">
-              <div className="flex items-start gap-4">
-                <span className="icon-chip" aria-hidden="true">
-                  <SearchX />
-                </span>
-                <div>
-                  <h3 id="empty-heading" className="text-[20px]">
-                    {focusName && !filters.q
-                      ? `No published records for ${filters.city ? `${filters.city}, ` : ''}${focusName}${when === 'all dates' ? '' : `, ${when}`}`
-                      : filters.q
-                        ? `Nothing matches “${filters.q}”`
-                        : includesV1
-                          ? 'No incidents match these filters.'
-                          : 'No verified incidents match these filters.'}
+            {active.length ? (
+              <ul aria-label="Active filters" className="no-print mt-4 flex min-h-9 flex-wrap items-center gap-2">
+                {active.map((c) => (
+                  <li key={c.key}>
+                    <Link href={c.removeHref} className="chip" aria-label={`Remove filter: ${c.label}`}>
+                      {c.label}
+                      <X aria-hidden="true" />
+                    </Link>
+                  </li>
+                ))}
+                {active.length > 1 ? (
+                  <li>
+                    <Link href="/incidents" className="ms-1 text-sm font-semibold text-accent">
+                      Clear all
+                    </Link>
+                  </li>
+                ) : null}
+              </ul>
+            ) : (
+              // Holds the chips' place, so zooming into a state does not push the map down mid-zoom.
+              <div aria-hidden="true" className="no-print mt-4 hidden min-h-9 lg:block" />
+            )}
+            <p className="print-only mt-3 text-xs">
+              <strong>Filters:</strong> {active.length ? active.map((c) => c.label).join(' · ') : 'none (all published records, V2 and V3)'}
+            </p>
+
+            {result.total === 0 && !focusCode ? (
+              <section aria-labelledby="empty-heading" className="panel mt-6">
+                <EmptyResult />
+              </section>
+            ) : (
+              <section id="map" aria-labelledby="map-heading" className="map-card mt-6">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                  <h3 id="map-heading" tabIndex={-1} className="text-xl leading-tight outline-none">
+                    {focusName ? `${focusName}, by city` : 'By state'}
                   </h3>
-                  <p className="mt-2 max-w-[62ch] text-muted">
-                    {filters.q ? 'Search looks in titles, summaries, places and case names. Check the spelling, or try a city or case name. ' : ''}
-                    The Record lists only incidents with published sources, so an empty result is not evidence that nothing happened.
-                  </p>
-                  <ul className="mt-4 flex flex-wrap gap-2">
-                    {focusName ? (
-                      <li>
-                        <Link href={allStatesHref} className="btn btn-secondary btn-sm">
-                          Show all states
-                        </Link>
-                      </li>
-                    ) : null}
-                    {filters.q ? (
-                      <li>
-                        <Link href={explorePath({ ...filters, q: null }, base)} className="btn btn-secondary btn-sm">
-                          Clear search
-                        </Link>
-                      </li>
-                    ) : null}
-                    {filters.from || filters.to ? (
-                      <li>
-                        <Link href={explorePath({ ...filters, from: null, to: null }, base)} className="btn btn-secondary btn-sm">
-                          Show all dates
-                        </Link>
-                      </li>
-                    ) : null}
-                    {!includesV1 ? (
-                      <li>
-                        <Link href={explorePath({ ...filters, v: ['V1', ...DEFAULT_VERIFICATION_LEVELS] }, base)} className="btn btn-secondary btn-sm">
-                          Include single-source (V1) reports
-                        </Link>
-                      </li>
-                    ) : null}
-                    {active.length ? (
-                      <li>
-                        <Link href="/incidents" className="btn btn-quiet btn-sm">
-                          Clear all filters
-                        </Link>
-                      </li>
-                    ) : null}
-                    <li>
-                      <Link href="/report" className="btn btn-quiet btn-sm">
-                        Report an incident <ArrowRight aria-hidden="true" className="nudge" />
+                  {focusName ? (
+                    <nav aria-label="Map level" className="no-print map-crumbs text-sm">
+                      <Link href={allStatesHref} className="btn btn-secondary btn-sm" scroll={false}>
+                        <ArrowLeft aria-hidden="true" className="nudge-back" />
+                        All states
                       </Link>
-                    </li>
-                  </ul>
+                      {filters.city ? (
+                        <Link href={explorePath({ ...filters, city: null }, base)} className="btn btn-quiet btn-sm" scroll={false}>
+                          All of {focusName}
+                        </Link>
+                      ) : null}
+                    </nav>
+                  ) : (
+                    <p className="no-print text-sm text-muted">Select a state on the map or in the list to zoom in.</p>
+                  )}
                 </div>
-              </div>
-            </section>
-          ) : (
-            <section id="map" aria-labelledby="map-heading" className="map-card mt-6">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-                <h3 id="map-heading" tabIndex={-1} className="text-[22px] leading-tight outline-none">
-                  {focusName ? `${focusName}, by city` : 'By state'}
-                </h3>
-                {focusName ? (
-                  <Link href={allStatesHref} className="btn btn-secondary btn-sm no-print" scroll={false}>
-                    <ArrowLeft aria-hidden="true" className="nudge-back" />
-                    All states
-                  </Link>
-                ) : (
-                  <p className="no-print text-sm text-muted">Select a state on the map or in the list to zoom in.</p>
-                )}
-              </div>
-              <p className="sr-only">
-                {focusName
-                  ? `Map of ${focusName} with a circle for each city, sized by the number of records. The list gives each city's count.`
-                  : 'Map of the United States with each state shaded by its number of records. The list gives every state with records.'}
-              </p>
-              <div className="grid gap-x-8 gap-y-6 xl:grid-cols-[minmax(0,2fr)_minmax(15rem,1fr)]">
+                <p className="sr-only">
+                  {focusName
+                    ? `Map of ${focusName} with a circle for each city, sized by the number of records. The list gives each city's count.`
+                    : 'Map of the United States with each state shaded by its number of records. The list gives every state with records.'}
+                </p>
                 <div className="min-w-0">
                   {focusCode && !stateShape(focusCode) ? (
-                    <p className="text-muted">{focusName} is not drawn on this map. Its records are listed beside it.</p>
+                    <p className="text-muted">{focusName} is not drawn on this map. Its records are listed below.</p>
                   ) : (
                     <StateMap
                       counts={byState}
@@ -293,138 +260,243 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                     />
                   )}
                 </div>
-                <div className="min-w-0 border-t border-rule pt-5 xl:border-t-0 xl:border-s xl:ps-6 xl:pt-0">
-                  <h4 className="mb-2 text-[15px] font-semibold">{focusName ? 'Cities with the most records' : 'States with the most records'}</h4>
-                  {listRows.length ? (
-                    focusName && listRows.length <= 2 ? (
-                      <p className="text-[15px]">
-                        {listRows.map((r, i) => (
-                          <span key={r.key}>
-                            {i ? '; ' : ''}
-                            {plural(r.value, 'record')}, in <Link href={r.href}>{r.label}</Link>
-                          </span>
-                        ))}
-                        .
-                      </p>
-                    ) : (
-                      <BarList rows={listRows.slice(0, 10)} label={listLabel} noun="records" scroll={false} />
-                    )
+                <div className="mt-6 border-t border-rule pt-5">
+                  {zoomedEmpty ? (
+                    <EmptyResult />
                   ) : (
-                    <p className="text-muted">None for these filters.</p>
+                    <>
+                      <h4 className="mb-2 text-base font-semibold">{focusName ? 'Cities with the most records' : 'States with the most records'}</h4>
+                      {listRows.length ? (
+                        asSentence ? (
+                          <ListSentence rows={listRows} selected={filters.city} />
+                        ) : (
+                          <BarList
+                            // The top ten, and the chosen city wherever it ranks.
+                            rows={[...listRows.slice(0, 10), ...listRows.slice(10).filter((r) => r.key === filters.city)]}
+                            label={listLabel}
+                            noun="records"
+                            scroll={false}
+                            current={filters.city}
+                          />
+                        )
+                      ) : (
+                        <p className="text-muted">None for these filters.</p>
+                      )}
+                      {focusName && cities?.stateOnly ? (
+                        <p className="mt-2 text-sm text-muted">{plural(cities.stateOnly, 'record')} shown at state level only, without a city.</p>
+                      ) : null}
+                      {listRows.length > 10 ? (
+                        <details className="mt-3">
+                          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-accent">
+                            <Table2 aria-hidden="true" size={16} />
+                            All {formatNumber(listRows.length)} {focusName ? `cities in ${focusName}` : 'states'} as a table
+                          </summary>
+                          <div className="table-scroll mt-2" role="region" aria-label={listLabel} tabIndex={0}>
+                            <table className="data-table">
+                              <thead>
+                                <tr>
+                                  <th scope="col">{focusName ? 'City' : 'State'}</th>
+                                  <th scope="col" className="num">
+                                    Records
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {listRows.map((r) => (
+                                  <tr key={r.key}>
+                                    <td>
+                                      <Link href={r.href} aria-current={filters.city === r.key ? 'true' : undefined}>
+                                        {r.label}
+                                      </Link>
+                                    </td>
+                                    <td className="num">{formatNumber(r.value)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      ) : null}
+                    </>
                   )}
-                  {focusName && cities?.stateOnly ? (
-                    <p className="mt-2 text-sm text-muted">{plural(cities.stateOnly, 'record')} shown at state level only, without a city.</p>
-                  ) : null}
-                  {listRows.length > 10 ? (
-                    <details className="mt-3">
-                      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-accent">
-                        <Table2 aria-hidden="true" size={16} />
-                        All {formatNumber(listRows.length)} {focusName ? `cities in ${focusName}` : 'states'} as a table
-                      </summary>
-                      <div className="table-scroll mt-2" role="region" aria-label={listLabel} tabIndex={0}>
-                        <table className="data-table">
-                          <thead>
-                            <tr>
-                              <th scope="col">{focusName ? 'City' : 'State'}</th>
-                              <th scope="col" className="num">
-                                Records
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {listRows.map((r) => (
-                              <tr key={r.key}>
-                                <td>
-                                  <Link href={r.href}>{r.label}</Link>
-                                </td>
-                                <td className="num">{formatNumber(r.value)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </details>
-                  ) : null}
                 </div>
-              </div>
-            </section>
-          )}
+              </section>
+            )}
 
-          <section aria-labelledby="list-heading" className="mt-12">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 id="list-heading" className="text-[24px] leading-tight">
-                The records
-                {result.total > result.pageSize ? (
-                  <span className="mono ms-3 align-middle text-[14px] font-normal text-muted">
-                    {formatNumber(first)}–{formatNumber(last)} of {formatNumber(result.total)}
-                  </span>
-                ) : null}
-              </h3>
-              <div className="no-print flex flex-wrap items-center gap-3">
-                <nav aria-label="Sort order" className="flex flex-wrap items-center gap-2">
-                  <span className="kicker max-sm:sr-only">Sort</span>
-                  <span className="segmented">
-                    {SORTS.map((s) => (
-                      <Link key={s} href={explorePath(filters, { ...vs, sort: s, page: 1 })} aria-current={vs.sort === s ? 'true' : undefined} scroll={false}>
-                        {SORT_LABELS[s]}
-                      </Link>
-                    ))}
-                  </span>
-                </nav>
-                <nav aria-label="View" className="flex items-center gap-2">
-                  <span className="kicker max-sm:sr-only">View</span>
-                  <span className="segmented">
-                    {(['table', 'cards'] as const).map((v) => (
-                      <Link key={v} href={explorePath(filters, { ...vs, view: v, page: 1 })} aria-current={vs.view === v ? 'page' : undefined} scroll={false}>
-                        {VIEW_LABELS[v]}
-                      </Link>
-                    ))}
-                  </span>
-                </nav>
-              </div>
-            </div>
+            {result.total ? (
+              <section aria-labelledby="list-heading" className="mt-12">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 id="list-heading" className="text-xl leading-tight">
+                    The records
+                    {result.total > result.pageSize ? (
+                      <span className="mono ms-3 align-middle text-sm font-normal text-muted">
+                        {formatNumber(first)}–{formatNumber(last)} of {formatNumber(result.total)}
+                      </span>
+                    ) : null}
+                  </h3>
+                  <div className="no-print flex flex-wrap items-center gap-3">
+                    <nav aria-label="Sort order" className="flex flex-wrap items-center gap-2">
+                      <span className="kicker max-sm:sr-only">Sort</span>
+                      <span className="segmented">
+                        {SORTS.map((s) => (
+                          <Link key={s} href={explorePath(filters, { ...vs, sort: s, page: 1 })} aria-current={vs.sort === s ? 'true' : undefined} scroll={false}>
+                            {SORT_LABELS[s]}
+                          </Link>
+                        ))}
+                      </span>
+                    </nav>
+                    <nav aria-label="View" className="flex items-center gap-2">
+                      <span className="kicker max-sm:sr-only">View</span>
+                      <span className="segmented">
+                        {(['table', 'cards'] as const).map((v) => (
+                          <Link key={v} href={explorePath(filters, { ...vs, view: v, page: 1 })} aria-current={vs.view === v ? 'page' : undefined} scroll={false}>
+                            {VIEW_LABELS[v]}
+                          </Link>
+                        ))}
+                      </span>
+                    </nav>
+                  </div>
+                </div>
 
-            <div className="mt-5">
-              {result.total === 0 ? (
-                <p className="text-muted">No records to list.</p>
-              ) : vs.view === 'cards' ? (
-                <ul className="ledger">
-                  {result.rows.map((r) => (
-                    <li key={r.id}>
-                      <IncidentCard item={r} query={filters.q} headingLevel={3} />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <IncidentTable
-                  rows={result.rows}
-                  query={filters.q}
-                  sticky
-                  caption={`Incidents ${formatNumber(first)} to ${formatNumber(last)} of ${formatNumber(result.total)}`}
-                  dateSort={{
-                    label: 'Date',
-                    href: explorePath(filters, { ...vs, sort: dateDesc ? 'oldest' : 'newest', page: 1 }),
-                    active: vs.sort !== 'severity',
-                    direction: vs.sort === 'oldest' ? 'ascending' : 'descending',
-                  }}
-                  severitySort={{
-                    label: 'Severity',
-                    href: explorePath(filters, { ...vs, sort: 'severity', page: 1 }),
-                    active: vs.sort === 'severity',
-                    direction: 'descending',
-                  }}
-                />
-              )}
-            </div>
+                <div className="mt-5">
+                  {vs.view === 'cards' ? (
+                    <ul className="ledger">
+                      {result.rows.map((r) => (
+                        <li key={r.id}>
+                          <IncidentCard item={r} query={filters.q} headingLevel={3} />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <IncidentTable
+                      rows={result.rows}
+                      query={filters.q}
+                      sticky
+                      caption={`Incidents ${formatNumber(first)} to ${formatNumber(last)} of ${formatNumber(result.total)}`}
+                      dateSort={{
+                        label: 'Date',
+                        href: explorePath(filters, { ...vs, sort: dateDesc ? 'oldest' : 'newest', page: 1 }),
+                        active: vs.sort !== 'severity',
+                        direction: vs.sort === 'oldest' ? 'ascending' : 'descending',
+                      }}
+                    />
+                  )}
+                </div>
 
-            <Pagination page={result.page} pages={result.pages} hrefFor={(n) => explorePath(filters, { ...vs, page: n })} />
-            <p className="mt-8 max-w-[80ch] text-sm text-muted">
-              {PAGE_SIZE} records per page, in a stable order, so a page number can be cited. Counts include V2 and V3 records unless V1 is
-              selected. The CSV and the printable version include every matching record, not just this page.
-            </p>
-          </section>
+                <Pagination page={result.page} pages={result.pages} hrefFor={(n) => explorePath(filters, { ...vs, page: n })} />
+                <p className="mt-8 max-w-[80ch] text-sm text-muted">
+                  {PAGE_SIZE} records per page, in a stable order, so a page number can be cited. Counts include V2 and V3 records unless V1 is
+                  selected. The CSV and the printable version include every matching record, not just this page.
+                </p>
+              </section>
+            ) : null}
+          </div>
+        </div>
+      </FilterSheet>
+    </main>
+  )
+
+  /** No records: say so plainly, why that is not evidence, and offer only the ways out that apply. */
+  function EmptyResult() {
+    return (
+      <div className="empty-result">
+        <span className="icon-chip" aria-hidden="true">
+          <SearchX />
+        </span>
+        <div>
+          <h3 id="empty-heading" className="text-xl">
+            {focusName && !filters.q
+              ? `No records in ${filters.city ? `${filters.city}, ` : ''}${focusName} for these filters`
+              : filters.q
+                ? `Nothing matches “${filters.q}”`
+                : includesV1
+                  ? 'No incidents match these filters.'
+                  : 'No verified incidents match these filters.'}
+          </h3>
+          <p className="mt-2 max-w-[62ch] text-muted">
+            {filters.q ? 'Search looks in titles, summaries, places and case names. Check the spelling, or try a city or case name. ' : ''}
+            The Record lists only incidents with published sources, so an empty result is not evidence that nothing happened.
+          </p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {focusName ? (
+              <li>
+                <Link href={allStatesHref} className="btn btn-secondary btn-sm" scroll={false}>
+                  Show all states
+                </Link>
+              </li>
+            ) : null}
+            {filters.q ? (
+              <li>
+                <Link href={explorePath({ ...filters, q: null }, base)} className="btn btn-secondary btn-sm">
+                  Clear search
+                </Link>
+              </li>
+            ) : null}
+            {filters.from || filters.to ? (
+              <li>
+                <Link href={explorePath({ ...filters, from: null, to: null }, base)} className="btn btn-secondary btn-sm">
+                  Show all dates
+                </Link>
+              </li>
+            ) : null}
+            {!includesV1 ? (
+              <li>
+                <Link href={explorePath({ ...filters, v: ['V1', ...DEFAULT_VERIFICATION_LEVELS] }, base)} className="btn btn-secondary btn-sm">
+                  Include single-source (V1) reports
+                </Link>
+              </li>
+            ) : null}
+            {active.length > 1 ? (
+              <li>
+                <Link href="/incidents" className="btn btn-quiet btn-sm">
+                  Clear all filters
+                </Link>
+              </li>
+            ) : null}
+            <li>
+              <Link href="/report" className="btn btn-quiet btn-sm">
+                Report an incident <ArrowRight aria-hidden="true" className="nudge" />
+              </Link>
+            </li>
+          </ul>
         </div>
       </div>
-    </main>
+    )
+  }
+}
+
+/** "One record each in California, Illinois and Texas." or "3 records in Riverside; 1 in Fresno." */
+function ListSentence({ rows, selected }: { rows: { key: string; label: string; value: number; href: string }[]; selected?: string | null }) {
+  const same = rows.every((r) => r.value === rows[0]!.value)
+  const link = (r: (typeof rows)[number]) => (
+    <Link href={r.href} scroll={false} aria-current={selected === r.key ? 'true' : undefined} data-count={r.value}>
+      {r.label}
+    </Link>
+  )
+  const list = (items: typeof rows) =>
+    items.map((r, i) => (
+      <span key={r.key}>
+        {i === 0 ? '' : i === items.length - 1 ? ' and ' : ', '}
+        {link(r)}
+      </span>
+    ))
+  if (same && rows.length > 1) {
+    const n = rows[0]!.value
+    return (
+      <p className="text-base">
+        {n === 1 ? 'One record' : `${formatNumber(n)} records`} each in {list(rows)}.
+      </p>
+    )
+  }
+  return (
+    <p className="text-base">
+      {rows.map((r, i) => (
+        <span key={r.key}>
+          {i ? '; ' : ''}
+          {i ? formatNumber(r.value) : plural(r.value, 'record')} in {link(r)}
+        </span>
+      ))}
+      .
+    </p>
   )
 }

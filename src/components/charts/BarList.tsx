@@ -8,7 +8,20 @@ export type BarRow = { key: string; label: string; value: number; href?: string 
  * one color and no legend; every value is printed at the end of its bar, and
  * each row opens the matching records.
  */
-export function BarList({ rows, label, noun = 'incidents', scroll = true }: { rows: BarRow[]; label: string; noun?: string; scroll?: boolean }) {
+export function BarList({
+  rows,
+  label,
+  noun = 'incidents',
+  scroll = true,
+  current,
+}: {
+  rows: BarRow[]
+  label: string
+  noun?: string
+  scroll?: boolean
+  /** The row for the place being shown (a selected city), marked as current. */
+  current?: string | null
+}) {
   const max = Math.max(1, ...rows.map((r) => r.value))
   const one = noun.endsWith('s') ? noun.slice(0, -1) : noun
   return (
@@ -29,7 +42,7 @@ export function BarList({ rows, label, noun = 'incidents', scroll = true }: { ro
         return (
           <li key={r.key}>
             {r.href ? (
-              <Link href={r.href} className="bar-row" scroll={scroll}>
+              <Link href={r.href} className="bar-row" scroll={scroll} data-count={r.value} aria-current={current === r.key ? 'true' : undefined}>
                 {content}
               </Link>
             ) : (

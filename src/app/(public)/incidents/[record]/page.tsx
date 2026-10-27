@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { ContentsNav } from '@/components/ContentsNav'
 import { CopyButton } from '@/components/CopyButton'
+import { OpenOnHash } from '@/components/OpenOnHash'
 import { IncidentCard } from '@/components/IncidentCard'
 import { IncidentView } from '@/components/IncidentView'
 import { citations } from '@/lib/citations'
@@ -31,9 +32,11 @@ export async function generateStaticParams() {
 export async function generateMetadata(props: PageProps<'/incidents/[record]'>): Promise<Metadata> {
   const { record } = await props.params
   const parsed = parseRecordParam(record)
-  if (!parsed) return {}
+  // A missing record keeps a title of its own, not the site's.
+  const missing: Metadata = { title: 'Record not found', robots: { index: false } }
+  if (!parsed) return missing
   const inc = await getIncident(parsed.id)
-  if (!inc) return {}
+  if (!inc) return missing
   return {
     title: inc.title,
     description: stripMarkers(inc.summary).slice(0, 300),
@@ -47,7 +50,7 @@ function RelatedList({ title, items }: { title: string; items: IncidentListItem[
   if (!items.length) return null
   return (
     <div className="mb-8">
-      <h3 className="mb-3 text-[15px] font-semibold text-muted">{title}</h3>
+      <h3 className="mb-3 text-sm font-semibold text-muted">{title}</h3>
       <ul className="ledger">
         {items.map((i) => (
           <li key={i.id}>
@@ -84,7 +87,7 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
   const sourceKinds = [...new Set(inc.sources.map((src) => SOURCE_TYPE_META[src.source_type].label.toLowerCase()))]
 
   return (
-    <main className="wrap pt-6 pb-4 md:pt-8">
+    <main className="record-page wrap pt-6 md:pt-8">
       <nav aria-label="Breadcrumb" className="mb-8 md:mb-10">
         <p className="glass eyebrow">
           <Link href="/incidents" className="font-semibold">
@@ -98,25 +101,39 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
         <div className="min-w-0 md:col-span-8 lg:col-span-8">
           <div className="max-w-reading">
             {inc.isDemo ? (
-              <p className="note mb-8 text-[15px]" role="note">
+              <p className="note mb-8 text-base" role="note">
                 This is a fictional demonstration record used for development. It describes no real event.
               </p>
             ) : null}
-            <IncidentView data={{ ...inc, updatedAt: inc.updatedAt }} />
+            <IncidentView
+              data={{ ...inc, updatedAt: inc.updatedAt }}
+              contents={
+                <div className="sticky top-[calc(var(--header-h)+0.25rem)] z-20 -mt-4 mb-10 md:hidden">
+                  <ContentsNav items={contents.map((c) => ({ id: c.id, title: c.label }))} variant="disclosure" />
+                </div>
+              }
+            />
 
             <section id="cite" aria-labelledby="actions-heading" className="mb-12">
-              <h2 id="actions-heading" className="section-head mb-4 text-[26px] leading-tight">
+              <h2 id="actions-heading" className="section-head mb-4 text-2xl leading-tight">
                 Cite or correct this record
               </h2>
-              <div className="flex flex-wrap gap-2">
+              <div className="grid gap-2 sm:flex sm:flex-wrap">
                 <CopyButton text={cite.url} label="Copy link" icon={<Copy aria-hidden="true" />} />
                 <Link href={`/report?mode=correction&record=${encodeURIComponent(inc.id)}`} className="btn btn-secondary">
                   <FileWarning aria-hidden="true" />
                   Request a correction
                 </Link>
               </div>
-              <details className="card group mt-4 px-5 py-1">
-                <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 font-semibold text-accent">
+              {/* Printed instead of the formats box. */}
+              <p className="print-only mt-3 text-sm">
+                Cite as: {cite.apa}
+                <br />
+                Record address: {cite.url}
+              </p>
+              <OpenOnHash id="cite-formats" />
+              <details id="cite-formats" className="card group mt-4 px-5 py-1">
+                <summary className="cite-summary">
                   <Quote aria-hidden="true" size={16} />
                   Cite this record (APA, Chicago, BibTeX)
                   <ChevronDown aria-hidden="true" size={18} className="ms-auto transition-transform group-open:rotate-180" />
@@ -132,9 +149,9 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
                     <div key={label}>
                       <p className="kicker mb-2">{label}</p>
                       {label === 'BibTeX' ? (
-                        <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-[13px] leading-relaxed">{text}</pre>
+                        <pre className="rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-xs leading-relaxed break-words whitespace-pre-wrap">{text}</pre>
                       ) : (
-                        <p className="rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-[15px] leading-relaxed">{text}</p>
+                        <p className="rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-base leading-relaxed">{text}</p>
                       )}
                       <CopyButton text={text} label={`Copy ${label}`} className="btn btn-quiet btn-sm mt-1" icon={<Copy aria-hidden="true" />} />
                     </div>
@@ -145,7 +162,7 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
 
             {hasRelated ? (
               <section aria-labelledby="related-heading" className="mb-12">
-                <h2 id="related-heading" className="section-head mb-4 text-[26px] leading-tight">
+                <h2 id="related-heading" className="section-head mb-4 text-2xl leading-tight">
                   Related records
                 </h2>
                 <RelatedList title="Same case" items={related.sameCase} />
@@ -155,29 +172,29 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
             ) : null}
           </div>
         </div>
-        <aside aria-label="About this record" className="hidden md:col-span-4 md:block lg:col-span-3 lg:col-start-10">
-          <div className="space-y-4 md:sticky md:top-24">
+        <aside aria-label="About this record" className="record-aside hidden md:col-span-4 md:block lg:col-span-3 lg:col-start-10">
+          <div className="space-y-4 md:sticky md:top-[calc(var(--header-h)+1rem)]">
             <div className="card p-4">
-              <p className="flex items-center gap-2 text-[13px] font-semibold text-muted">
+              <p className="flex items-center gap-2 text-xs font-semibold text-muted">
                 <Hash aria-hidden="true" size={15} />
                 Record
               </p>
-              <p className="tabular mt-1 text-[16px] font-semibold">{inc.id}</p>
+              <p className="tabular mt-1 text-base font-semibold">{inc.id}</p>
               {inc.updatedAt ? (
                 <p className="mono mt-1 flex items-center gap-1.5 text-muted">
                   <RefreshCw aria-hidden="true" size={13} />
                   Updated {formatTimestamp(inc.updatedAt)}
                 </p>
               ) : null}
-              <p className="mt-3 flex items-start gap-1.5 text-[13.5px] text-muted">
+              <p className="mt-3 flex items-start gap-1.5 text-xs text-muted">
                 <Link2 aria-hidden="true" size={14} className="mt-[3px] shrink-0" />
                 <span>
                   {plural(inc.sources.length, 'source')}
                   {sourceKinds.length ? `: ${sourceKinds.join(', ')}` : ''}
                 </span>
               </p>
-              <div className="mt-4 grid gap-1.5 border-t border-rule pt-3">
-                <a href="#cite" className="menu-item">
+              <div className="mt-4 grid gap-1.5 border-t border-rule pt-3 text-sm">
+                <a href="#cite-formats" className="menu-item">
                   <Quote aria-hidden="true" size={16} className="text-accent" /> Cite this record
                 </a>
                 <Link href={`/report?mode=correction&record=${encodeURIComponent(inc.id)}`} className="menu-item">
@@ -185,10 +202,7 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
                 </Link>
               </div>
             </div>
-            <nav aria-label="On this page" className="contents-card">
-              <p className="kicker px-2 pt-1">On this page</p>
-              <ContentsNav items={contents.map((c) => ({ id: c.id, title: c.label }))} className="mt-2" />
-            </nav>
+            <ContentsNav items={contents.map((c) => ({ id: c.id, title: c.label }))} variant="card" />
           </div>
         </aside>
       </div>

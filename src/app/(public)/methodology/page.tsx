@@ -58,7 +58,7 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export default function MethodologyPage() {
   return (
-    <main className="wrap pt-6 pb-4 md:pt-8">
+    <main className="wrap pt-6 md:pt-8">
       <PageHeader
         kicker={`Version ${METHODOLOGY_VERSION} · in effect since ${formatDate(METHODOLOGY_EFFECTIVE_DATE)}`}
         icon={<BookOpenText aria-hidden="true" />}
@@ -135,7 +135,7 @@ export default function MethodologyPage() {
               {SEVERITIES.map((s) => (
                 <div key={s} id={`severity-${s}`}>
                   <dt className="flex items-center gap-2.5">
-                    <span className="tabular inline-grid h-7 min-w-7 place-items-center rounded-[8px] bg-accent-tint text-[14px] font-semibold text-accent">{s}</span>
+                    <span className="tabular inline-grid h-7 min-w-7 place-items-center rounded-[8px] bg-accent-tint text-sm font-semibold text-accent">{s}</span>
                     {SEVERITY_META[s].label}
                   </dt>
                   <dd>{SEVERITY_META[s].description}</dd>
@@ -158,7 +158,7 @@ export default function MethodologyPage() {
                         {VERIFICATION_META[v].label}
                       </span>
                     )}
-                    <span className="mt-1 block text-[13px] font-normal text-muted">Level {v}</span>
+                    <span className="mt-1 block text-xs font-normal text-muted">Level {v}</span>
                   </dt>
                   <dd>{VERIFICATION_META[v].rule}</dd>
                 </div>
@@ -173,17 +173,35 @@ export default function MethodologyPage() {
 
           <Section id="legal" title="Legal status">
             <p>Each record follows a lifecycle:</p>
+            {/* Each step links to its definition below; the outcomes are one step with five possible values. */}
             <ol className="flow" aria-label="Legal lifecycle, in order">
               {LEGAL_STATUSES.slice(0, 6).map((s) => (
-                <li key={s}>{LEGAL_STATUS_META[s].label}</li>
+                <li key={s}>
+                  <a href={`#legal-${s}`} className="flow-pill">
+                    {LEGAL_STATUS_META[s].label}
+                  </a>
+                </li>
               ))}
-              <li>{LEGAL_STATUSES.slice(6, 11).map((s) => LEGAL_STATUS_META[s].label).join(', ')}</li>
-              <li>{LEGAL_STATUS_META.sentenced.label}</li>
+              <li>
+                <span className="flow-group">
+                  <span className="flow-group-label">Outcome, one of:</span>
+                  {LEGAL_STATUSES.slice(6, 11).map((s, i) => (
+                    <span key={s} className="whitespace-nowrap">
+                      {i ? <span aria-hidden="true" className="flow-sep">·</span> : null}
+                      <a href={`#legal-${s}`}>{LEGAL_STATUS_META[s].label}</a>
+                    </span>
+                  ))}
+                </span>
+              </li>
+              <li>
+                <a href="#legal-sentenced" className="flow-pill">
+                  {LEGAL_STATUS_META.sentenced.label}
+                </a>
+              </li>
             </ol>
             <p>
-              Side states are {LEGAL_STATUSES.slice(12).map((s) => LEGAL_STATUS_META[s].label.toLowerCase()).join(', ')}. Whether a hate-crime or
-              bias charge was filed is recorded separately. Every status is supported by a dated legal event with a source, shown on the record’s
-              legal timeline.
+              Some cases stop outside this line; those side states are listed below. Whether a hate-crime or bias charge was filed is recorded
+              separately. Every status is supported by a dated legal event with a source, shown on the record’s legal timeline.
             </p>
             {(
               [
@@ -231,7 +249,9 @@ export default function MethodologyPage() {
                 The most authoritative source available is used for each fact, in this order:
                 <ol className="flow mt-2" aria-label="Sources, most authoritative first">
                   {SOURCE_AUTHORITY_ORDER.map((t) => (
-                    <li key={t}>{SOURCE_TYPE_META[t].label}</li>
+                    <li key={t}>
+                      <span className="flow-pill">{SOURCE_TYPE_META[t].label}</span>
+                    </li>
                   ))}
                 </ol>
               </li>
@@ -327,7 +347,16 @@ export default function MethodologyPage() {
             <p>
               Every filtered view of the record has its own address. For example:
             </p>
-            <code className="block overflow-x-auto rounded-[var(--radius-sm)] px-3.5 py-2.5 whitespace-nowrap">/incidents?state=MI&amp;type=VAND,THRT&amp;from=2026-01-01</code>
+            {/* Breaks only at its delimiters, so a phone shows all of it without a scroller. */}
+            <code className="block rounded-[var(--radius-sm)] px-3.5 py-2.5 [overflow-wrap:anywhere]">
+              /incidents?
+              <wbr />
+              state=MI&amp;
+              <wbr />
+              type=VAND,THRT&amp;
+              <wbr />
+              from=2026-01-01
+            </code>
             <p>
               An address without a <code>v</code> parameter means verification levels V2 and V3; without <code>sort</code>, newest first. These
               defaults will not change, so a cited address keeps its meaning. Lists are paginated in a stable order rather than scrolled endlessly,
@@ -350,7 +379,7 @@ export default function MethodologyPage() {
               <tbody>
                 <tr>
                   <td className="tabular">1.0</td>
-                  <td className="tabular">{formatDate(METHODOLOGY_EFFECTIVE_DATE)}</td>
+                  <td className="tabular whitespace-nowrap">{formatDate(METHODOLOGY_EFFECTIVE_DATE)}</td>
                   <td>First published version.</td>
                 </tr>
               </tbody>

@@ -25,15 +25,34 @@ test('an incident page shows facts, sources, timeline, change log and citations'
 })
 
 test('badge tooltips explain each badge and link to the method', async ({ page }) => {
-  await page.goto('/incidents/DEMO-2026-0001')
+  // In lists the badges stand alone, so they carry tooltips.
+  await page.goto('/incidents?view=cards')
   const badge = page.getByRole('link', { name: /Confirmed by police/ }).first()
   await badge.focus()
   const tipId = await badge.getAttribute('aria-describedby')
   await expect(page.locator(`[id="${tipId}"]`)).toBeVisible()
-  await expect(page.locator(`[id="${tipId}"]`)).toContainText('V3')
+  await expect(page.locator(`[id="${tipId}"]`)).toContainText('Police, prosecutor, or court record confirms')
   await page.keyboard.press('Escape')
   await expect(page.locator(`[id="${tipId}"]`)).toBeHidden()
   await expect(badge).toHaveAttribute('href', '/methodology#verification-v3')
+  // On a record page the status panel explains its badges in words, without tooltips.
+  await page.goto('/incidents/DEMO-2026-0001')
+  const panel = page.getByRole('region', { name: 'Record status' })
+  await expect(panel.getByRole('link', { name: /Confirmed by police/ })).not.toHaveAttribute('aria-describedby', /.+/)
+  await expect(panel).toContainText('Police, prosecutor, or court record confirms the incident occurred.')
+})
+
+test('every id on a record page is unique, so its contents links land', async ({ page }) => {
+  await page.goto('/incidents/DEMO-2026-0002')
+  const dupes = await page.evaluate(() => {
+    const seen = new Map<string, number>()
+    for (const el of document.querySelectorAll('[id]')) seen.set(el.id, (seen.get(el.id) ?? 0) + 1)
+    return [...seen].filter(([, n]) => n > 1).map(([id]) => id)
+  })
+  expect(dupes).toEqual([])
+  await page.getByRole('navigation', { name: 'On this page' }).getByRole('link', { name: 'Legal timeline' }).click()
+  await expect(page).toHaveURL(/#rec-DEMO-2026-0002-legal$/)
+  await expect(page.getByRole('heading', { name: 'Legal timeline' })).toBeInViewport()
 })
 
 test('a death or injury is shown plainly, without icons', async ({ page }) => {

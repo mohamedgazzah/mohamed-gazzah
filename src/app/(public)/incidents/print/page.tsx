@@ -50,7 +50,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
 
   return (
     <main className="wrap print-report pt-8 pb-12">
-      <div className="no-print mb-8 flex flex-wrap items-center gap-4 border-b border-rule pb-6">
+      <div className="no-print print-toolbar mb-6 flex flex-wrap items-center gap-4">
         <PrintButton />
         <Link href={explorePath(filters, vs)} className="arrow-link">
           <ArrowLeft aria-hidden="true" size={16} className="nudge-back" />
@@ -59,24 +59,31 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
         <p className="text-sm text-muted">The printout lists every matching record. Use “Save as PDF” in the print dialog for a file.</p>
       </div>
 
+      {/* On screen the report is shown as the sheet it prints on, in the light theme. */}
+      <div className="paper print-sheet">
       <header className="border-b border-rule pb-5">
         <p className="kicker">{SITE.fullName} · Report</p>
-        <h1 className="mt-2 text-[34px] leading-tight">
-          {plural(result.total, noun)}
-          {focusName ? ` in ${filters.city ? `${filters.city}, ` : ''}${focusName}` : ` in ${plural(states.length, 'state')}`}, {describeDates(filters, today)}
+        <h1 className="mt-2 text-2xl leading-tight">
+          {result.total ? plural(result.total, noun) : `No ${noun}s`}
+          {focusName ? ` in ${filters.city ? `${filters.city}, ` : ''}${focusName}` : result.total ? ` in ${plural(states.length, 'state')}` : ''},{' '}
+          {describeDates(filters, today)}
         </h1>
         <p className="mono mt-3 text-muted">
           Printed {formatDate(today)} from {exploreUrl}
         </p>
-        <p className="mt-3 text-[15px]">
+        <p className="mt-3 text-base">
           <span className="font-semibold">Filters: </span>
           {active.length ? active.map((c) => c.label).join(' · ') : 'none (all published records, verification levels V2 and V3)'}
         </p>
       </header>
 
+      {result.total === 0 ? (
+        <p className="mt-6 text-lg">No published records match these filters as of {formatDate(today)}.</p>
+      ) : (
+      <>
       <div className="print-summary mt-6">
       <section aria-labelledby="print-map" className="break-inside-avoid">
-        <h2 id="print-map" className="mb-2 text-[15px] font-semibold">
+        <h2 id="print-map" className="mb-2 text-base font-semibold">
           {focusName ? `${focusName}, by city` : 'By state'}
         </h2>
         <StateMap
@@ -97,9 +104,9 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
         />
       </section>
 
-      <div className="print-totals mt-8 grid gap-8 sm:grid-cols-2">
+      <div className="print-totals mt-8 grid gap-6 md:mt-0">
         <section aria-labelledby="print-states" className="break-inside-avoid">
-          <h2 id="print-states" className="mb-2 text-[15px] font-semibold">
+          <h2 id="print-states" className="mb-2 text-base font-semibold">
             {focusName ? 'Records by city' : 'Records by state'}
           </h2>
           <table className="data-table print-table">
@@ -129,7 +136,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
           </table>
         </section>
         <section aria-labelledby="print-types" className="break-inside-avoid">
-          <h2 id="print-types" className="mb-2 text-[15px] font-semibold">
+          <h2 id="print-types" className="mb-2 text-base font-semibold">
             Records by incident type
           </h2>
           <table className="data-table print-table">
@@ -156,7 +163,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
       </div>
 
       <section aria-labelledby="print-records" className="mt-10">
-        <h2 id="print-records" className="mb-2 text-[15px] font-semibold">
+        <h2 id="print-records" className="mb-2 text-base font-semibold">
           The records
         </h2>
         <div className="table-scroll">
@@ -177,7 +184,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
             {result.rows.map((r) => (
               <tr key={r.id}>
                 <td className="whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</td>
-                <td>{formatPlace(r.city, r.stateCode)}</td>
+                <td className="whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</td>
                 <td className="min-w-60 print:min-w-0">
                   <Link href={incidentPath(r.id, r.slug)} className="text-text">
                     {r.title}
@@ -201,11 +208,14 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
           </p>
         ) : null}
       </section>
+      </>
+      )}
 
       <p className="mono mt-10 border-t border-rule pt-4 text-muted">
         Source: {SITE.fullName}, {absoluteUrl('/')}. Data licensed {SITE.dataLicense.name}. Allegations are not convictions; each record shows its
         legal status. Records and counts change as cases develop.
       </p>
+      </div>
     </main>
   )
 }

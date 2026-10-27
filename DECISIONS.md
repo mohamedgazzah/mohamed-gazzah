@@ -319,6 +319,31 @@ and components stand.
     both themes so neighboring classes stay apart for common color-vision deficiencies and
     the lightest class stays visible against an empty state.
 
+67. **One type scale, in tokens**: 12, 13, 14, 16, 17.5 (reading), 18, 22 and 28 px, plus fluid
+    sizes for page titles, section titles and headline figures (`--step-h1`, `--step-h2`,
+    `--step-figure`). Components use only these; half-pixel sizes were removed after two
+    critics found fifteen sizes on one page.
+68. **Records table in two columns** (date and place; the incident with its status on a line
+    under the title) at every width: the content column is never wider than about 850 px, too
+    narrow for status columns of their own. Sorting by severity is in the sort control.
+69. **A short list reads as a sentence**: under the Explore map, three rows or fewer, or rows
+    of equal value, are written out ("One record each in California, Illinois, Tennessee and
+    Texas.") instead of bars of equal length. The list sits under the map at every width.
+70. **Downloads say what they hold**: "Download records" and "Totals by state" cover verified
+    records (V2 and V3), the site's counts; a third link adds single-source (V1) reports. The
+    file names say the same (`record-verified-…`, `record-all-…`, `record-results-…`).
+71. **The report form keeps everything on any error**: it is sent by script rather than by
+    the form's own action, so React does not reset it, and the link, email and length rules
+    run in the browser too. A pasted `www.` address is accepted as a link. Without JavaScript
+    the spam check cannot run, so the form says to email the editors instead. (Accepting
+    posts without the check would open a path around it for bots; not done.)
+72. **The form says it is not a police report**, on the form and on the confirmation, with
+    where to report a crime (local police, the FBI at tips.fbi.gov).
+73. **Status explained once**: on a record page the status panel prints each rule in words,
+    so its badges carry no tooltip; in lists the badges keep theirs. The legal status and
+    "Alleged" form one group with a gavel, so a reader never takes the verification next to
+    it for a verdict. Before any charge the record says "No charges known", not "Unknown".
+
 ## Open questions (**Ask**)
 
 - Organizational home, media lawyer, and the contents of About (team, board, funding).

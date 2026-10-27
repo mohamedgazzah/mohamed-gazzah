@@ -7,6 +7,9 @@ import { useEffect, useLayoutEffect, useRef, useTransition, type ReactNode } fro
 // next map can zoom from it, also across pages (home to Explore).
 let departure: { viewBox: string; at: number } | null = null
 let current: string | null = null
+// A link in the map's section was activated from the keyboard: the link may be gone after the zoom,
+// so focus moves to the map's heading instead of falling back to the page.
+let refocus = false
 
 const ZOOM_MS = 450
 
@@ -35,6 +38,11 @@ export function MapFrame({ viewBox, unit, overlay, children }: { viewBox: string
     const from = departure && performance.now() - departure.at < 5000 ? departure.viewBox : null
     departure = null
     if (el) setUnit(el, viewBox)
+    if (refocus) {
+      refocus = false
+      const heading = el?.closest('section')?.querySelector<HTMLElement>('[id="map-heading"]')
+      if (heading && !heading.contains(document.activeElement)) heading.focus({ preventScroll: true })
+    }
     if (!el || !from || from === viewBox || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const a = from.split(' ').map(Number)
     const b = viewBox.split(' ').map(Number)
@@ -69,7 +77,11 @@ export function MapFrame({ viewBox, unit, overlay, children }: { viewBox: string
     const section = el.closest('section')
     const onClick = (e: MouseEvent) => {
       const link = (e.target as Element).closest('a')
-      if (link && !el.contains(link) && link.getAttribute('href')?.startsWith('/')) departure = { viewBox: current ?? viewBox, at: performance.now() }
+      if (link && !el.contains(link) && link.getAttribute('href')?.startsWith('/')) {
+        departure = { viewBox: current ?? viewBox, at: performance.now() }
+        // A click from the keyboard (Enter) has no pointer position.
+        refocus = e.detail === 0
+      }
     }
     section?.addEventListener('click', onClick)
     return () => {

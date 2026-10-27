@@ -65,7 +65,7 @@ export function MonthColumns({ bars, noun = 'incident', asOf }: { bars: MonthBar
         </ol>
       </div>
       {last?.partial && asOf ? (
-        <p className="mt-2 text-[13px] text-muted">
+        <p className="mt-2 text-xs text-muted">
           * {MONTH_NAMES[Number(last.month.slice(5, 7)) - 1]} to date: counts run to {formatDate(asOf)}.
         </p>
       ) : null}

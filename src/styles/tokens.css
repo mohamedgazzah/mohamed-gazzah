@@ -6,6 +6,7 @@
  * Light and dark follow the system setting; the footer toggle sets
  * data-theme on <html> to override it.
  */
+.paper,
 :root {
   color-scheme: light;
   --bg: #fafaf7;
@@ -39,11 +40,13 @@
   --segment-thumb: #ffffff;
   --map-shadow: rgb(26 29 33 / 0.14);
   --tip-edge: rgb(26 29 33 / 0.12);
-  --glass: rgb(255 255 255 / 0.62);
+  --map-focus: var(--accent-tint);
+  --glass: rgb(255 255 255 / 0.5);
   --glass-strong: rgb(255 255 255 / 0.88);
   --glass-rim: rgb(255 255 255 / 0.95);
   --glass-edge: rgb(26 29 33 / 0.1);
   --glass-sheen: rgb(255 255 255 / 0.65);
+  --glass-rim-low: rgb(26 29 33 / 0.1);
   --shadow-sm: 0 1px 2px rgb(26 29 33 / 0.05), 0 2px 6px rgb(26 29 33 / 0.04);
   --shadow-md: 0 2px 6px rgb(26 29 33 / 0.05), 0 14px 34px -10px rgb(26 29 33 / 0.16);
   --shadow-lg: 0 6px 16px rgb(26 29 33 / 0.06), 0 30px 60px -18px rgb(26 29 33 / 0.24);
@@ -75,11 +78,13 @@
     --segment-thumb: #33373d;
     --map-shadow: rgb(0 0 0 / 0.55);
     --tip-edge: rgb(255 255 255 / 0.16);
+    --map-focus: color-mix(in srgb, var(--accent) 16%, var(--surface));
     --glass: rgb(30 34 39 / 0.56);
     --glass-strong: rgb(30 34 39 / 0.88);
     --glass-rim: rgb(255 255 255 / 0.16);
     --glass-edge: rgb(0 0 0 / 0.5);
     --glass-sheen: rgb(255 255 255 / 0.08);
+    --glass-rim-low: rgb(255 255 255 / 0.05);
     --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
     --shadow-md: 0 2px 8px rgb(0 0 0 / 0.35), 0 18px 40px -12px rgb(0 0 0 / 0.6);
     --shadow-lg: 0 8px 20px rgb(0 0 0 / 0.4), 0 32px 64px -16px rgb(0 0 0 / 0.7);
@@ -111,11 +116,13 @@
   --segment-thumb: #33373d;
   --map-shadow: rgb(0 0 0 / 0.55);
   --tip-edge: rgb(255 255 255 / 0.16);
+  --map-focus: color-mix(in srgb, var(--accent) 16%, var(--surface));
   --glass: rgb(30 34 39 / 0.56);
   --glass-strong: rgb(30 34 39 / 0.88);
   --glass-rim: rgb(255 255 255 / 0.16);
   --glass-edge: rgb(0 0 0 / 0.5);
   --glass-sheen: rgb(255 255 255 / 0.08);
+  --glass-rim-low: rgb(255 255 255 / 0.05);
   --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
   --shadow-md: 0 2px 8px rgb(0 0 0 / 0.35), 0 18px 40px -12px rgb(0 0 0 / 0.6);
   --shadow-lg: 0 8px 20px rgb(0 0 0 / 0.4), 0 32px 64px -16px rgb(0 0 0 / 0.7);
@@ -153,11 +160,13 @@
     --segment-thumb: #ffffff;
     --map-shadow: none;
     --tip-edge: rgb(26 29 33 / 0.12);
-    --glass: rgb(255 255 255 / 0.62);
+    --map-focus: var(--accent-tint);
+    --glass: rgb(255 255 255 / 0.5);
     --glass-strong: rgb(255 255 255 / 0.88);
     --glass-rim: rgb(255 255 255 / 0.95);
     --glass-edge: rgb(26 29 33 / 0.1);
     --glass-sheen: rgb(255 255 255 / 0.65);
+    --glass-rim-low: rgb(26 29 33 / 0.1);
     --shadow-sm: none;
     --shadow-md: none;
     --shadow-lg: none;
@@ -165,6 +174,7 @@
 }
 
 /* Derived tokens: computed from the base tokens, so they follow the theme. */
+.paper,
 :root {
   --row-alt: color-mix(in srgb, var(--text) 3%, var(--surface));
   --row-hover: color-mix(in srgb, var(--accent) 7%, var(--surface));
@@ -181,10 +191,12 @@
   --rule-strong: color-mix(in srgb, var(--text) 16%, var(--rule));
 
   /*
-   * Type: the specification's steps (14 / 16 / 18 / 22 / 28 / 40 px) plus
-   * display steps for headlines and figures. One family, Instrument Sans,
+   * Type: the specification's steps (14 / 16 / 18 / 22 / 28 / 40 px), 12 and
+   * 13 px for chart axes and captions, and fluid steps for titles, headlines
+   * and figures. Components use these steps only. One family, Instrument Sans,
    * for everything; reading text is 17.5px / 1.7.
    */
+  --step--2: 12px;
   --step--1: 13px;
   --step-0: 14px;
   --step-1: 16px;
@@ -195,12 +207,22 @@
   --step-6: clamp(36px, 4.8vw, 56px);
   --step-7: clamp(40px, 6vw, 76px);
   --step-8: clamp(48px, 7.4vw, 96px);
+  /* Page titles and section titles: one size each on every page. */
+  --step-h1: clamp(32px, 1.2rem + 1.9vw, 40px);
+  --step-h2: clamp(26px, 1.1rem + 1.1vw, 32px);
+  --step-figure: clamp(36px, 1.6rem + 1.6vw, 46px);
   --reading: 17.5px;
   /* --font-instrument is set by next/font (src/app/fonts.ts); the @fontsource family covers other scripts. */
   --typeface-sans: var(--font-instrument), 'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --typeface-italic: var(--font-instrument-italic), var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   --typeface-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   --typeface-arabic: 'Noto Naskh Arabic', 'Geeza Pro', 'Arabic Typesetting', serif;
+
+  /* The sticky header: 60px bar plus its padding. Scroll offsets and sticky table heads use it. */
+  --header-h: calc(60px + 1.2rem);
+  /* Bars and rails that stick under the header tuck into its fade; Explore's results bar is one line tall. */
+  --sticky-top: calc(var(--header-h) - 0.2rem);
+  --results-bar-h: 3.5rem;
 
   /* Shape and motion. */
   --radius-xs: 8px;
