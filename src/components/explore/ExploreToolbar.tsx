@@ -1,7 +1,7 @@
 import { CalendarDays, CalendarRange, Search, Tags } from 'lucide-react'
 import Link from 'next/link'
 import { INCIDENT_TYPES, INCIDENT_TYPE_META, type IncidentType } from '@/db/enums'
-import { activePreset, datePresets, describeDates, explorePath, serializeFilters, type Filters, type ViewState } from '@/lib/filters'
+import { activePreset, datePresets, describeDates, explorePath, serializeFilters, type DatePreset, type Filters, type ViewState } from '@/lib/filters'
 import { formatNumber } from '@/lib/format'
 import { FilterSheetButton } from './FilterDrawer'
 
@@ -16,6 +16,37 @@ function Carry({ filters, view, except }: { filters: Filters; view: ViewState; e
           <input key={k} type="hidden" name={k} value={v} />
         ))}
     </>
+  )
+}
+
+/**
+ * A preset's name, shortened on narrow screens so the four keep to one row:
+ * "Last 12 months", then "12 months" on phones, then "12 mo" (and "All")
+ * below 24rem. Screen readers always hear the full name.
+ */
+function PresetLabel({ preset }: { preset: DatePreset }) {
+  if (preset.key === 'all') {
+    return (
+      <span>
+        All<span className="max-[24rem]:sr-only"> dates</span>
+      </span>
+    )
+  }
+  if (!preset.label.startsWith('Last ')) return preset.label
+  const full = (
+    <>
+      <span className="max-sm:sr-only">Last </span>
+      {preset.label.slice(5)}
+    </>
+  )
+  if (preset.key !== '12m') return <span>{full}</span>
+  return (
+    <span>
+      <span className="max-[24rem]:sr-only">{full}</span>
+      <span aria-hidden="true" className="hidden max-[24rem]:inline">
+        12 mo
+      </span>
+    </span>
   )
 }
 
@@ -60,7 +91,7 @@ export function ExploreToolbar({
               type="search"
               defaultValue={filters.q ?? ''}
               className="control min-h-10 py-1.5"
-              placeholder="City, place, case name or words"
+              placeholder="Place, case or words"
               aria-describedby="f-q-hint"
             />
           </div>
@@ -82,14 +113,7 @@ export function ExploreToolbar({
           <nav aria-labelledby="tb-dates" className="segmented">
             {datePresets(today).map((p) => (
               <Link key={p.key} href={explorePath({ ...filters, from: p.from, to: p.to }, base)} aria-current={preset?.key === p.key ? 'true' : undefined}>
-                {p.label.startsWith('Last ') ? (
-                  <span>
-                    <span className="max-sm:sr-only">Last </span>
-                    {p.label.slice(5)}
-                  </span>
-                ) : (
-                  p.label
-                )}
+                <PresetLabel preset={p} />
               </Link>
             ))}
           </nav>

@@ -37,7 +37,7 @@ export default async function ReportPage(props: PageProps<'/report'>) {
         'Editors read every submission.',
         'They look for public sources: news reports, police statements, court records.',
         'A second editor reviews a record before it is published.',
-        'If you left an email, an editor may write to you.',
+        'If you leave an email, an editor may write to you.',
       ]
   const title = isCorrection ? 'Request a correction' : 'Report an incident'
 
@@ -57,7 +57,7 @@ export default async function ReportPage(props: PageProps<'/report'>) {
       >
         {isCorrection
           ? 'Point out an error in a published record, or ask us to remove details that identify you.'
-          : 'Tell us what happened, in your own words. Only two questions are required, and you don’t have to give your name.'}
+          : 'Tell us what happened. Only two questions are required, and you don’t have to give your name.'}
       </PageHeader>
 
       <ReadingLayout
@@ -69,7 +69,7 @@ export default async function ReportPage(props: PageProps<'/report'>) {
             <ol className="mt-4 space-y-4 text-sm">
               {steps.map((step, i) => (
                 <li key={i} className="flex gap-3">
-                  <span aria-hidden="true" className="tabular inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-accent-tint text-xs font-semibold text-accent">
+                  <span aria-hidden="true" className="step-disk tabular inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full text-xs font-semibold">
                     {i + 1}
                   </span>
                   <span>{step}</span>
@@ -117,8 +117,12 @@ export default async function ReportPage(props: PageProps<'/report'>) {
                 <li className="flex gap-3">
                   <Landmark aria-hidden="true" size={18} className="mt-0.5 shrink-0 text-accent" />
                   <span>
-                    This does not report it to the police. To report a crime, contact your local police or the FBI at{' '}
-                    <a href="https://tips.fbi.gov">tips.fbi.gov</a>.
+                    This form does not report a crime to the police. For that, contact your local police or the FBI at{' '}
+                    {/* A new tab, so the form and what is typed in it stay open. */}
+                    <a href="https://tips.fbi.gov" target="_blank" rel="noopener noreferrer">
+                      tips.fbi.gov<span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                    .
                   </span>
                 </li>
               )}

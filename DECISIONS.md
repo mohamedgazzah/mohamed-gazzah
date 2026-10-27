@@ -344,6 +344,28 @@ and components stand.
     "Alleged" form one group with a gavel, so a reader never takes the verification next to
     it for a verdict. Before any charge the record says "No charges known", not "Unknown".
 
+### Third critique round
+
+74. **The legal lifecycle is drawn in stages**: investigation, charges and court, the outcome
+    (one of five), and "Sentenced" only after a conviction or plea agreement. The earlier
+    diagram ran every outcome into "Sentenced", which implied that acquittals and dismissals
+    end in a sentence. Source precedence is a numbered ranking, not a chain of arrows.
+75. **Contents on phones**: a pill under the header names the section being read; its list
+    opens at that section, over a clear layer that takes a tap outside (so the tap presses
+    nothing underneath), and closes on a choice, on Escape or when focus leaves it. After a
+    jump to an anchor, the section holding it stays current until the reader scrolls on.
+    Without JavaScript the list is a plain disclosure in the page and does not stick.
+76. **A record on paper** is one full-width column with a first line naming the site and the
+    record; buttons, the breadcrumb and the sidebar are left out. On a record page the
+    status badges are plain text (the rule and its link are printed beside them), and only
+    the contents card sticks, so it stays reachable on short screens.
+77. **Report drafts survive leaving the page, in memory only**: an unsent report is kept in
+    the tab's memory while the reader follows a link (the privacy policy, say) and comes
+    back; it is never written to storage or cookies, closing or reloading the tab forgets it
+    (the browser asks first), and sending clears it. Choosing files again adds to the list.
+    Without JavaScript the form says at the top that the spam check needs it and offers the
+    editors' email instead of a Send button that cannot work.
+
 ## Open questions (**Ask**)
 
 - Organizational home, media lawyer, and the contents of About (team, board, funding).

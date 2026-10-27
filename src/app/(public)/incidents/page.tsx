@@ -8,16 +8,18 @@ import { PageHeader } from '@/components/PageHeader'
 import { Pagination } from '@/components/Pagination'
 import { BarList } from '@/components/charts/BarList'
 import { StateMap } from '@/components/charts/StateMap'
+import { DismissMenus } from '@/components/explore/DismissMenus'
 import { ExploreToolbar } from '@/components/explore/ExploreToolbar'
 import { FilterDrawer, FilterSheet } from '@/components/explore/FilterDrawer'
 import { FilterRail } from '@/components/explore/FilterRail'
-import { DEFAULT_VERIFICATION_LEVELS, INCIDENT_TYPE_META } from '@/db/enums'
+import { ResultsBar } from '@/components/explore/ResultsBar'
+import { DEFAULT_VERIFICATION_LEVELS } from '@/db/enums'
 import {
   PAGE_SIZE,
   SORTS,
   SORT_LABELS,
   chips,
-  describeDates,
+  describeScope,
   explorePath,
   normalizeIncomingQuery,
   parseFilters,
@@ -25,7 +27,8 @@ import {
   serializeFilters,
   type View,
 } from '@/lib/filters'
-import { formatNumber, plural, todayIso } from '@/lib/format'
+import { formatDate, formatNumber, plural, todayIso } from '@/lib/format'
+import { absoluteUrl } from '@/lib/site'
 import { stateByCode } from '@/lib/states'
 import { stateShape } from '@/server/public/geo'
 import { searchIncidents } from '@/server/public/incidents'
@@ -38,13 +41,6 @@ export const metadata: Metadata = {
 
 const VIEW_LABELS: Record<View, string> = { table: 'Table', cards: 'Cards' }
 
-/** "threats or vandalism": the chosen types, in words, for the results sentence. */
-function typesInWords(types: readonly string[]): string {
-  const words = types.map((t) => INCIDENT_TYPE_META[t as keyof typeof INCIDENT_TYPE_META].label.toLowerCase())
-  if (words.length <= 2) return words.join(' or ')
-  return `${words.slice(0, -1).join(', ')} or ${words[words.length - 1]}`
-}
-
 export default async function ExplorePage(props: PageProps<'/incidents'>) {
   const sp = await props.searchParams
   const filters = parseFilters(sp)
@@ -56,7 +52,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
 
   const today = todayIso()
   const focusCode = filters.state.length === 1 ? filters.state[0]! : null
-  const [result, byState, typeCounts, focusData, everyCity] = await Promise.all([
+  const [result, byState, typeCounts, focusData, everyCity, everyState] = await Promise.all([
     searchIncidents(filters, { sort: vs.sort, page: vs.page }),
     countsByState(filters),
     countsByType({ ...filters, type: [] }),
@@ -64,6 +60,8 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
     focusCode ? countsByCity({ ...filters, city: null }) : null,
     // …and the largest city anywhere for the same filters, so circle sizes compare across states.
     focusCode ? countsByCity({ ...filters, state: [], city: null }) : null,
+    // …and every state's own count, so the states around it give the number their link would show.
+    focusCode ? countsByState({ ...filters, state: [], city: null }) : null,
   ])
   if (result.page !== vs.page && result.total > 0) redirect(explorePath(filters, { ...vs, page: result.page }))
 
@@ -79,28 +77,32 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
   const withQs = (path: string) => (qs ? `${path}?${qs}` : path)
   const dateDesc = vs.sort === 'newest'
 
-  const when = describeDates(filters, today)
   const stateCount = Object.keys(byState).length
   const focusName = focusCode ? (stateByCode(focusCode)?.name ?? focusCode) : null
   const stateHref = (code: string) => explorePath({ ...filters, state: [code], city: null }, base)
   const allStatesHref = explorePath({ ...filters, state: [], city: null }, base)
+  // Zoomed in, the chosen state keeps the page's own count (its city included); the others give theirs.
+  const mapCounts = focusCode && everyState ? { ...everyState, [focusCode]: byState[focusCode] ?? 0 } : byState
   const ranked = Object.entries(byState)
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([code, n]) => ({ key: code, label: stateByCode(code)?.name ?? code, value: n, href: stateHref(code) }))
   const cities = focusData
   const cityRows = (cities?.cities ?? []).map((c) => ({ key: c.city, label: c.city, value: c.count, href: explorePath({ ...filters, city: c.city }, base) }))
   const sizeMax = Math.max(0, ...(everyCity?.cities ?? []).map((c) => c.count))
-  // "Threat or vandalism · 2 states · all dates": what the count covers, in the order of the filters above.
+  // "Matching “mosque” · Threat or vandalism · 2 states · all dates": what the count covers. An empty
+  // result names only the place and dates; the panel under it names the search and what to change.
   const place = focusName ? `${filters.city ? `${filters.city}, ` : ''}${focusName}` : plural(stateCount, 'state')
-  const scope = result.total ? [filters.type.length ? typesInWords(filters.type) : null, place, when] : [focusName ? place : null, when]
-  const subline = scope.filter(Boolean).join(' · ')
-  const subLine = subline.charAt(0).toUpperCase() + subline.slice(1)
+  const scope = describeScope(result.total ? filters : { ...filters, q: null, type: [] }, today, result.total || focusName ? place : null)
 
   const listRows = focusName ? cityRows : ranked
   const listLabel = focusName ? `Records by city in ${focusName}` : 'Records by state'
   // A few rows, or all the same, read better as a sentence than as bars of equal length.
   const asSentence = listRows.length > 0 && (listRows.length <= 3 || listRows.every((r) => r.value === listRows[0]!.value))
   const zoomedEmpty = result.total === 0 && !!focusCode
+  // The empty panel's heading says what to change; the count above it already says there is nothing.
+  const datesSet = !!(filters.from || filters.to)
+  const othersSet = active.some((c) => c.key !== 'dates')
+  const tryInstead = datesSet ? (othersSet ? 'Try other dates or fewer filters' : 'Try other dates') : othersSet ? 'Try fewer filters' : 'Nothing is published yet'
 
   // Each link's full name starts with its visible words, so speech input can say what it sees.
   const downloads = [
@@ -118,12 +120,38 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
         Every published record, by date, place and type. <Link href="/methodology#inclusion">What is included</Link>.
       </PageHeader>
 
+      <DismissMenus />
       <FilterSheet>
         <div className="no-print mt-5">
           <ExploreToolbar key={canonical} filters={filters} view={vs} today={today} typeCounts={typeCounts} sheetCount={railCount} />
         </div>
 
-        <div className="explore-grid mt-8 grid gap-8 lg:grid-cols-[17rem_minmax(0,1fr)]">
+        {/* The active filters sit with the controls, so the count below is always the same distance from the map. */}
+        {active.length ? (
+          <ul aria-label="Active filters" className="no-print mt-4 flex min-h-9 flex-wrap items-center gap-2">
+            {active.map((c) => (
+              <li key={c.key}>
+                <Link href={c.removeHref} className="chip" aria-label={`Remove filter: ${c.label}`}>
+                  {c.label}
+                  <X aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+            {active.length > 1 ? (
+              <li>
+                <Link href="/incidents" className="ms-1 text-sm font-semibold text-accent">
+                  Clear all
+                </Link>
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          // Holds the chips' place, so zooming into a state does not push the map down mid-zoom.
+          <div aria-hidden="true" className="no-print mt-4 hidden min-h-9 lg:block" />
+        )}
+
+        {/* Below 64rem the rail is a sheet, so its empty grid row must not add a gap. */}
+        <div className="explore-grid mt-6 grid gap-8 max-lg:gap-y-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
           <aside aria-label="More filters" className="no-print lg:sticky lg:top-[var(--sticky-top)] lg:self-start">
             <FilterDrawer>
               {/* Keyed by the filters, so after a link changes them the form shows the new values. */}
@@ -132,10 +160,13 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
           </aside>
 
           <div className="min-w-0">
-            <div className="results-bar glass">
+            <ResultsBar>
               <h2 id="results-heading" tabIndex={-1} className="results-heading outline-none" aria-live="polite">
                 <span className="results-count">{result.total ? plural(result.total, noun) : `No ${noun}s`}</span>
-                <span className="results-scope">{subLine}</span>
+                {/* Cut short with an ellipsis when the bar sticks on wide screens; the tooltip has it all. */}
+                <span className="results-scope" title={scope.full}>
+                  {scope.short}
+                </span>
               </h2>
               {result.total ? (
                 <>
@@ -177,32 +208,14 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                   </details>
                 </>
               ) : null}
-            </div>
+            </ResultsBar>
 
-            {active.length ? (
-              <ul aria-label="Active filters" className="no-print mt-4 flex min-h-9 flex-wrap items-center gap-2">
-                {active.map((c) => (
-                  <li key={c.key}>
-                    <Link href={c.removeHref} className="chip" aria-label={`Remove filter: ${c.label}`}>
-                      {c.label}
-                      <X aria-hidden="true" />
-                    </Link>
-                  </li>
-                ))}
-                {active.length > 1 ? (
-                  <li>
-                    <Link href="/incidents" className="ms-1 text-sm font-semibold text-accent">
-                      Clear all
-                    </Link>
-                  </li>
-                ) : null}
-              </ul>
-            ) : (
-              // Holds the chips' place, so zooming into a state does not push the map down mid-zoom.
-              <div aria-hidden="true" className="no-print mt-4 hidden min-h-9 lg:block" />
-            )}
             <p className="print-only mt-3 text-xs">
               <strong>Filters:</strong> {active.length ? active.map((c) => c.label).join(' · ') : 'none (all published records, V2 and V3)'}
+            </p>
+            {/* The page's own header and footer replace the browser's, which would carry the address and date. */}
+            <p className="print-only mt-1 text-xs text-muted">
+              Printed {formatDate(today)} from {absoluteUrl(canonical ? `/incidents?${canonical}` : '/incidents')}
             </p>
 
             {result.total === 0 && !focusCode ? (
@@ -241,7 +254,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                     <p className="text-muted">{focusName} is not drawn on this map. Its records are listed below.</p>
                   ) : (
                     <StateMap
-                      counts={byState}
+                      counts={mapCounts}
                       stateHref={stateHref}
                       focus={
                         focusCode && stateShape(focusCode)
@@ -256,7 +269,8 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                             }
                           : null
                       }
-                      noun={includesV1 ? 'incident' : 'record'}
+                      // One noun for the map, its list and the sentences under it, with or without V1.
+                      noun="record"
                     />
                   )}
                 </div>
@@ -265,7 +279,9 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                     <EmptyResult />
                   ) : (
                     <>
-                      <h4 className="mb-2 text-base font-semibold">{focusName ? 'Cities with the most records' : 'States with the most records'}</h4>
+                      <h4 className="mb-2 text-base font-semibold">
+                        {asSentence ? 'Where they happened' : focusName ? 'Cities with the most records' : 'States with the most records'}
+                      </h4>
                       {listRows.length ? (
                         asSentence ? (
                           <ListSentence rows={listRows} selected={filters.city} />
@@ -338,9 +354,13 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                     <nav aria-label="Sort order" className="flex flex-wrap items-center gap-2">
                       <span className="kicker max-sm:sr-only">Sort</span>
                       <span className="segmented">
+                        {/* On phones "first" is for screen readers only, so the three fit one row. */}
                         {SORTS.map((s) => (
                           <Link key={s} href={explorePath(filters, { ...vs, sort: s, page: 1 })} aria-current={vs.sort === s ? 'true' : undefined} scroll={false}>
-                            {SORT_LABELS[s]}
+                            <span>
+                              {SORT_LABELS[s].replace(/ first$/, '')}
+                              <span className="max-sm:sr-only"> first</span>
+                            </span>
                           </Link>
                         ))}
                       </span>
@@ -409,9 +429,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
               ? `No records in ${filters.city ? `${filters.city}, ` : ''}${focusName} for these filters`
               : filters.q
                 ? `Nothing matches “${filters.q}”`
-                : includesV1
-                  ? 'No incidents match these filters.'
-                  : 'No verified incidents match these filters.'}
+                : tryInstead}
           </h3>
           <p className="mt-2 max-w-[62ch] text-muted">
             {filters.q ? 'Search looks in titles, summaries, places and case names. Check the spelling, or try a city or case name. ' : ''}
@@ -483,13 +501,13 @@ function ListSentence({ rows, selected }: { rows: { key: string; label: string; 
   if (same && rows.length > 1) {
     const n = rows[0]!.value
     return (
-      <p className="text-base">
+      <p className="list-sentence text-base">
         {n === 1 ? 'One record' : `${formatNumber(n)} records`} each in {list(rows)}.
       </p>
     )
   }
   return (
-    <p className="text-base">
+    <p className="list-sentence text-base">
       {rows.map((r, i) => (
         <span key={r.key}>
           {i ? '; ' : ''}

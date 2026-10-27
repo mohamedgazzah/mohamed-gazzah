@@ -12,6 +12,10 @@ export const WHAT_HAPPENED_MESSAGE = {
   correction: 'Describe the correction in a sentence or two.',
 } as const
 
+/** An empty box asks for the account itself; a short one asks for a little more. */
+export const whatHappenedMessage = (mode: keyof typeof WHAT_HAPPENED_MESSAGE, length: number) =>
+  length === 0 && mode === 'report' ? 'Tell us what happened. A sentence or two is enough.' : WHAT_HAPPENED_MESSAGE[mode]
+
 export const CITY_MESSAGE = 'Enter the city or town.'
 export const RECORD_ID_MESSAGE = 'Enter the record id, for example US-2026-0412.'
 export const EMAIL_MESSAGE = 'Check the email address: it should look like name@example.com.'
@@ -29,8 +33,8 @@ export const MAX_LENGTH = {
   recordId: 40,
 } as const
 
-export const tooLong = (length: number, max: number) =>
-  `That’s ${formatNumber(length)} characters; the limit is ${formatNumber(max)}. Shorten it, or send the rest by email.`
+export const tooLong = (length: number, max: number, email?: string) =>
+  `That’s ${formatNumber(length)} characters; the limit is ${formatNumber(max)}. Shorten it, or ${email ? `email the rest to ${email}` : 'send the rest by email'}.`
 
 /** A pasted "www.freep.com/…" or "freep.com/…" is a web address too. */
 export function normalizeLink(raw: string): string {
@@ -40,10 +44,14 @@ export function normalizeLink(raw: string): string {
   return s
 }
 
+/**
+ * One link per line, or a pasted list ("freep.com/a, wxyz.com/b"). A comma splits only where another
+ * link starts, so commas inside an address are kept; punctuation after a link is not part of it.
+ */
 export const splitLinks = (text: string) =>
   text
-    .split(/\s+/)
-    .map(normalizeLink)
+    .split(/\s+|,(?=https?:\/\/|www\.)/i)
+    .map((s) => normalizeLink(s.replace(/[.,;:!?]+$/, '')))
     .filter(Boolean)
 
 export const isLink = (u: string) => /^https?:\/\/[^\s]+\.[^\s]+$/i.test(u) && u.length <= 2000

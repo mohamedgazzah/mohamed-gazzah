@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_FILTERS, activePreset, chips, datePresets, describeDates, explorePath, normalizeIncomingQuery, parseFilters, parseViewState, serializeFilters } from '@/lib/filters'
+import {
+  EMPTY_FILTERS,
+  activePreset,
+  chips,
+  datePresets,
+  describeDates,
+  describeScope,
+  explorePath,
+  normalizeIncomingQuery,
+  parseFilters,
+  parseViewState,
+  serializeFilters,
+} from '@/lib/filters'
 
 const parse = (qs: string) => parseFilters(new URLSearchParams(qs))
 
@@ -69,6 +81,18 @@ describe('URL filters', () => {
     expect(normalizeIncomingQuery(sp)).not.toBe(serializeFilters(parseFilters(sp)))
     const canonical = new URLSearchParams(serializeFilters(parseFilters(sp)))
     expect(normalizeIncomingQuery(canonical)).toBe(serializeFilters(parseFilters(canonical)))
+  })
+
+  it('says what a count covers: the search first, then types, place and dates', () => {
+    const today = '2026-10-26'
+    expect(describeScope(parse(''), today, '4 states')).toEqual({ short: '4 states · all dates', full: '4 states · all dates' })
+    expect(describeScope(parse('q=mosque'), today, '1 state').short).toBe('Matching “mosque” · 1 state · all dates')
+    expect(describeScope(parse('type=VAND,THRT&from=2026-09-27&to=2026-10-26'), today, '2 states').short).toBe('Threat or vandalism · 2 states · the last 30 days')
+    // Three or more types are counted, so the dates still fit the bar; the full line names them.
+    const many = describeScope(parse('type=ASLT,THRT,VAND&from=2025-01-01&to=2026-10-01'), today, '3 states')
+    expect(many.short).toBe('3 types · 3 states · Jan. 1, 2025 – Oct. 1, 2026')
+    expect(many.full).toBe('Physical assault, threat or vandalism · 3 states · Jan. 1, 2025 – Oct. 1, 2026')
+    expect(describeScope(parse('from=2026-02-01'), today, null).short).toBe('Feb. 1, 2026 to today')
   })
 
   it('gives each active filter a chip that removes only that value', () => {

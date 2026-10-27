@@ -74,6 +74,7 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
           <p className="tabular">
             {lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'} · Methodology {METHODOLOGY_VERSION}
           </p>
+          {/* Short lines of their own, so a narrow screen never leaves a dot at the end of a line. */}
           <p>
             Data{' '}
             <a href={SITE.dataLicense.url} rel="license noopener">
@@ -82,8 +83,9 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
             · Code{' '}
             <a href={SITE.codeLicense.url} rel="license noopener">
               {SITE.codeLicense.name}
-            </a>{' '}
-            ·{' '}
+            </a>
+          </p>
+          <p>
             <Link href="/methodology" className="inline-flex items-center gap-1">
               How records are verified <ArrowRight aria-hidden="true" size={14} className="nudge" />
             </Link>

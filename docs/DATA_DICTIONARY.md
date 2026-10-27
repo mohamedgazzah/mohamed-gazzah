@@ -4,7 +4,7 @@ Generated from `src/db/schema.ts` by `npm run dictionary`. Do not edit by hand.
 
 | Column | Type | Allowed values | Description |
 | --- | --- | --- | --- |
-| `id` | string |  | Stable, human-readable record id, e.g. US-2026-0412. Never reused. |
+| `id` | string |  | Stable, human-readable record id, e.g. `US-2026-0412`. Never reused. |
 | `slug` | string |  | URL slug derived from the title. May change if the title changes; the id does not. |
 | `title` | string (≤ 110 chars) |  | Factual headline. |
 | `summary` | text |  | 2–4 neutral sentences. Markers like [1] refer to the numbered entries in `sources`. |
@@ -40,11 +40,11 @@ Generated from `src/db/schema.ts` by `npm run dictionary`. Do not edit by hand.
 | `tags` | string[] |  | Free editorial tags, e.g. campus, election-related. |
 | `source_types` | enum[] | `news`, `police`, `prosecutor`, `court_record`, `government`, `advocacy_org`, `academic`, `social_media`, `victim_statement` | Distinct types of the sources cited. |
 | `source_count` | integer |  | Number of sources cited. Always at least 1. |
-| `sources` | json array |  | Sources: n, outlet, title, author, url, archived_url, published_date, accessed_date, source_type, claim_attribution. |
-| `legal_events` | json array |  | Dated legal events: date, event_type, description, case_id, source_n (the source that reports it). |
-| `statements` | json array |  | Attributed responses: speaker, speaker_role, organization, statement_type, date, quote (≤ 25 words), paraphrase, source_n. |
-| `cases` | json array |  | Court cases: id, name, court, jurisdiction, docket_number, case_type, parties, stage, next_date, courtlistener_url. |
-| `change_log` | json array |  | Public change log: date, action (published, updated, unpublished), note, changed_fields, revision. |
+| `sources` | json array | `source_type`: `news`, `police`, `prosecutor`, `court_record`, `government`, `advocacy_org`, `academic`, `social_media`, `victim_statement` | The sources cited. The [1] markers in `summary` refer to `n`. Keys: `n`, `outlet`, `title`, `author`, `url`, `archived_url`, `published_date`, `accessed_date`, `source_type`, `claim_attribution`. |
+| `legal_events` | json array | `event_type`: `reported`, `under_investigation`, `suspect_identified`, `arrested`, `charged`, `hate_crime_charge_filed`, `arraignment`, `in_court`, `plea_entered`, `plea_deal`, `trial`, `verdict`, `convicted`, `acquitted`, `dismissed`, `deferred`, `sentenced`, `no_arrest`, `suspect_deceased`, `not_prosecuted`, `civil_suit`, `other` | Dated legal events. `source_n` is the `n` of the source that reports the event; `case_id` matches an entry in `cases`. Keys: `date`, `event_type`, `description`, `case_id`, `source_n`. |
+| `statements` | json array | `statement_type`: `official`, `defense`, `community` | Attributed responses. A `quote` is at most 25 words; `source_n` is the source that reports it. Keys: `speaker`, `speaker_role`, `organization`, `statement_type`, `date`, `quote`, `paraphrase`, `source_n`. |
+| `cases` | json array | `case_type`: `criminal`, `civil_rights`, `administrative` | Court cases tied to the incident, listed by id in `case_ids`. `stage` is free text. Keys: `id`, `name`, `court`, `jurisdiction`, `docket_number`, `case_type`, `parties`, `stage`, `next_date`, `courtlistener_url`. |
+| `change_log` | json array | `action`: `published`, `updated`, `unpublished` | The public change log, one entry per published change. Keys: `date`, `action`, `note`, `changed_fields`, `revision`. |
 | `methodology_version` | string |  | Inclusion-criteria version the record was published under. |
 | `is_demo` | boolean |  | True only for fictional development records. Always false in production data. |
 | `created_at` | datetime (UTC) |  | When the record was first drafted. |

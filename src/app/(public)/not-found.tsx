@@ -13,7 +13,7 @@ export default function NotFound() {
       </span>
       <p className="kicker mt-6">Error 404</p>
       <h1 className="display mt-2 max-w-[18ch] text-5xl">There is no page at this address.</h1>
-      <p className="lede mt-6 max-w-[56ch]">If you followed a link to a record, it may have been removed on a legal or factual basis.</p>
+      <p className="lede mt-6 max-w-[56ch]">Check the address for a typo. If a link brought you here, the page may have moved or been removed.</p>
       <p className="mt-8 flex flex-wrap gap-3">
         <Link href="/incidents" className="btn max-sm:w-full">
           Explore all incidents <ArrowRight aria-hidden="true" className="nudge" />
@@ -23,8 +23,8 @@ export default function NotFound() {
         </Link>
       </p>
       <p className="mt-5">
-        <Link href="/report?mode=correction" className="arrow-link">
-          Request a correction <ArrowRight aria-hidden="true" size={16} />
+        <Link href="/about#contact" className="arrow-link">
+          Report a broken link <ArrowRight aria-hidden="true" size={16} />
         </Link>
       </p>
     </main>

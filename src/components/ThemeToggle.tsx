@@ -14,13 +14,16 @@ const OPTIONS = [
   { value: 'dark', label: 'Dark', Icon: Moon },
 ] as const
 
+/** Shown once the page has loaded: before that (or without JavaScript) the switch could not change anything. */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>('system')
+  const [ready, setReady] = useState(false)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('theme')
       if (saved === 'light' || saved === 'dark') setTheme(saved)
     } catch {}
+    setReady(true)
   }, [])
   const choose = (t: Theme) => {
     setTheme(t)
@@ -32,7 +35,7 @@ export function ThemeToggle() {
     else document.documentElement.setAttribute('data-theme', t)
   }
   return (
-    <fieldset>
+    <fieldset hidden={!ready}>
       <legend className="kicker mb-3">Theme</legend>
       <div className="segmented">
         {OPTIONS.map(({ value, label, Icon }) => (

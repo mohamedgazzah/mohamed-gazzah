@@ -829,15 +829,20 @@ export type FieldDoc = {
   description: string
   /** Allowed values, when the column is an enum. */
   allowed?: readonly (string | number)[]
+  /** JSON arrays: the keys of each entry, and the allowed values of the coded ones. */
+  keys?: readonly string[]
+  keyValues?: Readonly<Record<string, readonly string[]>>
   /** Included in CSV/JSON downloads and the API. Search columns are not. */
   exported: boolean
   nullable?: boolean
 }
 
 const allowed = <T extends readonly (string | number)[]>(values: T) => values
+/** The keys of a JSON entry, checked against its type. */
+const keysOf = <T>(keys: readonly (keyof T & string)[]) => keys
 
 export const PUBLIC_FIELD_DOCS: Record<keyof PublicIncident, FieldDoc> = {
-  id: { type: 'string', description: 'Stable, human-readable record id, e.g. US-2026-0412. Never reused.', exported: true },
+  id: { type: 'string', description: 'Stable, human-readable record id, e.g. `US-2026-0412`. Never reused.', exported: true },
   slug: { type: 'string', description: 'URL slug derived from the title. May change if the title changes; the id does not.', exported: true },
   title: { type: 'string (≤ 110 chars)', description: 'Factual headline.', exported: true },
   summary: {
@@ -933,27 +938,37 @@ export const PUBLIC_FIELD_DOCS: Record<keyof PublicIncident, FieldDoc> = {
   sourceCount: { type: 'integer', description: 'Number of sources cited. Always at least 1.', exported: true },
   sources: {
     type: 'json array',
-    description: 'Sources: n, outlet, title, author, url, archived_url, published_date, accessed_date, source_type, claim_attribution.',
+    description: 'The sources cited. The [1] markers in `summary` refer to `n`.',
+    keys: keysOf<PublicSource>(['n', 'outlet', 'title', 'author', 'url', 'archived_url', 'published_date', 'accessed_date', 'source_type', 'claim_attribution']),
+    keyValues: { source_type: E.SOURCE_TYPES },
     exported: true,
   },
   legalEvents: {
     type: 'json array',
-    description: 'Dated legal events: date, event_type, description, case_id, source_n (the source that reports it).',
+    description: 'Dated legal events. `source_n` is the `n` of the source that reports the event; `case_id` matches an entry in `cases`.',
+    keys: keysOf<PublicLegalEvent>(['date', 'event_type', 'description', 'case_id', 'source_n']),
+    keyValues: { event_type: E.LEGAL_EVENT_TYPES },
     exported: true,
   },
   statements: {
     type: 'json array',
-    description: 'Attributed responses: speaker, speaker_role, organization, statement_type, date, quote (≤ 25 words), paraphrase, source_n.',
+    description: 'Attributed responses. A `quote` is at most 25 words; `source_n` is the source that reports it.',
+    keys: keysOf<PublicStatement>(['speaker', 'speaker_role', 'organization', 'statement_type', 'date', 'quote', 'paraphrase', 'source_n']),
+    keyValues: { statement_type: E.STATEMENT_TYPES },
     exported: true,
   },
   cases: {
     type: 'json array',
-    description: 'Court cases: id, name, court, jurisdiction, docket_number, case_type, parties, stage, next_date, courtlistener_url.',
+    description: 'Court cases tied to the incident, listed by id in `case_ids`. `stage` is free text.',
+    keys: keysOf<PublicCase>(['id', 'name', 'court', 'jurisdiction', 'docket_number', 'case_type', 'parties', 'stage', 'next_date', 'courtlistener_url']),
+    keyValues: { case_type: E.CASE_TYPES },
     exported: true,
   },
   changeLog: {
     type: 'json array',
-    description: 'Public change log: date, action (published, updated, unpublished), note, changed_fields, revision.',
+    description: 'The public change log, one entry per published change.',
+    keys: keysOf<PublicChange>(['date', 'action', 'note', 'changed_fields', 'revision']),
+    keyValues: { action: E.PUBLICATION_ACTIONS },
     exported: true,
   },
   methodologyVersion: { type: 'string', description: 'Inclusion-criteria version the record was published under.', exported: true },

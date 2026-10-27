@@ -283,7 +283,6 @@ export function activePreset(f: Pick<Filters, 'from' | 'to'>, today: string): Da
   return datePresets(today).find((p) => p.from === f.from && p.to === f.to) ?? null
 }
 
-/** The filters' date range in words: "all dates", "2026", "the last 30 days", "Jan. 1, 2026 to today". */
 /** A custom range in the site's date style: "June 1 – Aug. 31, 2026", "Feb. 1, 2026 to today", "Up to Aug. 31, 2026". */
 export function rangeLabel(from: string | null, to: string | null): string {
   if (from && to) return formatDateRange(from, to, 'day')
@@ -291,10 +290,33 @@ export function rangeLabel(from: string | null, to: string | null): string {
   return to ? `Up to ${formatDate(to)}` : 'All dates'
 }
 
+/** The filters' date range in words: "all dates", "2026", "the last 30 days", "Jan. 1, 2026 to today". */
 export function describeDates(f: Pick<Filters, 'from' | 'to'>, today: string): string {
   const preset = activePreset(f, today)
   if (preset?.key === 'all') return 'all dates'
   if (preset) return preset.label.replace(/^Last/, 'the last')
   return rangeLabel(f.from, f.to)
+}
+
+/** "threat or vandalism", "physical assault, threat or vandalism": the chosen types, in words. */
+function typesInWords(types: readonly IncidentType[]): string {
+  const words = types.map((t) => INCIDENT_TYPE_META[t].label.toLowerCase())
+  if (words.length <= 2) return words.join(' or ')
+  return `${words.slice(0, -1).join(', ')} or ${words[words.length - 1]}`
+}
+
+/**
+ * The line under a result count: what it covers, in the order of the filters
+ * ("Matching “mosque” · Threat or vandalism · 2 states · all dates"). Three or
+ * more types are counted ("3 types"), so the line fits the one-line bar on
+ * wide screens; `full` names them all.
+ */
+export function describeScope(f: Filters, today: string, place: string | null): { short: string; full: string } {
+  const line = (types: string | null) => {
+    const text = [f.q ? `matching “${f.q}”` : null, types, place, describeDates(f, today)].filter(Boolean).join(' · ')
+    return text.charAt(0).toUpperCase() + text.slice(1)
+  }
+  const named = f.type.length ? typesInWords(f.type) : null
+  return { short: line(f.type.length > 2 ? `${f.type.length} types` : named), full: line(named) }
 }
 

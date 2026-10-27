@@ -1,9 +1,19 @@
 'use client'
 
-import { ChevronDown, CircleAlert, CircleCheck, Copy, LoaderCircle, Paperclip, SendHorizontal, X } from 'lucide-react'
+import { ChevronDown, CircleAlert, CircleCheck, Copy, LoaderCircle, Mail, Paperclip, Plus, SendHorizontal, X } from 'lucide-react'
 import Link from 'next/link'
 import Script from 'next/script'
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type MouseEvent, type ReactNode } from 'react'
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+  type MouseEvent,
+  type ReactNode,
+} from 'react'
 import { CopyButton } from '@/components/CopyButton'
 import { REPORTER_RELATIONS, REPORTER_RELATION_META, SLA } from '@/db/enums'
 import {
@@ -11,11 +21,11 @@ import {
   EMAIL_MESSAGE,
   MAX_LENGTH,
   RECORD_ID_MESSAGE,
-  WHAT_HAPPENED_MESSAGE,
   WHAT_HAPPENED_MIN,
   isEmail,
   linksProblem,
   tooLong,
+  whatHappenedMessage,
 } from '@/lib/report-rules'
 import { SITE } from '@/lib/site'
 import { isRecordId } from '@/lib/slug'
@@ -29,12 +39,26 @@ declare global {
   }
 }
 
+/** The role addresses in a message become mailto links. */
+function linkEmails(text: string): ReactNode[] {
+  return text.split(/([\w.+-]+@[\w-]+(?:\.[\w-]+)+)/).map((part, i) =>
+    i % 2 ? (
+      <a key={i} href={`mailto:${part}`}>
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  )
+}
+
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null
   return (
     <p id={id} className="field-error mt-1.5">
       <CircleAlert aria-hidden="true" />
-      {message}
+      {/* One flex item, so a link in the message does not split the sentence into columns. */}
+      <span>{linkEmails(message)}</span>
     </p>
   )
 }
@@ -44,7 +68,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   return (
     <section aria-labelledby={`step-${n}`} className="space-y-5">
       <h2 id={`step-${n}`} className="flex items-center gap-3 text-xl">
-        <span aria-hidden="true" className="tabular inline-grid h-8 min-w-8 place-items-center rounded-full bg-accent-tint text-xs font-semibold text-accent">
+        <span aria-hidden="true" className="step-disk tabular inline-grid h-8 min-w-8 place-items-center rounded-full text-xs font-semibold">
           {n}
         </span>
         {title}
@@ -62,21 +86,47 @@ const limit = (bytes: number) => `${Number((bytes / MB).toFixed(1))} MB`
 const LIMIT_EACH = limit(UPLOAD_LIMITS.maxFileBytes)
 const LIMIT_TOTAL = limit(UPLOAD_LIMITS.maxTotalBytes)
 
+/** By its type, or by its name when the browser does not know the type (the server checks the bytes either way). */
+const supported = (f: { name: string; type: string }) =>
+  f.type ? ACCEPT.includes(f.type) : !/\.\w+$/.test(f.name) || /\.(jpe?g|png|webp|gif|pdf)$/i.test(f.name)
+
 /** What is wrong with one chosen file, in words, or null. */
-function fileProblem(f: { size: number; type: string }, index: number): string | null {
+function fileProblem(f: { name: string; size: number; type: string }, index: number): string | null {
   if (index >= UPLOAD_LIMITS.maxFiles) return `Over the ${UPLOAD_LIMITS.maxFiles}-file limit: remove this one or another.`
-  if (f.type && !ACCEPT.includes(f.type)) return 'Not a supported type: use JPEG, PNG, WebP, GIF or PDF.'
+  if (!supported(f)) return 'Not a supported type: use JPEG, PNG, WebP, GIF or PDF.'
   if (f.size > UPLOAD_LIMITS.maxFileBytes) return `Each file must be under ${LIMIT_EACH}: remove it, or attach a screenshot instead.`
   return null
+}
+
+const totalSize = (list: { size: number }[]) => list.reduce((n, f) => n + f.size, 0)
+/** "3 files, 2.7 MB of 3.5 MB.", said after a file is added or removed. */
+const tally = (list: { size: number }[]) =>
+  list.length ? `${list.length} ${list.length === 1 ? 'file' : 'files'}, ${size(totalSize(list))} of ${LIMIT_TOTAL}.` : 'No files attached.'
+// A file chosen twice is listed once.
+const sameFile = (a: File, b: File) => a.name === b.name && a.size === b.size && a.lastModified === b.lastModified
+function toFileList(list: File[]): FileList {
+  const dt = new DataTransfer()
+  list.forEach((f) => dt.items.add(f))
+  return dt.files
 }
 
 // The order fields appear in, so the error summary reads top to bottom.
 const FIELD_ORDER = ['recordId', 'whatHappened', 'incidentDate', 'city', 'stateFips', 'links', 'files', 'contactEmail'] as const
 
+type Draft = { values: Record<string, string>; files: File[] }
+// What a draft holds: the fields the server sends back after an error, and the two ticks.
+const DRAFT_FIELDS = ['recordId', 'whatHappened', 'incidentDate', 'city', 'stateFips', 'address', 'links', 'relation', 'contactEmail', 'contactName', 'contactPhone', 'keepConsent', 'privacyRequest']
+/**
+ * Unsent reports, held in this tab's memory only, never in storage or cookies: following a link and
+ * coming back loses nothing. Sending clears the draft; closing or reloading the tab forgets it.
+ * Written only from event handlers, so the server's copy of this module never holds anything.
+ */
+const drafts = new Map<string, Draft>()
+
 /** "7K2M9QXA" shown as 7K2M 9QXA, so it is easy to note down; it copies without the gap. */
 function Reference({ value }: { value: string }) {
   return (
-    <strong className="tabular tracking-[0.04em]">
+    <strong className="tabular text-2xl leading-tight tracking-[0.04em]">
       {value.slice(0, 4)}
       <span className="ms-[0.35em]">{value.slice(4)}</span>
     </strong>
@@ -84,22 +134,31 @@ function Reference({ value }: { value: string }) {
 }
 
 export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' | 'correction'; recordId: string; siteKey: string | null; today: string }) {
+  const isCorrection = mode === 'correction'
+  // A correction's draft belongs to the record it was started from.
+  const draftKey = isCorrection ? `correction:${recordId}` : 'report'
+  const [restored] = useState(() => drafts.get(draftKey) ?? null)
   const [state, action, pending] = useActionState<ReportState, FormData>(submitReport, { status: 'idle' })
+  const v = state.values ?? restored?.values ?? {}
   const [checked, setChecked] = useState<Record<string, string> | null>(null)
   // Fields fixed since the last send: their errors clear as soon as the rule passes.
   const [fixed, setFixed] = useState<string[]>([])
-  const [files, setFiles] = useState<{ name: string; size: number; type: string }[]>([])
-  const [whatLength, setWhatLength] = useState(0)
-  const [removal, setRemoval] = useState(state.values?.privacyRequest === 'on')
+  const [files, setFiles] = useState<File[]>([])
+  const [fileNews, setFileNews] = useState('')
+  const [whatLength, setWhatLength] = useState(() => (v.whatHappened ?? '').trim().length)
+  const [removal, setRemoval] = useState(v.privacyRequest === 'on')
+  const [dirty, setDirty] = useState(!!restored)
   const summaryRef = useRef<HTMLDivElement>(null)
   const doneRef = useRef<HTMLHeadingElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
-  const v = state.values ?? {}
-  const isCorrection = mode === 'correction'
+  const fileList = useRef<HTMLUListElement>(null)
+  const focusAfterRemove = useRef<number | null>(null)
   // Errors found in the browser win until the next send; the server's otherwise.
   const all: Record<string, string> = checked ?? state.errors ?? {}
   const e: Record<string, string> = Object.fromEntries(Object.entries(all).filter(([k]) => !fixed.includes(k)))
-  const failed = !!checked || state.status === 'error'
+  const errorKeys = Object.keys(e)
+  // A problem that is not about a field (the spam check, the rate limit) stays until the next send.
+  const showSummary = errorKeys.length > 0 || (!checked && state.status === 'error' && !state.errors)
 
   const labels: Record<string, string> = {
     recordId: 'Record id',
@@ -112,6 +171,7 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
     contactEmail: 'Email',
   }
   const contactAddress = isCorrection ? SITE.emails.corrections : SITE.emails.editors
+  const mailto = `mailto:${contactAddress}?subject=${encodeURIComponent(isCorrection ? `Correction request${recordId ? ` ${recordId}` : ''}` : 'Incident report')}`
 
   useEffect(() => {
     if (state.status === 'error') {
@@ -119,30 +179,77 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
       window.turnstile?.reset()
     }
     if (state.status === 'ok') {
+      drafts.delete(draftKey)
       doneRef.current?.focus()
       document.title = `${isCorrection ? 'Request received' : 'Report received'} — ${SITE.name}`
     }
-  }, [state, isCorrection])
+  }, [state, isCorrection, draftKey])
 
   useEffect(() => {
     if (checked) summaryRef.current?.focus()
   }, [checked])
 
+  // A file input can be refilled only from script: a remembered draft's attachments come back here.
+  useEffect(() => {
+    const input = fileInput.current
+    if (!input || !restored?.files.length) return
+    input.files = toFileList(restored.files)
+    setFiles(restored.files)
+  }, [restored])
+
+  // After Remove, focus goes to the Remove button now in the same place, or to the field once the list is empty.
+  useEffect(() => {
+    const at = focusAfterRemove.current
+    if (at === null) return
+    focusAfterRemove.current = null
+    const buttons = fileList.current?.querySelectorAll<HTMLButtonElement>('.file-remove')
+    ;(buttons?.length ? buttons[Math.min(at, buttons.length - 1)] : fileInput.current)?.focus()
+  }, [files])
+
+  // Reloading, closing the tab or leaving the site would lose what was typed, so the browser asks first.
+  // Links within the site keep the draft. Chrome also fires this for a mailto link, which keeps the page open: let it through.
+  useEffect(() => {
+    if (!dirty || state.status === 'ok') return
+    let mailing = false
+    const click = (ev: globalThis.MouseEvent) => {
+      if (!(ev.target instanceof Element) || !ev.target.closest('a[href^="mailto:"]')) return
+      mailing = true
+      setTimeout(() => (mailing = false))
+    }
+    const ask = (ev: BeforeUnloadEvent) => {
+      if (mailing) return
+      ev.preventDefault()
+      ev.returnValue = true // older browsers
+    }
+    document.addEventListener('click', click, true)
+    window.addEventListener('beforeunload', ask)
+    return () => {
+      document.removeEventListener('click', click, true)
+      window.removeEventListener('beforeunload', ask)
+    }
+  }, [dirty, state.status])
+
   if (state.status === 'ok') {
+    const reference = state.reference ?? ''
     return (
       <div className="card p-6 md:p-8" role="status" data-done="">
         <span className="icon-chip icon-chip-lg" aria-hidden="true">
           <CircleCheck />
         </span>
+        {/* The page title already says it was received. */}
         <h2 ref={doneRef} tabIndex={-1} className="mt-5 text-2xl leading-tight outline-none">
-          Thank you. We received your {isCorrection ? 'correction request' : 'report'}.
+          {isCorrection ? 'Thank you for your request.' : 'Thank you for telling us.'}
         </h2>
-        <p className="mt-3 text-lg">
-          Reference: <Reference value={state.reference ?? ''} />. Note it down: if you remember something later, write to{' '}
-          <a href={`mailto:${contactAddress}?subject=${encodeURIComponent(`Reference ${state.reference ?? ''}`)}`}>{contactAddress}</a> and quote it.
-        </p>
-        <p className="mt-3">
-          <CopyButton text={state.reference ?? ''} label="Copy reference" className="btn btn-secondary btn-sm" icon={<Copy aria-hidden="true" />} />
+        <div className="report-ref mt-5">
+          <p className="kicker">Your reference</p>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Reference value={reference} />
+            <CopyButton text={reference} label="Copy reference" className="btn btn-secondary btn-sm" icon={<Copy aria-hidden="true" />} />
+          </div>
+        </div>
+        <p className="mt-4">
+          Note it down: if you remember something later, write to{' '}
+          <a href={`mailto:${contactAddress}?subject=${encodeURIComponent(`Reference ${reference}`)}`}>{contactAddress}</a> and quote it.
         </p>
         <h3 className="mt-6 text-sm font-semibold text-muted">What happens now</h3>
         <ol className="mt-2 list-decimal space-y-1.5 ps-5 text-base">
@@ -162,7 +269,11 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
         </ol>
         <p className="mt-5 text-sm text-muted">
           If someone is in danger, call 911. Sending this does not report it to the police: to report a crime, contact your local police or the FBI
-          at <a href="https://tips.fbi.gov">tips.fbi.gov</a>.
+          at{' '}
+          <a href="https://tips.fbi.gov" target="_blank" rel="noopener noreferrer">
+            tips.fbi.gov<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          .
         </p>
         <p className="mt-6 flex flex-wrap gap-3">
           <Link href="/incidents" className="btn btn-secondary">
@@ -184,17 +295,20 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
     const found: Record<string, string> = {}
     const what = String(fd.get('whatHappened') ?? '').trim()
     const removing = isCorrection && fd.get('privacyRequest') === 'on'
-    if (what.length > MAX_LENGTH.whatHappened) found.whatHappened = tooLong(what.length, MAX_LENGTH.whatHappened)
-    else if (what.length < WHAT_HAPPENED_MIN && !removing) found.whatHappened = WHAT_HAPPENED_MESSAGE[mode]
+    if (what.length > MAX_LENGTH.whatHappened) found.whatHappened = tooLong(what.length, MAX_LENGTH.whatHappened, contactAddress)
+    else if (what.length < WHAT_HAPPENED_MIN && !removing) found.whatHappened = whatHappenedMessage(mode, what.length)
     if (!isCorrection && !String(fd.get('city') ?? '').trim()) found.city = CITY_MESSAGE
     if (isCorrection && !isRecordId(String(fd.get('recordId') ?? '').trim().toUpperCase())) found.recordId = RECORD_ID_MESSAGE
     const links = linksProblem(String(fd.get('links') ?? ''))
     if (links) found.links = links
     const email = String(fd.get('contactEmail') ?? '').trim()
     if (email && !isEmail(email)) found.contactEmail = EMAIL_MESSAGE
+    // The same checks as the rows of the file list, so the field and its rows never disagree.
+    const unsupported = chosen.find((f) => !supported(f))
     const big = chosen.find((f) => f.size > UPLOAD_LIMITS.maxFileBytes)
-    const total = chosen.reduce((n, f) => n + f.size, 0)
+    const total = totalSize(chosen)
     if (chosen.length > UPLOAD_LIMITS.maxFiles) found.files = `Attach at most ${UPLOAD_LIMITS.maxFiles} files: remove ${chosen.length - UPLOAD_LIMITS.maxFiles}.`
+    else if (unsupported) found.files = `“${unsupported.name}” is not a supported type. Use JPEG, PNG, WebP, GIF or PDF.`
     else if (big) found.files = `“${big.name}” is ${size(big.size)}. Each file must be under ${LIMIT_EACH}: remove it, or attach a screenshot instead.`
     else if (total > UPLOAD_LIMITS.maxTotalBytes)
       found.files = `The files come to ${size(total)}; the limit is ${LIMIT_TOTAL} in total. Remove one, or attach smaller copies.`
@@ -218,13 +332,35 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
     startTransition(() => action(fd))
   }
 
-  // Once a highlighted field passes its rule, its error goes away while the person types.
-  function recheck(ev: FormEvent<HTMLFormElement>) {
-    const name = (ev.target as HTMLInputElement).name
+  /** Keeps the draft in memory as the person types, and drops it once the form is empty again. */
+  function remember(form: HTMLFormElement) {
+    const fd = new FormData(form)
+    const values: Record<string, string> = {}
+    for (const k of DRAFT_FIELDS) {
+      const value = fd.get(k)
+      if (typeof value === 'string') values[k] = value
+    }
+    const attached = chosenFiles(fd)
+    const filled = attached.length > 0 || Object.entries(values).some(([k, value]) => value.trim() !== '' && !(k === 'recordId' && value === recordId))
+    if (filled) drafts.set(draftKey, { values, files: attached })
+    else drafts.delete(draftKey)
+    setDirty(filled)
+  }
+
+  // After any change: a highlighted field's error goes away once it passes its rule, and the draft is kept.
+  function changed(form: HTMLFormElement, name: string) {
     const key = name === 'privacyRequest' ? 'whatHappened' : name
-    if (!all[key] || fixed.includes(key)) return
-    const fd = new FormData(ev.currentTarget)
-    if (!problems(fd, chosenFiles(fd))[key]) setFixed((f) => [...f, key])
+    if (all[key] && !fixed.includes(key)) {
+      const fd = new FormData(form)
+      if (!problems(fd, chosenFiles(fd))[key]) setFixed((f) => [...f, key])
+    }
+    remember(form)
+  }
+
+  function onInput(ev: FormEvent<HTMLFormElement>) {
+    const target = ev.target as HTMLInputElement
+    // The file field is handled once the new choice has joined the list (addFiles).
+    if (target.type !== 'file') changed(ev.currentTarget, target.name)
   }
 
   // GOV.UK's pattern: bring the field's label and hint into view, then focus the field.
@@ -236,33 +372,47 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
     field.focus({ preventScroll: true })
   }
 
-  function removeFile(index: number) {
-    const input = fileInput.current
-    if (!input?.files) return
-    const dt = new DataTransfer()
-    Array.from(input.files).forEach((f, i) => {
-      if (i !== index) dt.items.add(f)
-    })
-    input.files = dt.files
-    setFiles(Array.from(dt.files).map((f) => ({ name: f.name, size: f.size, type: f.type })))
-    input.dispatchEvent(new Event('input', { bubbles: true }))
+  // Choosing again adds to the list instead of replacing it: on phones, photos are often added one at a time.
+  function addFiles(ev: ChangeEvent<HTMLInputElement>) {
+    const input = ev.currentTarget
+    const picked = Array.from(input.files ?? [])
+    const added = picked.filter((f, i) => !files.some((c) => sameFile(c, f)) && picked.findIndex((g) => sameFile(g, f)) === i)
+    const next = [...files, ...added]
+    input.files = toFileList(next)
+    setFiles(next)
+    if (picked.length) setFileNews(`${added.length ? `Added ${added.length === 1 ? added[0]!.name : `${added.length} files`}` : 'Already in the list'}. ${tally(next)}`)
+    if (input.form) changed(input.form, 'files')
   }
 
-  const total = files.reduce((n, f) => n + f.size, 0)
+  function removeFile(index: number) {
+    const input = fileInput.current
+    const gone = files[index]
+    if (!input || !gone) return
+    const next = files.filter((_, i) => i !== index)
+    input.files = toFileList(next)
+    focusAfterRemove.current = index
+    setFiles(next)
+    setFileNews(`Removed ${gone.name}. ${tally(next)}`)
+    if (input.form) changed(input.form, 'files')
+  }
+
+  const total = totalSize(files)
   const showCount = whatLength > MAX_LENGTH.whatHappened * 0.8
+  const fieldsTitle = !!checked || errorKeys.length > 0
 
   return (
-    <form action={action} onSubmit={send} onInput={recheck} noValidate className="space-y-12" aria-describedby="report-notice">
+    <form action={action} onSubmit={send} onInput={onInput} noValidate className="report-form space-y-12" aria-describedby="report-notice">
       {siteKey ? <Script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer /> : null}
       <input type="hidden" name="mode" value={mode} />
 
-      {failed && (Object.keys(e).length || !checked) ? (
-        <div ref={summaryRef} tabIndex={-1} role="alert" className="card border-severe p-5 outline-none">
-          <p className="flex items-center gap-2 font-semibold text-severe">
-            <CircleAlert aria-hidden="true" size={18} />
-            {checked ? 'Please check the highlighted fields.' : state.message}
+      {showSummary ? (
+        <div ref={summaryRef} tabIndex={-1} role="alert" className="card border-severe p-5">
+          <p className="flex items-start gap-2 font-semibold text-severe">
+            <CircleAlert aria-hidden="true" size={18} className="mt-[0.2em] shrink-0" />
+            {fieldsTitle ? 'Please check the highlighted fields.' : state.title}
           </p>
-          {Object.keys(e).length ? (
+          {!fieldsTitle && state.detail ? <p className="mt-1.5 ps-[26px]">{linkEmails(state.detail)}</p> : null}
+          {errorKeys.length ? (
             <ul className="mt-2 list-disc space-y-1 ps-7">
               {FIELD_ORDER.filter((k) => e[k]).map((k) => (
                 <li key={k}>
@@ -273,11 +423,24 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
               ))}
             </ul>
           ) : null}
-          {v.hadFiles && !files.length && !checked ? <p className="mt-2">Your photos or documents were not kept. Please attach them again.</p> : null}
+          {v.hadFiles && !files.length && !checked ? <p className="mt-2 ps-[26px]">Your photos or documents were not kept. Please attach them again.</p> : null}
         </div>
       ) : null}
 
-      <Step n={1} title={isCorrection ? 'The correction' : 'What happened'}>
+      {siteKey ? (
+        // Without JavaScript the spam check cannot run: said first, and Send gives way to email (globals.css).
+        <noscript className="block">
+          <div className="note report-nojs">
+            <p>
+              <span className="note-label">This form needs JavaScript</span>
+              It runs the spam check before anything is sent. You can email {isCorrection ? 'the correction' : 'what happened'} to{' '}
+              <a href={mailto}>{contactAddress}</a> instead.
+            </p>
+          </div>
+        </noscript>
+      ) : null}
+
+      <Step n={1} title={isCorrection ? 'The correction' : 'In your own words'}>
         {isCorrection ? (
           <>
             <div>
@@ -322,7 +485,7 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
           <p id="whatHappened-hint" className="hint mb-2">
             {isCorrection
               ? 'Point to the sentence or field, and add a source if you have one. Asking only for removal? You can leave this blank.'
-              : 'In your own words: what was said or done, and where. A sentence or two is enough. Leave out other people’s names unless they are public officials.'}
+              : 'What was said or done, and where. A sentence or two is enough. Leave out other people’s names unless they are public officials.'}
           </p>
           <FieldError id="whatHappened-error" message={e.whatHappened} />
           <textarea
@@ -346,14 +509,12 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
 
       {!isCorrection ? (
         <Step n={2} title="When and where">
+          {/* The date's hint sits under its field, so the three labels and fields line up. */}
           <div className="grid gap-4 lg:grid-cols-3">
             <div>
               <label htmlFor="f-incidentDate" className="label">
                 Date <span className="font-normal text-muted">(optional)</span>
               </label>
-              <p id="incidentDate-hint" className="hint mb-2">
-                Your best guess is fine.
-              </p>
               <FieldError id="incidentDate-error" message={e.incidentDate} />
               <input
                 id="f-incidentDate"
@@ -365,8 +526,11 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
                 aria-invalid={invalid('incidentDate')}
                 aria-describedby={describedBy('incidentDate', 'incidentDate-hint')}
               />
+              <p id="incidentDate-hint" className="hint mt-1.5">
+                Your best guess is fine.
+              </p>
             </div>
-            <div className="lg:self-end">
+            <div>
               <label htmlFor="f-city" className="label">
                 City or town <span className="font-normal text-muted">(required)</span>
               </label>
@@ -383,7 +547,7 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
                 aria-describedby={describedBy('city')}
               />
             </div>
-            <div className="lg:self-end">
+            <div>
               <label htmlFor="f-stateFips" className="label">
                 State <span className="font-normal text-muted">(optional)</span>
               </label>
@@ -453,34 +617,23 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
           </label>
           <p id="files-hint" className="hint mb-2">
             Up to {UPLOAD_LIMITS.maxFiles} files, {LIMIT_TOTAL} in total (each under {LIMIT_EACH}): JPEG, PNG, WebP, GIF or PDF. A screenshot is
-            often smaller than the original photo.
-            <br />
-            We remove location data from photos. Files are encrypted and never published.
+            often smaller than the original photo. We remove location data from photos.
           </p>
           <FieldError id="files-error" message={e.files} />
-          <input
-            ref={fileInput}
-            id="f-files"
-            name="files"
-            type="file"
-            multiple
-            accept={ACCEPT.join(',')}
-            className="control"
-            aria-invalid={invalid('files')}
-            aria-describedby={describedBy('files', 'files-hint')}
-            onChange={(ev) => setFiles(Array.from(ev.currentTarget.files ?? []).map((f) => ({ name: f.name, size: f.size, type: f.type })))}
-          />
           {files.length ? (
-            <div className="mt-2 rounded-[var(--radius-sm)] border border-rule bg-surface px-3 py-2 text-sm">
-              <ul className="space-y-1.5">
+            <div className={`mt-2 rounded-[var(--radius-sm)] border bg-surface px-3 py-2 text-sm ${e.files ? 'border-severe' : 'border-rule'}`}>
+              <ul ref={fileList} className="space-y-1.5">
                 {files.map((f, i) => {
                   const problem = fileProblem(f, i)
                   return (
-                    <li key={`${f.name}-${i}`}>
+                    <li key={`${f.name}-${f.size}-${f.lastModified}`}>
                       <span className="flex items-center gap-2">
                         <Paperclip aria-hidden="true" size={14} className="shrink-0 text-muted" />
                         <span className="min-w-0 truncate">{f.name}</span>
-                        <span className={`tabular ms-auto shrink-0 ${problem ? 'font-semibold text-severe' : 'text-muted'}`}>{size(f.size)}</span>
+                        {/* Red only when the size is the problem. */}
+                        <span className={`tabular ms-auto shrink-0 ${f.size > UPLOAD_LIMITS.maxFileBytes ? 'font-semibold text-severe' : 'text-muted'}`}>
+                          {size(f.size)}
+                        </span>
                         <button type="button" className="file-remove" onClick={() => removeFile(i)} aria-label={`Remove ${f.name}`}>
                           <X aria-hidden="true" size={14} />
                         </button>
@@ -496,6 +649,28 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
               </p>
             </div>
           ) : null}
+          <input
+            ref={fileInput}
+            id="f-files"
+            name="files"
+            type="file"
+            multiple
+            accept={ACCEPT.join(',')}
+            // Once files are listed, the native field gives way to "Add more files" below the list; it stays in the tab order.
+            className={files.length ? 'file-input sr-only' : 'control'}
+            aria-invalid={invalid('files')}
+            aria-describedby={describedBy('files', 'files-hint')}
+            onChange={addFiles}
+          />
+          {files.length ? (
+            <label htmlFor="f-files" className="file-add btn btn-secondary btn-sm mt-3">
+              <Plus aria-hidden="true" />
+              Add more files
+            </label>
+          ) : null}
+          <p aria-live="polite" className="sr-only">
+            {fileNews}
+          </p>
         </div>
       </Step>
 
@@ -516,10 +691,8 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
 
         <fieldset className="card space-y-4 p-5">
           <legend className="float-left mb-1 w-full p-0 text-base font-semibold">Contact details</legend>
-          <p className="hint clear-both">
-            Only if you want an editor to {isCorrection ? `reply (within ${SLA.correctionResponseHours} hours)` : 'follow up'}. Never published,
-            encrypted, and deleted {SLA.submitterDataRetentionMonths} months after the matter is resolved.
-          </p>
+          {/* The notice above says how they are protected; the rail says when an editor replies. */}
+          <p className="hint clear-both">{isCorrection ? 'Only if you want a reply.' : 'Only if you want an editor to follow up.'}</p>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label htmlFor="f-contactEmail" className="label">
@@ -533,7 +706,7 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
                 maxLength={MAX_LENGTH.contactEmail}
                 defaultValue={v.contactEmail}
                 autoComplete="email"
-                className="control sm:max-w-md"
+                className="control"
                 aria-invalid={invalid('contactEmail')}
                 aria-describedby={describedBy('contactEmail')}
               />
@@ -568,7 +741,9 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
           </div>
           <label className="choice">
             <input type="checkbox" name="keepConsent" defaultChecked={v.keepConsent === 'on'} />
-            <span>You may keep my contact details after the {SLA.submitterDataRetentionMonths} months, so editors can reach me about later developments.</span>
+            <span>
+              You may keep my contact details after the usual {SLA.submitterDataRetentionMonths} months, so editors can reach me about later developments.
+            </span>
           </label>
         </fieldset>
       </Step>
@@ -584,20 +759,22 @@ export function ReportForm({ mode, recordId, siteKey, today }: { mode: 'report' 
       <div className="border-t border-rule pt-8">
         {siteKey ? (
           <noscript>
-            <p className="note mb-5">
-              This form needs JavaScript for its spam check. Without it, email what happened to{' '}
-              <a href={`mailto:${contactAddress}`}>{contactAddress}</a>.
-            </p>
+            <a href={mailto} className="btn btn-lg w-full sm:w-auto">
+              <Mail aria-hidden="true" />
+              Email the editors
+            </a>
           </noscript>
         ) : null}
-        <button type="submit" className="btn btn-lg w-full sm:w-auto" disabled={pending}>
-          {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <SendHorizontal aria-hidden="true" className="nudge" />}
-          {pending ? 'Sending…' : isCorrection ? 'Send correction request' : 'Send report'}
-        </button>
-        <span aria-live="polite" className="sr-only">
-          {pending ? 'Sending…' : ''}
-        </span>
-        <p className="hint mt-3">You’ll get a reference number on the next screen.</p>
+        <div className="report-send">
+          <button type="submit" className="btn btn-lg w-full sm:w-auto" disabled={pending}>
+            {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : <SendHorizontal aria-hidden="true" className="nudge" />}
+            {pending ? 'Sending…' : isCorrection ? 'Send correction request' : 'Send report'}
+          </button>
+          <span aria-live="polite" className="sr-only">
+            {pending ? 'Sending…' : ''}
+          </span>
+          <p className="hint mt-3">You’ll get a reference number on the next screen.</p>
+        </div>
       </div>
     </form>
   )

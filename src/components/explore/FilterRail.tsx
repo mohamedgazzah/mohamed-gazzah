@@ -15,7 +15,7 @@ import {
   YES_NO_UNKNOWN,
   YES_NO_UNKNOWN_META,
 } from '@/db/enums'
-import type { Filters, ViewState } from '@/lib/filters'
+import { explorePath, type Filters, type ViewState } from '@/lib/filters'
 import { US_STATES, stateByCode } from '@/lib/states'
 
 function Group({ legend, open, children }: { legend: string; open: boolean; children: ReactNode }) {
@@ -39,7 +39,8 @@ function Checks<T extends string | number>({ name, values, checked, label }: { n
           <li key={String(v)}>
             <label htmlFor={id} className="flex min-h-9 cursor-pointer items-start gap-2.5 py-1 text-base hover:text-accent">
               <input id={id} type="checkbox" name={name} value={String(v)} defaultChecked={checked.includes(v)} className="mt-[3px] h-4 w-4 shrink-0" />
-              <span>{label(v)}</span>
+              {/* Plain wrapping: "pretty" left "V2 —" alone on the first line. */}
+              <span className="text-wrap">{label(v)}</span>
             </label>
           </li>
         )
@@ -55,7 +56,7 @@ function Checks<T extends string | number>({ name, values, checked, label }: { n
 export function FilterRail({ filters, view }: { filters: Filters; view: ViewState }) {
   const extraStates = filters.state.slice(1)
   return (
-    <form method="get" action="/incidents" aria-label="Filter incidents" className="filter-card card flex flex-col md:max-h-[calc(100dvh-7rem)]">
+    <form method="get" action="/incidents" aria-label="Filter incidents" className="filter-card card flex flex-col lg:max-h-[calc(100dvh-7rem)]">
       {view.sort !== 'newest' ? <input type="hidden" name="sort" value={view.sort} /> : null}
       {view.view !== 'table' ? <input type="hidden" name="view" value={view.view} /> : null}
       {/* Dates and types are set in the bar above the map; keep them when applying these. */}
@@ -64,8 +65,8 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
       {filters.type.length ? <input type="hidden" name="type" value={filters.type.join(',')} /> : null}
       {filters.q ? <input type="hidden" name="q" value={filters.q} /> : null}
 
-      <p className="px-4 pt-4 text-base font-semibold md:px-5">More filters</p>
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5">
+      <p className="kicker px-4 pt-4 pb-2 md:px-5">More filters</p>
+      <div className="filter-scroll min-h-0 flex-1 overflow-y-auto px-4 md:px-5">
 
       <Group legend="State and city" open={!!(filters.state.length || filters.city)}>
         <label htmlFor="f-state" className="label">
@@ -136,8 +137,9 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
         <button type="submit" className="btn btn-sm">
           Apply filters
         </button>
-        <Link href="/incidents" className="btn btn-secondary btn-sm">
-          Clear all
+        {/* Resets only what is set here: search, dates and types belong to the bar above the map. */}
+        <Link href={explorePath({ q: filters.q, from: filters.from, to: filters.to, type: filters.type }, { sort: view.sort, view: view.view })} className="btn btn-secondary btn-sm">
+          Reset<span className="sr-only"> these filters</span>
         </Link>
       </div>
     </form>

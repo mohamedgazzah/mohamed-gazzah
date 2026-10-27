@@ -341,7 +341,8 @@
   }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .glass::after,
-    .glass-strong::after {
+    .glass-strong::after,
+    .site-header .site-nav::after {
       background: var(--surface);
     }
   }
@@ -576,6 +577,17 @@
     color: var(--on-accent);
     border-radius: 4px;
   }
+  /* Focus on a date field's calendar button matches only :focus-within, and Chrome draws a thin box: ring both. */
+  input[type='date'].control:focus-within:not(:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+    border-color: var(--accent);
+  }
+  input[type='date'].control:focus-within:not(:focus-visible)::-webkit-calendar-picker-indicator {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
   /* A file field that looks like a drop zone, with a real button. */
   input[type='file'].control {
     min-height: 64px;
@@ -591,6 +603,7 @@
   }
   input[type='file'].control[aria-invalid='true']:hover {
     border-color: var(--status-severe);
+    background: var(--surface);
   }
   input[type='file'].control::file-selector-button {
     margin-inline-end: 0.75rem;
@@ -756,6 +769,16 @@
   form:has(input[name='privacyRequest']:checked) .when-optional {
     display: inline;
   }
+  /* Report form without JavaScript: its spam check cannot run, so Send gives way to an email button. */
+  .report-form:has(noscript .report-nojs) .report-send {
+    display: none;
+  }
+  /* The report's numbered steps: a firm tint with a hairline ring, so the disk holds on the page and on glass. */
+  .step-disk {
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
+    color: var(--accent);
+  }
   .file-remove {
     display: inline-grid;
     place-items: center;
@@ -769,6 +792,11 @@
   .file-remove:hover {
     background: var(--row-hover);
     color: var(--text);
+  }
+  /* Once files are listed, the native field is visually hidden; its focus shows on "Add more files". */
+  .file-input:focus-visible + .file-add {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 3px;
   }
   .hint {
     color: var(--text-muted);
@@ -987,6 +1015,8 @@
     border-radius: 999px;
     font-size: var(--step-0);
     font-weight: 500;
+    /* A label never breaks inside its segment; short labels keep narrow screens to one row. */
+    white-space: nowrap;
     color: var(--text);
     text-decoration: none;
     transition: background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
@@ -1064,11 +1094,51 @@
   .filter-group[open] > summary::after {
     transform: translateY(2px) rotate(-135deg);
   }
+  .filter-group > summary:hover {
+    color: var(--accent);
+  }
+  .filter-group > summary:hover::after {
+    border-color: var(--accent);
+  }
+  /* Inside the scroll box, so the ring is not cut off at its top edge. */
+  .filter-group > summary:focus-visible {
+    outline-offset: -2px;
+    border-radius: var(--radius-xs);
+  }
   .filter-group > fieldset {
     padding-bottom: 1rem;
   }
-  /* In the phone sheet the rail fills the sheet: no card inside a card. */
-  @media (max-width: 47.99rem) {
+  /*
+   * Scroll shadows: a soft edge where more groups are hidden above or below.
+   * The covers scroll with the content, so at either end its shadow is hidden.
+   */
+  .filter-scroll {
+    background:
+      linear-gradient(var(--surface) 35%, transparent) top / 100% 2.5rem no-repeat local,
+      linear-gradient(transparent, var(--surface) 65%) bottom / 100% 2.5rem no-repeat local,
+      radial-gradient(farthest-side at 50% 0, var(--rule-strong), transparent) top / 100% 0.75rem no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, var(--rule-strong), transparent) bottom / 100% 0.75rem no-repeat scroll;
+  }
+  /* Below 64rem the rail is a sheet opened from the toolbar: along the bottom on phones, a drawer at the side from 48rem. */
+  @media (max-width: 63.99rem) {
+    .filter-panel {
+      display: none;
+    }
+    .filter-panel[data-open='true'] {
+      position: fixed;
+      inset-inline: 0;
+      inset-block-end: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      max-block-size: 88dvh;
+      overflow: hidden;
+      border-start-start-radius: var(--radius-lg);
+      border-start-end-radius: var(--radius-lg);
+      background: var(--surface);
+      box-shadow: var(--shadow-lg);
+    }
+    /* The rail fills the sheet: no card inside a card, and the sheet's own title replaces "More filters". */
     .filter-panel[data-open='true'] .filter-card {
       flex: 1;
       min-height: 0;
@@ -1078,6 +1148,16 @@
     }
     .filter-panel[data-open='true'] .filter-card > p:first-of-type {
       display: none;
+    }
+  }
+  @media (min-width: 48rem) and (max-width: 63.99rem) {
+    .filter-panel[data-open='true'] {
+      inset-inline-start: auto;
+      inset-block-start: 0;
+      inline-size: min(26rem, 100vw);
+      max-block-size: none;
+      border-start-end-radius: 0;
+      border-end-start-radius: var(--radius-lg);
     }
   }
 
@@ -1155,21 +1235,31 @@
       outline: 2px solid transparent;
       outline-offset: -2px;
     }
+    /* The map keeps its fills in forced colors, so its key keeps them too, with an edge that shows. */
+    span.swatch {
+      forced-color-adjust: none;
+      border-color: CanvasText;
+    }
   }
-  /* Readers who ask for less transparency get solid surfaces instead of glass. */
-  @media (prefers-reduced-transparency: reduce) {
+  /*
+   * Readers who ask for less transparency get solid surfaces instead of glass,
+   * and so do forced colors, where a fill keeps its transparency. The header
+   * bar, its fade and the chart tip are set later in this file, so their
+   * selectors here are more specific. The fade keeps its gradient, without blur.
+   */
+  @media (prefers-reduced-transparency: reduce), (forced-colors: active) {
     .glass::after,
     .glass-strong::after,
-    .site-header .site-nav::after {
+    .site-header .site-nav::after,
+    .btn-glass,
+    div.chart-tip {
       background: var(--surface);
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
     }
-    .site-header::before {
+    header.site-header::before {
       -webkit-backdrop-filter: none;
       backdrop-filter: none;
-      animation: none;
-      opacity: 1;
     }
   }
 
@@ -1258,6 +1348,8 @@
   }
   .meta-line > *::before {
     content: '·';
+    /* Silent for screen readers: the dots only separate. Browsers without alt text keep the line above. */
+    content: '·' / '';
     position: absolute;
     inset-inline-start: 0;
     inline-size: 1rem;
@@ -1299,6 +1391,63 @@
       scroll-margin-top: 2.75rem;
     }
   }
+  /* Explore's records: the date and place in a column as narrow as they are. */
+  .records-table .records-when {
+    width: 1px;
+  }
+  /*
+   * Phones: the date and place move to a line above the title, which gets the full width. The cells
+   * become blocks (table semantics stay, as in the data dictionary) and the head keeps the date sort
+   * link. A dot joins date and place; if the place starts a new line, its dot falls outside and is clipped.
+   */
+  @media (max-width: 29.99rem) {
+    .records-table,
+    .records-table :is(thead, tbody, tr, th, td) {
+      display: block;
+    }
+    .records-table .records-when {
+      width: auto;
+    }
+    .records-table th + th {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .records-table tbody tr {
+      padding: 0.85rem 0.9rem;
+      border-bottom: 1px solid var(--rule);
+    }
+    .records-table tbody tr:last-child {
+      border-bottom: 0;
+    }
+    .records-table tbody td {
+      padding: 0;
+      border: 0;
+    }
+    .records-table td.records-when {
+      display: flex;
+      flex-wrap: wrap;
+      margin-block-end: 0.3rem;
+      overflow: hidden;
+      font-size: var(--step--1);
+    }
+    .records-table td.records-when > * {
+      position: relative;
+      margin-inline-start: -1rem;
+      padding-inline-start: 1rem;
+    }
+    .records-table td.records-when > * + *::before {
+      content: '·';
+      position: absolute;
+      inset-inline-start: 0;
+      inline-size: 1rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+  }
   /* A table that is not in a scroll box (small tables inside cards). */
   .data-table-plain thead th {
     background: transparent;
@@ -1324,6 +1473,20 @@
   @media (min-width: 48rem) {
     .map-card {
       padding: 1.5rem 1.75rem 1.25rem;
+    }
+  }
+  /* After a keyboard zoom, focus moves to the map's heading (MapFrame). It has no outline of its own, so it takes a ring. */
+  .map-card [id='map-heading']:focus-visible {
+    border-radius: 4px;
+    box-shadow:
+      0 0 0 3px var(--surface),
+      0 0 0 5px var(--focus-ring);
+  }
+  /* Forced colors drop shadows: an outline instead, over the heading's outline-none utility. */
+  @media (forced-colors: active) {
+    .map-card [id='map-heading']:focus-visible {
+      outline: 2px solid !important;
+      outline-offset: 3px;
     }
   }
   /* The shapes are <use> references to a sprite: they take these styles by inheritance. */
@@ -1406,13 +1569,14 @@
     inline-size: calc(var(--key) * var(--pin-scale, 1));
     block-size: calc(var(--key) * var(--pin-scale, 1));
   }
+  /* City labels stay 13px on screen at either pin scale, so they are no smaller on a phone. */
   .map-pin text {
     font-family: var(--typeface-sans);
-    font-size: var(--step--1);
+    font-size: calc(var(--step--1) / var(--pin-scale, 1));
     font-weight: 600;
     fill: var(--text);
     stroke: var(--surface);
-    stroke-width: 3.5px;
+    stroke-width: calc(3.5px / var(--pin-scale, 1));
     paint-order: stroke;
     stroke-linejoin: round;
     pointer-events: none;
@@ -1421,8 +1585,15 @@
     font-weight: 500;
     fill: var(--text-muted);
   }
+  /* A label moved out of a crowd of circles, with a hairline back to its own. */
+  .map-leader {
+    fill: none;
+    stroke: var(--text-muted);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
   .map-bubbles,
-  .map-pin text {
+  .map-labels {
     animation: map-in 260ms 200ms var(--ease-out) both;
   }
   @keyframes map-in {
@@ -1430,13 +1601,27 @@
       opacity: 0;
     }
   }
+  /* StateMap lays labels out twice: for phones (to 520px) and for wider maps, with four more from 760px. */
+  .map-labels-phone {
+    display: none;
+  }
   @container (max-width: 520px) {
     .state-map > * {
       --pin-scale: 0.8;
     }
-    .map-pin .map-label-rank-4,
-    .map-pin .map-label-rank-5,
-    .map-pin .map-label-rank-6 {
+    /* A zoomed state takes about its own shape on a phone (StateMap's phoneAspect); the map crops its sides. */
+    .map-frame {
+      aspect-ratio: var(--phone-aspect, auto);
+    }
+    .map-labels-phone {
+      display: inline;
+    }
+    .map-labels-wide {
+      display: none;
+    }
+  }
+  @container (width < 760px) {
+    .map-labels .map-label-band-2 {
       display: none;
     }
   }
@@ -1468,9 +1653,9 @@
     stroke: var(--text);
     stroke-width: 2.5px;
   }
-  /* A chosen city stands out: the others step back. */
+  /* A chosen city stands out: the others step back, still at 3:1 against the state. */
   .map-bubbles[data-selected] .map-bubble:not(.map-bubble-selected) {
-    fill-opacity: 0.35;
+    fill-opacity: 0.68;
   }
   .map-pin text.map-label-selected {
     font-weight: 700;
@@ -1796,9 +1981,6 @@
     .type-toggles > li:has(> .toggle[aria-current]) {
       order: -1;
     }
-    .toolbar .segmented {
-      flex-wrap: nowrap;
-    }
     .toolbar .segmented > * {
       padding-inline: 0.7rem;
     }
@@ -1806,6 +1988,16 @@
     .custom-range {
       flex-basis: 100%;
     }
+  }
+  /* Below 24rem the presets also take shorter names ("All", "12 mo"), so the four fit down to 320px. */
+  @media (max-width: 23.99rem) {
+    .toolbar .segmented > * {
+      padding-inline: 0.55rem;
+    }
+  }
+  /* A placeholder too long for a narrow field ends in an ellipsis rather than a cut letter. */
+  .toolbar-search input {
+    text-overflow: ellipsis;
   }
   .toggle {
     display: inline-flex;
@@ -1904,11 +2096,23 @@
   }
   .custom-range-form {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, …): the fields shrink with the form instead of pushing it off a phone screen. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.6rem;
+    max-inline-size: 23.5rem;
     margin-block-start: 0.5rem;
     padding: 1rem;
     border-radius: var(--radius-md);
+  }
+  .custom-range-form > label,
+  .custom-range-form input {
+    min-inline-size: 0;
+  }
+  /* Two date fields side by side need about 23rem; narrower phones stack them. */
+  @media (max-width: 27.4rem) {
+    .custom-range-form {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
   /* From 48rem it opens over the page, anchored to the button's end so it never runs off the screen. */
   @media (min-width: 48rem) {
@@ -1918,7 +2122,7 @@
       inset-block-start: calc(100% + 8px);
       inset-inline-end: 0;
       margin-block-start: 0;
-      inline-size: min(22rem, calc(100vw - 2rem));
+      inline-size: min(23.5rem, calc(100vw - 2rem));
     }
   }
   .custom-range-form .btn {
@@ -1966,7 +2170,11 @@
       inset-inline: auto 0;
     }
   }
-  /* Wide screens: one line (count, then what it covers) of a fixed height, so the table head can stick under it. */
+  /*
+   * Wide screens: one line (count, then what it covers) of a fixed height, so the table head can stick
+   * under it. The line ends in an ellipsis; the buttons never wrap or shrink. ResultsBar reports the
+   * bar's real height (--results-bar-measured) in case a font setting makes it taller.
+   */
   @media (min-width: 64rem) {
     .results-bar {
       position: sticky;
@@ -1974,14 +2182,22 @@
       flex-wrap: nowrap;
       min-block-size: var(--results-bar-h);
       padding-block: 0.45rem;
+      /* A strip of page color above the bar closes the gap under the header, where rows showed through. */
+      box-shadow: inset 0 1px 0 var(--glass-sheen), var(--shadow-md), 0 -0.5rem 0 var(--bg);
     }
     .results-heading {
       display: flex;
+      flex: 1 1 0;
       align-items: baseline;
       gap: 0.75rem;
-      font-size: var(--step-2);
       white-space: nowrap;
       overflow: hidden;
+    }
+    .results-bar > :not(.results-heading) {
+      flex: none;
+    }
+    .results-bar .btn {
+      white-space: nowrap;
     }
     .results-scope {
       overflow: hidden;
@@ -1989,11 +2205,16 @@
     }
     /* Anchors and focused controls land below the bar too. */
     html:has(.results-bar) {
-      scroll-padding-top: calc(var(--sticky-top) + var(--results-bar-h) + 1rem);
+      scroll-padding-top: calc(var(--sticky-top) + var(--results-bar-measured, var(--results-bar-h)) + 1rem);
     }
     .results-bar ~ * .sticky-head .data-table thead th {
-      top: calc(var(--sticky-top) + var(--results-bar-h) + 0.25rem);
+      top: calc(var(--sticky-top) + var(--results-bar-measured, var(--results-bar-h)) + 0.25rem);
     }
+  }
+  /* The chosen city in the sentence form of the list: bold, with a solid underline. */
+  main .list-sentence a[aria-current] {
+    font-weight: 600;
+    text-decoration-color: currentColor;
   }
   /* The empty result: icon beside the text on wide screens, above it on phones. */
   .empty-result {
@@ -2136,9 +2357,12 @@
     text-decoration: none;
     transition: background-color 160ms ease;
   }
-  .nav-link:hover {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
-    text-decoration: none;
+  /* Hover only where there is a pointer: on a touch screen it would stay after the tap. */
+  @media (hover: hover) {
+    .nav-link:hover {
+      background: color-mix(in srgb, var(--text) 7%, transparent);
+      text-decoration: none;
+    }
   }
   .nav-link[aria-current] {
     color: var(--accent);
@@ -2146,16 +2370,29 @@
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
     font-weight: 600;
   }
+  /* The phone menu is a disclosure, so it opens without JavaScript; its toggle shows a close icon while open. */
+  .site-menu > summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  .site-menu > summary::-webkit-details-marker {
+    display: none;
+  }
+  .site-menu:not([open]) .site-menu-close,
+  .site-menu[open] .site-menu-open {
+    display: none;
+  }
+  /* Positioned from inside the bar's 1px border, so -1px puts it on the bar's outer edges. */
   .menu-sheet {
     position: absolute;
-    inset-inline: 0;
-    inset-block-start: calc(100% + 0.5rem);
+    inset-inline: -1px;
+    inset-block-start: calc(100% + 1px + 0.5rem);
     padding: 8px;
     border-radius: 24px;
   }
   @media (min-width: 40rem) {
     .menu-sheet {
-      inset-inline: auto 0;
+      inset-inline: auto -1px;
       inline-size: 20rem;
     }
   }
@@ -2170,8 +2407,10 @@
     font-weight: 500;
     text-decoration: none;
   }
-  .menu-sheet a:hover {
-    background: color-mix(in srgb, var(--text) 7%, transparent);
+  @media (hover: hover) {
+    .menu-sheet a:hover {
+      background: color-mix(in srgb, var(--text) 7%, transparent);
+    }
   }
   .menu-sheet a[aria-current] {
     color: var(--accent);
@@ -2618,16 +2857,140 @@
     white-space: nowrap;
   }
 
-  /* The data dictionary: the definition gets the room; coded values are listed with their meaning. */
-  .dict-values {
-    display: grid;
-    gap: 0.3rem;
+  /* A chip that is a link (a column named in a definition) looks like one: accent text, a dotted underline. */
+  a.token {
+    color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--rule));
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
   }
-  .dict-values > li {
+  a.token:hover {
+    text-decoration-style: solid;
+  }
+
+  /* Data page: live downloads, each label beside the records its file holds (under it on phones). */
+  .dl-list {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .dl-list > li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 1rem;
+  }
+  /* One width for every button, so the notes line up. */
+  .dl-list .btn {
+    flex: 0 0 20rem;
+    max-inline-size: 100%;
+  }
+  .dl-list .meta-line {
+    flex: 1 1 14rem;
+  }
+  @media (max-width: 39.99rem) {
+    .dl-list .btn {
+      flex-basis: 100%;
+    }
+  }
+  /* Download icons ease toward the file on hover; the page's toggles (checksums, field index) answer like links. */
+  .data-page .nudge-down {
+    transition: transform 240ms var(--ease-out);
+  }
+  .data-page details > summary:hover {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .data-page details > summary:is(:hover, :focus-visible) .nudge-down {
+    transform: translateY(2px);
+  }
+  /* A button that needs JavaScript (Copy) is hidden without it. */
+  @media (scripting: none) {
+    .needs-script {
+      display: none;
+    }
+  }
+
+  /*
+   * The data dictionary. The field name is each row's handle. Values are chips;
+   * a value whose label says more than its code carries the label in its chip,
+   * and codes that all need a meaning (HOM, V1, 1–5) are a two-column list.
+   */
+  .dict-name {
+    font-size: var(--step-0);
+    font-weight: 600;
+  }
+  .dict-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .dict-chips > li {
+    display: flex;
+  }
+  /* A label followed by its chips, wrapping as one run: "Each entry has: n outlet …". */
+  .dict-inline {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 0.15rem 0.5rem;
+    gap: 0.35rem;
+    color: var(--text-muted);
+  }
+  .dict-inline + .dict-inline {
+    margin-block-start: 0.6rem;
+  }
+  .dict-pair {
+    display: inline-flex;
+    flex-wrap: wrap;
+    max-inline-size: 100%;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .dict-pair > .token {
+    border: 0;
+    border-radius: 0;
+  }
+  .dict-pair > span {
+    padding: 0.05em 0.5em;
+    font-size: var(--step--1);
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  /* A long meaning wraps under itself, never under the next code. */
+  .dict-codes {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: baseline;
+    gap: 0.3rem 0.6rem;
+  }
+  .dict-codes dd {
+    color: var(--text-muted);
+  }
+  /* "Jump to a field": every column name as a plain link in the code font, each a 24 px target. */
+  .dict-index ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+    margin-block-start: 0.4rem;
+  }
+  .dict-index a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 1.5rem;
+    min-inline-size: 1.5rem;
+    font-family: var(--typeface-mono);
+    font-size: var(--step--1);
+    color: var(--accent);
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  .dict-index a:hover {
+    text-decoration-style: solid;
   }
   @media (min-width: 64rem) {
     .dict {
@@ -2639,9 +3002,12 @@
     .dict thead th:nth-child(2) {
       inline-size: 46%;
     }
+    .dict tbody :is(th, td) {
+      padding-block: 0.7rem;
+    }
   }
-  /* Release history: on phones each release is a card. */
-  @media (max-width: 39.99rem) {
+  /* Release history: below 48rem each release is a card. */
+  @media (max-width: 47.99rem) {
     .history-scroll {
       overflow: visible;
     }
@@ -2672,8 +3038,12 @@
       text-align: start;
     }
   }
-  /* The data dictionary: below 48rem each field is a stacked card, so nothing scrolls sideways. */
-  @media (max-width: 47.99rem) {
+  /*
+   * The data dictionary on screens under 64rem: each field is a card, so the
+   * definition never gets the narrowest column and nothing scrolls sideways.
+   * Print keeps the table (see @media print).
+   */
+  @media screen and (max-width: 63.99rem) {
     .dict-scroll {
       overflow: visible;
     }
@@ -2690,8 +3060,8 @@
     }
     .dict tbody tr {
       display: grid;
-      gap: 0.35rem;
-      padding: 0.95rem 1rem;
+      gap: 0.4rem;
+      padding: 0.8rem 1rem;
       border-block-end: 1px solid var(--rule);
     }
     .dict :is(th, td) {
@@ -2707,12 +3077,41 @@
       border-block-end: 0;
     }
   }
+  /* On phones the type sits beside the field name when it fits. */
+  @media screen and (max-width: 47.99rem) {
+    .dict tbody th {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 0.75rem;
+    }
+  }
+  /* On tablets a card keeps two columns: the field name, then its definition over its values. */
+  @media screen and (min-width: 48rem) and (max-width: 63.99rem) {
+    .dict tbody tr {
+      grid-template-columns: 13rem minmax(0, 1fr);
+      grid-template-areas: 'field def' 'field allowed';
+      gap: 0 1.5rem;
+      padding: 1rem 1.25rem;
+    }
+    .dict tbody th {
+      grid-area: field;
+    }
+    .dict .dict-def {
+      grid-area: def;
+    }
+    .dict .dict-allowed {
+      grid-area: allowed;
+      margin-block-start: 0.6rem;
+    }
+  }
 
-  /* A download as one big target. */
+  /* A download as one big target. Tiles side by side are the same height. */
   .dl-tile {
     display: flex;
     align-items: center;
     gap: 1rem;
+    block-size: 100%;
     min-block-size: 5.25rem;
     padding: 1.05rem 1.2rem;
     border: 1px solid var(--rule);
@@ -2724,6 +3123,12 @@
   }
   .dl-tile:hover {
     text-decoration: none;
+  }
+  /* On the narrowest phones the label needs the file icon's room. */
+  @media (max-width: 23.99rem) {
+    .dl-tile > .icon-chip {
+      display: none;
+    }
   }
 
   /* A source number in text: a small pill that fills on hover. */
@@ -2963,6 +3368,15 @@
   main:has([data-done]) .when-done {
     display: inline;
   }
+  /* The confirmation's reference: a stub to note down, with Copy beside it. */
+  .report-ref {
+    inline-size: fit-content;
+    max-inline-size: 100%;
+    padding: 0.85rem 1.1rem 1rem;
+    border: 1px dashed color-mix(in srgb, var(--text) 28%, var(--surface));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--text) 3%, var(--surface));
+  }
 
   /* The printable report on screen: the light sheet it prints on, at the width of the paper. */
   .print-report {
@@ -2978,6 +3392,27 @@
     background: var(--surface);
     box-shadow: var(--shadow-md);
   }
+  .print-totals {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  /* A sheet of paper has no sticky table heads. */
+  .print-totals .data-table thead th {
+    position: static;
+  }
+  /* Many places: one table in two columns; a row never splits between them. */
+  .print-places-columns {
+    columns: 2 10rem;
+    column-gap: 1.5rem;
+  }
+  .print-places-columns tr {
+    break-inside: avoid;
+  }
+  /* The records table fits the sheet, as it does the paper: the incident column has no minimum and the cells are tighter. */
+  .print-sheet .table-scroll .data-table :is(th, td) {
+    padding-inline: 0.65rem;
+  }
   @media (min-width: 48rem) {
     .print-sheet {
       padding: 2.5rem 2.75rem;
@@ -2987,6 +3422,18 @@
       grid-template-columns: 1.4fr 1fr;
       gap: 1.5rem;
       align-items: start;
+    }
+    .print-report .print-summary > .print-totals {
+      margin-top: 0;
+    }
+    /* Many places: the map takes the full width, and the places share the row under it with the types. */
+    .print-report .print-summary-wide {
+      display: block;
+    }
+    .print-report .print-summary-wide > .print-totals {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      align-items: start;
+      margin-top: 2rem;
     }
   }
   /* A quiet strip under the method cards: a comparison, not another card. */
@@ -3077,6 +3524,10 @@
 }
 .band :focus-visible {
   outline-color: var(--band-accent);
+}
+/* Footer links take the same rounded focus ring as every other control. */
+.band a:not(.btn) {
+  border-radius: 999px;
 }
 .band .segmented {
   background: color-mix(in srgb, var(--band-text) 7%, var(--band-bg));
@@ -3344,5 +3795,52 @@
   }
   .table-scroll {
     overflow: visible;
+  }
+  /*
+   * The Data page on paper: the dictionary as a compact fixed table (no field
+   * index, which only links), and the release history kept whole.
+   */
+  .dict-index {
+    display: none !important;
+  }
+  .dict {
+    table-layout: fixed;
+    font-size: 9pt;
+  }
+  .dict thead th:nth-child(1) {
+    inline-size: 11rem;
+  }
+  .dict thead th:nth-child(2) {
+    inline-size: 46%;
+  }
+  .dict tbody :is(th, td) {
+    padding: 0.45rem 0.6rem;
+  }
+  .dict :is(.token, .code-id, .dict-pair > span) {
+    font-size: 8pt;
+  }
+  .dict .dict-name {
+    font-size: 9pt;
+  }
+  .history-scroll {
+    break-inside: avoid;
+  }
+  /*
+   * Buttons are hidden on paper, but a live file's name stays as plain text so
+   * the note on what it holds still has a subject. The history drops its file column.
+   */
+  .dl-list .btn {
+    display: inline !important;
+    flex-basis: auto;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--text);
+  }
+  .dl-list .btn svg,
+  .history :is(th, td):last-child {
+    display: none;
   }
 }

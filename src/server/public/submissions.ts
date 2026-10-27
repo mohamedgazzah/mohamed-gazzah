@@ -19,12 +19,12 @@ import {
   MAX_LENGTH,
   MAX_LINKS,
   RECORD_ID_MESSAGE,
-  WHAT_HAPPENED_MESSAGE,
   WHAT_HAPPENED_MIN,
   isEmail,
   isLink,
   splitLinks,
   tooLong,
+  whatHappenedMessage,
 } from '@/lib/report-rules'
 import { isRecordId } from '@/lib/slug'
 import { putObject } from '../shared/storage'
@@ -39,7 +39,7 @@ const optional = (max: number) =>
     .transform((v) => (v ? v : null))
 
 /** Shared with the form, which runs the same check before sending so attachments are not lost. */
-export { WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN } from '@/lib/report-rules'
+export { WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN, whatHappenedMessage } from '@/lib/report-rules'
 
 export const reportFields = z
   .object({
@@ -74,7 +74,7 @@ export const reportFields = z
   .superRefine((d, ctx) => {
     // A removal request needs no explanation ("Please remove my details" is enough).
     if (d.whatHappened.length < WHAT_HAPPENED_MIN && !(d.mode === 'correction' && d.privacyRequest)) {
-      ctx.addIssue({ code: 'custom', path: ['whatHappened'], message: WHAT_HAPPENED_MESSAGE[d.mode] })
+      ctx.addIssue({ code: 'custom', path: ['whatHappened'], message: whatHappenedMessage(d.mode, d.whatHappened.length) })
     }
     if (d.mode === 'report' && !d.city) ctx.addIssue({ code: 'custom', path: ['city'], message: CITY_MESSAGE })
     if (d.mode === 'correction' && !(d.recordId && isRecordId(d.recordId.toUpperCase()))) {
@@ -93,10 +93,10 @@ export async function prepareFiles(files: IncomingFile[]): Promise<PreparedFile[
   const real = files.filter((f) => f.bytes.length > 0)
   if (real.length > UPLOAD_LIMITS.maxFiles) throw new SubmissionError(`Attach at most ${UPLOAD_LIMITS.maxFiles} files.`)
   const total = real.reduce((n, f) => n + f.bytes.length, 0)
-  if (total > UPLOAD_LIMITS.maxTotalBytes) throw new SubmissionError('Files are too large together. The limit is 3.5 MB in total.')
+  if (total > UPLOAD_LIMITS.maxTotalBytes) throw new SubmissionError('The files are too large together: the limit is 3.5 MB in total. Remove one, or attach smaller copies.')
   const out: PreparedFile[] = []
   for (const f of real) {
-    if (f.bytes.length > UPLOAD_LIMITS.maxFileBytes) throw new SubmissionError(`“${f.name}” is larger than 3 MB.`)
+    if (f.bytes.length > UPLOAD_LIMITS.maxFileBytes) throw new SubmissionError(`“${f.name}” is larger than 3 MB. Remove it, or attach a screenshot instead.`)
     const type = sniffType(f.bytes)
     if (!type) throw new SubmissionError(`“${f.name}” is not a supported file. Use JPEG, PNG, WebP, GIF or PDF.`)
     if (type === 'application/pdf') {
@@ -105,7 +105,7 @@ export async function prepareFiles(files: IncomingFile[]): Promise<PreparedFile[
       try {
         out.push({ bytes: await stripImageMetadata(f.bytes, type), type, stripped: true, name: f.name })
       } catch {
-        throw new SubmissionError(`“${f.name}” could not be read as an image.`)
+        throw new SubmissionError(`“${f.name}” could not be read as an image. Remove it, or attach a screenshot instead.`)
       }
     }
   }

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { legalLabel, verificationLabel } from '@/components/Badges'
 import { PrintButton } from '@/components/PrintButton'
 import { StateMap } from '@/components/charts/StateMap'
-import { INCIDENT_TYPES, INCIDENT_TYPE_META } from '@/db/enums'
+import { INCIDENT_TYPES, INCIDENT_TYPE_META, type IncidentType } from '@/db/enums'
 import { chips, describeDates, explorePath, parseFilters, parseViewState, serializeFilters } from '@/lib/filters'
 import { formatDate, formatDateRange, formatNumber, formatPlace, plural, todayIso } from '@/lib/format'
 import { SITE, absoluteUrl } from '@/lib/site'
@@ -21,6 +21,29 @@ export const metadata: Metadata = {
 
 /** Rows a printed report lists before pointing to the CSV. */
 const MAX_ROWS = 2000
+/** More places than this, and the map takes the full width with the places in two columns under it. */
+const SIDE_BY_SIDE_PLACES = 12
+
+/** What the headline calls a record of each type: "1 verified threat", "No verified homicides". */
+const TYPE_NOUNS: Record<IncidentType, string> = {
+  HOM: 'homicide',
+  ASLT: 'physical assault',
+  THRT: 'threat',
+  HARS: 'harassment incident',
+  VAND: 'vandalism incident',
+  ARSN: 'arson or explosive incident',
+  DESC: 'desecration',
+  MASS: 'mass-casualty attack',
+  PLOT: 'disrupted plot',
+  OFCL: 'official misconduct incident',
+  SCHL: 'school or campus bullying incident',
+  EMPL: 'workplace incident',
+}
+
+/** "a", "a or b", "a, b or c" (and the same with "and"). */
+function list(words: string[], joiner: 'or' | 'and'): string {
+  return words.length <= 2 ? words.join(` ${joiner} `) : `${words.slice(0, -1).join(', ')} ${joiner} ${words.at(-1)}`
+}
 
 /**
  * The current Explore filters as a report to print or save as PDF: the map,
@@ -41,12 +64,49 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
     focusCode ? countsByCity({ ...filters, city: null }) : null,
   ])
   const includesV1 = filters.v.includes('V1')
-  const noun = includesV1 ? 'incident' : 'verified incident'
   const focusName = focusCode ? (stateByCode(focusCode)?.name ?? focusCode) : null
   const active = chips(filters)
   const states = Object.entries(byState).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   const types = INCIDENT_TYPES.filter((t) => byType[t] > 0).sort((a, b) => byType[b] - byType[a])
   const exploreUrl = absoluteUrl(explorePath(filters, vs))
+  const places = focusName
+    ? (focusData?.cities ?? []).map((c) => ({ key: c.city, name: c.city, n: c.count }))
+    : states.map(([code, n]) => ({ key: code, name: stateByCode(code)?.name ?? code, n }))
+  const wide = places.length > SIDE_BY_SIDE_PLACES
+
+  // The headline says what was counted, so read or copied on its own it never overstates the record:
+  // "1 verified threat matching “mosque” in 1 state, all dates".
+  const one = result.total === 1
+  const things = filters.type.length ? list(filters.type.map((t) => `${TYPE_NOUNS[t]}${one ? '' : 's'}`), 'or') : one ? 'incident' : 'incidents'
+  const counted = `${result.total ? formatNumber(result.total) : 'No'} ${includesV1 ? '' : 'verified '}${things}`
+  const where = focusName
+    ? `${filters.city ? `${filters.city}, ` : ''}${focusName}`
+    : result.total
+      ? plural(states.length, 'state')
+      : filters.state.length > 3
+        ? `${filters.state.length} chosen states`
+        : filters.state.length
+          ? list(filters.state.map((s) => stateByCode(s)?.name ?? s), 'or')
+          : null
+  // Filters the sentence cannot name in a word: it says the count is narrowed by them, and the list below gives their values.
+  const others = Object.entries({
+    target: filters.target.length,
+    severity: filters.severity.length,
+    'verification level': filters.v.length < (includesV1 ? 3 : 2),
+    'legal status': filters.status.length,
+    perpetrator: filters.perp.length,
+    'source type': filters.source.length,
+    'hate-crime charge': filters.hc.length,
+  })
+    .filter(([, on]) => on)
+    .map(([word]) => word)
+  const title = [
+    counted,
+    filters.q ? ` matching “${filters.q}”` : '',
+    where ? ` in ${where}` : '',
+    `, ${describeDates(filters, today)}`,
+    others.length ? `, filtered by ${list(others, 'and')}` : '',
+  ].join('')
 
   return (
     <main className="wrap print-report pt-8 pb-12">
@@ -63,11 +123,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
       <div className="paper print-sheet">
       <header className="border-b border-rule pb-5">
         <p className="kicker">{SITE.fullName} · Report</p>
-        <h1 className="mt-2 text-2xl leading-tight">
-          {result.total ? plural(result.total, noun) : `No ${noun}s`}
-          {focusName ? ` in ${filters.city ? `${filters.city}, ` : ''}${focusName}` : result.total ? ` in ${plural(states.length, 'state')}` : ''},{' '}
-          {describeDates(filters, today)}
-        </h1>
+        <h1 className="mt-2 text-2xl leading-tight">{title}</h1>
         <p className="mono mt-3 text-muted">
           Printed {formatDate(today)} from {exploreUrl}
         </p>
@@ -81,7 +137,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
         <p className="mt-6 text-lg">No published records match these filters as of {formatDate(today)}.</p>
       ) : (
       <>
-      <div className="print-summary mt-6">
+      <div className={`print-summary mt-6 ${wide ? 'print-summary-wide' : ''}`}>
       <section aria-labelledby="print-map" className="break-inside-avoid">
         <h2 id="print-map" className="mb-2 text-base font-semibold">
           {focusName ? `${focusName}, by city` : 'By state'}
@@ -104,11 +160,13 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
         />
       </section>
 
-      <div className="print-totals mt-8 grid gap-6 md:mt-0">
-        <section aria-labelledby="print-states" className="break-inside-avoid">
+      <div className="print-totals">
+        {/* A long list of places may run on to the next page (a row never splits); the map and the types stay whole. */}
+        <section aria-labelledby="print-states">
           <h2 id="print-states" className="mb-2 text-base font-semibold">
             {focusName ? 'Records by city' : 'Records by state'}
           </h2>
+          <div className={wide ? 'print-places-columns' : undefined}>
           <table className="data-table print-table">
             <thead>
               <tr>
@@ -119,21 +177,15 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
               </tr>
             </thead>
             <tbody>
-              {focusName
-                ? (focusData?.cities ?? []).map((c) => (
-                    <tr key={c.city}>
-                      <td>{c.city}</td>
-                      <td className="num">{formatNumber(c.count)}</td>
-                    </tr>
-                  ))
-                : states.map(([code, n]) => (
-                    <tr key={code}>
-                      <td>{stateByCode(code)?.name ?? code}</td>
-                      <td className="num">{formatNumber(n)}</td>
-                    </tr>
-                  ))}
+              {places.map((p) => (
+                <tr key={p.key}>
+                  <td>{p.name}</td>
+                  <td className="num">{formatNumber(p.n)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
+          </div>
         </section>
         <section aria-labelledby="print-types" className="break-inside-avoid">
           <h2 id="print-types" className="mb-2 text-base font-semibold">
@@ -185,7 +237,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
               <tr key={r.id}>
                 <td className="whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</td>
                 <td className="whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</td>
-                <td className="min-w-60 print:min-w-0">
+                <td>
                   <Link href={incidentPath(r.id, r.slug)} className="text-text">
                     {r.title}
                   </Link>
