@@ -1100,7 +1100,11 @@
   .filter-group > summary:hover::after {
     border-color: var(--accent);
   }
-  /* Inside the scroll box, so the ring is not cut off at its top edge. */
+  /* The ring is drawn inside the row, so the scroll box does not cut it off; the row reaches into the box's side padding to clear the text. */
+  .filter-group > summary {
+    margin-inline: -0.5rem;
+    padding-inline: 0.5rem;
+  }
   .filter-group > summary:focus-visible {
     outline-offset: -2px;
     border-radius: var(--radius-xs);
@@ -1437,7 +1441,7 @@
     .records-table td.records-when > * {
       position: relative;
       margin-inline-start: -1rem;
-      padding-inline-start: 1rem;
+      padding-inline: 1rem;
     }
     .records-table td.records-when > * + *::before {
       content: '·';
@@ -3092,7 +3096,7 @@
       grid-template-columns: 13rem minmax(0, 1fr);
       grid-template-areas: 'field def' 'field allowed';
       gap: 0 1.5rem;
-      padding: 1rem 1.25rem;
+      padding: 0.8rem 1.25rem;
     }
     .dict tbody th {
       grid-area: field;
@@ -3528,6 +3532,15 @@
 /* Footer links take the same rounded focus ring as every other control. */
 .band a:not(.btn) {
   border-radius: 999px;
+}
+/* The footer's line of facts: its dots spaced like the " · " in the lines under it. */
+.band .meta-line > * {
+  margin-inline-start: -0.7rem;
+  padding-inline: 0.7rem;
+}
+.band .meta-line > *::before {
+  inline-size: 0.7rem;
+  color: var(--band-muted);
 }
 .band .segmented {
   background: color-mix(in srgb, var(--band-text) 7%, var(--band-bg));

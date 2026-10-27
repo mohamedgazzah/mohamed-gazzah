@@ -235,8 +235,9 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
           <tbody>
             {result.rows.map((r) => (
               <tr key={r.id}>
-                <td className="whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</td>
-                <td className="whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</td>
+                {/* One line on paper and on a sheet as wide as paper; a narrower sheet lets them wrap, so every column still fits. */}
+                <td className="lg:whitespace-nowrap print:whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</td>
+                <td className="lg:whitespace-nowrap print:whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</td>
                 <td>
                   <Link href={incidentPath(r.id, r.slug)} className="text-text">
                     {r.title}

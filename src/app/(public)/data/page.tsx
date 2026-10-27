@@ -185,20 +185,6 @@ function ChangeCounts({ c }: { c: { added: unknown[]; updated: unknown[]; remove
   )
 }
 
-/** A release file name that breaks only after "record-" and before its extension. */
-function FileName({ name }: { name: string }) {
-  const dot = name.lastIndexOf('.')
-  return (
-    <>
-      record-
-      <wbr />
-      {name.slice('record-'.length, dot)}
-      <wbr />
-      {name.slice(dot)}
-    </>
-  )
-}
-
 type LiveFile = { id: string; href: string; label: string; icon: ReactNode; facts: string[] }
 
 /** Live files, each with the records it holds beside its label. The first is the main download when `primary`. */
@@ -298,9 +284,8 @@ export default async function DataPage() {
                           <span>{ALL_LEVELS}</span>
                           <span>{bytes(ext === 'csv' ? latest.csvBytes : latest.jsonBytes)}</span>
                         </span>
-                        <span className="block text-xs text-muted">
-                          <FileName name={name} />
-                        </span>
+                        {/* Without break-all the name can break only after "record-", never inside ".json". */}
+                        <span className="block text-xs text-muted">{name}</span>
                       </span>
                       <Download aria-hidden="true" size={20} className="nudge-down text-accent" />
                     </a>

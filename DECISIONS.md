@@ -329,9 +329,11 @@ and components stand.
 69. **A short list reads as a sentence**: under the Explore map, three rows or fewer, or rows
     of equal value, are written out ("One record each in California, Illinois, Tennessee and
     Texas.") instead of bars of equal length. The list sits under the map at every width.
-70. **Downloads say what they hold**: "Download records" and "Totals by state" cover verified
-    records (V2 and V3), the site's counts; a third link adds single-source (V1) reports. The
-    file names say the same (`record-verified-…`, `record-all-…`, `record-results-…`).
+70. **Downloads say what they hold**: "Verified records (CSV)" and "Verified totals by state
+    (CSV)" cover verified records (V2 and V3), the site's counts, and "All records (CSV)" adds
+    single-source (V1) reports; a note beside each gives its count and levels. The file names
+    say the same (`record-verified-…`, `record-all-…`, `record-results-…` for a filtered view,
+    and `…-totals-by-state-…` for the state totals).
 71. **The report form keeps everything on any error**: it is sent by script rather than by
     the form's own action, so React does not reset it, and the link, email and length rules
     run in the browser too. A pasted `www.` address is accepted as a link. Without JavaScript

@@ -71,10 +71,11 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
         </div>
         <div className="mt-14 flex flex-wrap items-center justify-between gap-x-8 gap-y-5 border-t border-band-rule pt-6 text-sm text-muted">
           <div className="space-y-1.5">
-          <p className="tabular">
-            {lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'} · Methodology {METHODOLOGY_VERSION}
+          {/* A dot between facts, never at the end of a line (globals.css, .meta-line); links get short lines of their own. */}
+          <p className="meta-line tabular">
+            <span>{lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'}</span>
+            <span>Methodology {METHODOLOGY_VERSION}</span>
           </p>
-          {/* Short lines of their own, so a narrow screen never leaves a dot at the end of a line. */}
           <p>
             Data{' '}
             <a href={SITE.dataLicense.url} rel="license noopener">
