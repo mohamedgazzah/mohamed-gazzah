@@ -17,7 +17,7 @@ export function IncidentCard({ item, query, headingLevel = 3 }: { item: Incident
   const H = headingLevel === 2 ? 'h2' : 'h3'
   const idPrefix = `card-${item.id}`
   return (
-    <article className="grid gap-x-6 gap-y-2 p-5 md:px-6 md:py-5 lg:grid-cols-[10rem_minmax(0,1fr)]">
+    <article className="grid gap-x-6 gap-y-2 px-4 py-5 sm:px-5 md:px-6 md:py-5 lg:grid-cols-[10rem_minmax(0,1fr)]">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-sm text-muted lg:block lg:pt-1">
         <p className="tabular text-base font-semibold text-text">{formatDateRange(item.dateStart, item.dateEnd, item.datePrecision)}</p>
         <p className="inline-flex items-center gap-1 lg:mt-1">
@@ -39,7 +39,7 @@ export function IncidentCard({ item, query, headingLevel = 3 }: { item: Incident
         <p className="mt-1.5 line-clamp-2 max-w-[72ch] text-base text-muted">
           <Highlight text={firstSentence(item.summary)} query={query} />
         </p>
-        <div className="relative mt-3.5 flex flex-wrap items-center gap-2">
+        <div className="relative mt-3.5 flex flex-wrap items-center gap-1.5 sm:gap-2">
           <VerificationBadge level={item.verificationLevel} sourceTypes={item.sourceTypes} idPrefix={idPrefix} />
           <SeverityMarker severity={item.severity} idPrefix={idPrefix} />
           <LegalStatusBadges status={item.legalStatus} hateCrimeCharged={item.hateCrimeCharged} idPrefix={idPrefix} />

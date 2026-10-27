@@ -47,7 +47,11 @@ export function MonthColumns({ bars, noun = 'incident', asOf }: { bars: MonthBar
               <Link href={b.href} className="col" data-tip={`${monthName(b.month)}${b.partial ? ' (to date)' : ''}`} data-tip-value={plural(b.count, noun)}>
                 <span className={b.partial ? 'col-bar col-bar-partial' : 'col-bar'} style={{ blockSize: `${(b.count / top) * 100}%` }}>
                   {/* Every peak and the latest month carry their value; the rest are in the tooltip and the table. */}
-                  {b.count > 0 && (b.count === max || i === bars.length - 1) ? <span className="col-value tabular">{formatNumber(b.count)}</span> : null}
+                  {b.count > 0 && (b.count === max || i === bars.length - 1) ? (
+                    <span className="col-value tabular" aria-hidden="true">
+                      {formatNumber(b.count)}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="sr-only">
                   {monthName(b.month)}
@@ -66,7 +70,7 @@ export function MonthColumns({ bars, noun = 'incident', asOf }: { bars: MonthBar
       </div>
       {last?.partial && asOf ? (
         <p className="mt-2 text-xs text-muted">
-          * {MONTH_NAMES[Number(last.month.slice(5, 7)) - 1]} to date: counts run to {formatDate(asOf)}.
+          * {MONTH_NAMES[Number(last.month.slice(5, 7)) - 1]} so far, through {formatDate(asOf)}.
         </p>
       ) : null}
     </ChartTips>

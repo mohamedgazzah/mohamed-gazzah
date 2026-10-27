@@ -204,7 +204,7 @@
   --step-3: 22px;
   --step-4: 28px;
   --step-5: 40px;
-  --step-6: clamp(36px, 4.8vw, 56px);
+  --step-6: clamp(36px, 1rem + 4.2vw, 56px);
   --step-7: clamp(40px, 6vw, 76px);
   --step-8: clamp(48px, 7.4vw, 96px);
   /* Page titles and section titles: one size each on every page. */

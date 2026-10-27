@@ -97,7 +97,7 @@ const phrase = (labels: string[]) => labels.map((l, i) => (i ? l[0]!.toLowerCase
 
 function Fact({ term, children }: { term: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-1 gap-x-6 gap-y-1 border-b border-rule px-5 py-3.5 last:border-b-0 sm:grid-cols-[11.5rem_1fr]">
+    <div className="grid grid-cols-1 gap-x-6 gap-y-1 border-b border-rule px-5 py-3.5 last:border-b-0 sm:grid-cols-[11.5rem_1fr] sm:items-baseline">
       <dt className="text-xs font-semibold text-muted">{term}</dt>
       <dd className="text-base">{children}</dd>
     </div>
@@ -120,7 +120,7 @@ function TitleWithIcon({ title }: { title: string }) {
 
 function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <h2 id={id} className="section-head mb-4 text-2xl leading-tight">
+    <h2 id={id} className="section-head mb-4 text-h2">
       {children}
     </h2>
   )
@@ -135,58 +135,61 @@ function RecordStatus({ data, idPrefix, nextDate }: { data: IncidentViewData; id
   const alleged = data.legalStatus ? ALLEGATION_STATUSES.includes(data.legalStatus) : false
   const preCharge = data.legalStatus ? PRE_CHARGE.includes(data.legalStatus) : false
   const latest = [...data.legalEvents].sort((a, b) => a.date.localeCompare(b.date)).at(-1)
-  // The rule is printed under each badge, so the badges here carry no tooltip to repeat it.
+  // The rule is printed under each badge, with its link, so the badges here are plain text.
+  // The two halves sit side by side only when the panel itself is wide enough (record-status in globals.css).
   return (
-    <section aria-label="Record status" className="glass relative mt-6 grid gap-5 rounded-[var(--radius-md)] p-4 sm:grid-cols-2 sm:gap-6 md:p-5">
-      <div className="flex flex-col">
-        <p className="kicker">Verification</p>
-        <div className="mt-2">
-          {publicLevel ? (
-            <VerificationBadge level={publicLevel} sourceTypes={data.sourceTypes} idPrefix={idPrefix} tooltip={false} />
-          ) : (
-            <WarningBadge>V0 — unverified, cannot be published</WarningBadge>
-          )}
-        </div>
-        <p className="mt-2 text-sm text-muted">{VERIFICATION_META[data.verificationLevel].rule}</p>
-        <p className="mt-auto pt-2 text-sm">
-          <a href={`/methodology#verification-${data.verificationLevel.toLowerCase()}`} className="arrow-link">
-            How we verify <ArrowRight aria-hidden="true" size={14} />
-          </a>
-        </p>
-      </div>
-      <div className="flex flex-col sm:border-s sm:border-rule sm:ps-6">
-        <p className="kicker">Legal status</p>
-        <div className="mt-2">
-          {data.legalStatus ? (
-            <LegalStatusBadges status={data.legalStatus} hateCrimeCharged={data.hateCrimeCharged} idPrefix={idPrefix} alleged={false} tooltip={false} />
-          ) : (
-            <WarningBadge>Legal status not set</WarningBadge>
-          )}
-        </div>
-        <p className="mt-2 text-sm text-muted">
-          {alleged ? (
-            <>
-              <strong className="font-semibold text-text">Not convicted.</strong> Anyone accused is presumed innocent.{' '}
-            </>
-          ) : null}
-          {preCharge ? 'No charges are known. ' : null}
-          {latest ? `Latest: ${LEGAL_EVENT_META[latest.event_type].label.toLowerCase()}, ${formatDate(latest.date)}.` : null}
-          {nextDate ? (
-            <>
-              {' '}
-              <span className="whitespace-nowrap">Next court date: {formatDate(nextDate)}.</span>
-            </>
-          ) : null}
-        </p>
-        {data.legalStatus ? (
+    <div className="record-status-frame mt-6">
+      <section aria-label="Record status" className="record-status glass relative rounded-[var(--radius-md)] p-4 md:p-5">
+        <div className="flex flex-col">
+          <p className="kicker">Verification</p>
+          <div className="mt-2">
+            {publicLevel ? (
+              <VerificationBadge level={publicLevel} sourceTypes={data.sourceTypes} idPrefix={idPrefix} plain />
+            ) : (
+              <WarningBadge>V0 — unverified, cannot be published</WarningBadge>
+            )}
+          </div>
+          <p className="mt-2 text-sm text-muted">{VERIFICATION_META[data.verificationLevel].rule}</p>
           <p className="mt-auto pt-2 text-sm">
-            <a href={`/methodology#legal-${data.legalStatus}`} className="arrow-link">
-              What this status means <ArrowRight aria-hidden="true" size={14} />
+            <a href={`/methodology#verification-${data.verificationLevel.toLowerCase()}`} className="arrow-link">
+              How we verify <ArrowRight aria-hidden="true" size={14} />
             </a>
           </p>
-        ) : null}
-      </div>
-    </section>
+        </div>
+        <div className="record-status-legal flex flex-col">
+          <p className="kicker">Legal status</p>
+          <div className="mt-2">
+            {data.legalStatus ? (
+              <LegalStatusBadges status={data.legalStatus} hateCrimeCharged={data.hateCrimeCharged} idPrefix={idPrefix} alleged={false} plain />
+            ) : (
+              <WarningBadge>Legal status not set</WarningBadge>
+            )}
+          </div>
+          <p className="mt-2 text-sm text-muted">
+            {alleged ? (
+              <>
+                <strong className="font-semibold text-text">Not convicted.</strong> Anyone accused is presumed innocent.{' '}
+              </>
+            ) : null}
+            {preCharge ? 'No charges are known. ' : null}
+            {latest ? `Latest: ${LEGAL_EVENT_META[latest.event_type].label.toLowerCase()}, ${formatDate(latest.date)}.` : null}
+            {nextDate ? (
+              <>
+                {' '}
+                <span className="whitespace-nowrap">Next court date: {formatDate(nextDate)}.</span>
+              </>
+            ) : null}
+          </p>
+          {data.legalStatus ? (
+            <p className="mt-auto pt-2 text-sm">
+              <a href={`/methodology#legal-${data.legalStatus}`} className="arrow-link">
+                What this status means <ArrowRight aria-hidden="true" size={14} />
+              </a>
+            </p>
+          ) : null}
+        </div>
+      </section>
+    </div>
   )
 }
 
@@ -233,7 +236,7 @@ export function IncidentView({
             </span>
           ) : null}
         </p>
-        <h1 id={`${idPrefix}-title`} className="mt-4 text-[clamp(30px,2.2vw+18px,46px)] leading-[1.1] font-semibold tracking-[-0.02em] text-balance">
+        <h1 id={`${idPrefix}-title`} className="mt-4 text-h1 font-semibold tracking-[-0.02em] text-balance">
           {data.title || 'Untitled draft'}
         </h1>
         <RecordStatus data={data} idPrefix={idPrefix} nextDate={nextDate} />
@@ -267,7 +270,8 @@ export function IncidentView({
             ) : null}
           </Fact>
           <Fact term="Perpetrator">
-            {PERPETRATOR_TYPE_META[data.perpetratorType].label}
+            {/* "Unknown" reads as a finding; the sources simply do not say. */}
+            {data.perpetratorType === 'unknown' ? 'Not identified in sources' : PERPETRATOR_TYPE_META[data.perpetratorType].label}
             {data.perpetratorCount ? `, ${plural(data.perpetratorCount, 'person', 'people')}` : ''}
             {data.perpetratorNames.length ? (
               <span className="block">
@@ -373,7 +377,7 @@ export function IncidentView({
         {data.sources.length ? (
           <ol className="space-y-3">
             {data.sources.map((s) => (
-              <li key={s.n} id={`${idPrefix}-source-${s.n}`} className="source-card card lift relative flex gap-4 px-4 py-4 md:px-5">
+              <li key={s.n} id={`${idPrefix}-source-${s.n}`} className="source-card card lift relative px-4 py-4 md:px-5">
                 <span className="src-num tabular">{s.n}</span>
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap gap-x-2 text-sm">
@@ -393,7 +397,8 @@ export function IncidentView({
                     {SOURCE_TYPE_META[s.source_type].label}
                     {s.author ? ` · ${s.author}` : ''}
                     {s.claim_attribution ? ` · ${s.claim_attribution}` : ''}
-                    {` · accessed ${formatDate(s.accessed_date)}`}
+                    {' · '}
+                    <span className="whitespace-nowrap">accessed {formatDate(s.accessed_date)}</span>
                     {s.archived_url ? null : ' · archived copy pending'}
                   </p>
                 </div>

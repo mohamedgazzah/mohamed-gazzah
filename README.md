@@ -29,7 +29,7 @@ See [What is built](#what-is-built-phase-1) and [What remains](#what-remains).
 | Schema, migrations, types | Drizzle ORM + drizzle-kit, from one file: `src/db/schema.ts` |
 | Rules that must always hold | SQL triggers and functions: `drizzle/0002_rules.sql` |
 | Styling | Tailwind CSS 4 over the design tokens in `src/styles/tokens.css` |
-| Type | Newsreader (headlines, reading), Libre Franklin (interface), IBM Plex Mono (ids, dates); self-hosted |
+| Type and icons | Instrument Sans, one variable family for headlines, reading, interface and tables (`@fontsource-variable/instrument-sans`, self-hosted); icons from `lucide-react`, drawn on the server |
 | Map and charts | Server-drawn SVG: a state choropleth (US Census shapes via us-atlas, Albers USA) that zooms into states; no tile service |
 | Morning news scan | Google News, GDELT and CAIR feeds, read by Claude (Anthropic API, optional and paid per use) or a keyword rule |
 | Admin sign-in | Email + password, then mandatory TOTP two-factor authentication |
@@ -169,9 +169,11 @@ changed. The audit log, reviews, change log and publications are append-only.
   archiving right after each save, with scheduled retries; 12-month retention purge;
   the morning news scan, which sends possible incidents to the leads inbox and never
   publishes (DECISIONS.md, items 57–61).
-- **Design**: the Section 5 colors exactly, an editorial type system (Newsreader,
-  Libre Franklin, IBM Plex Mono), register-style lists, light and dark themes (system or manual toggle), WCAG 2.2 AA, logical CSS properties
-  for future RTL.
+- **Design**: the Section 5 colors exactly, one typeface (Instrument Sans) on one type
+  scale, "liquid glass" for the header, menus, toolbars and panels (solid when the reader
+  asks for reduced transparency), icons that respond on hover, light and dark themes
+  (system or manual toggle), WCAG 2.2 AA, logical CSS properties for future RTL. Three
+  rounds of page-by-page design critique are summarized in DECISIONS.md (items 62–73 and 74 on).
 
 ## What remains
 

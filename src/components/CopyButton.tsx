@@ -8,9 +8,10 @@ export function CopyButton({ text, label, className = 'btn btn-secondary', icon 
   const [copied, setCopied] = useState(false)
   return (
     <>
+      {/* js-only: without JavaScript there is no clipboard access, so the button is not shown at all. */}
       <button
         type="button"
-        className={className}
+        className={`${className} js-only`}
         onClick={async () => {
           try {
             await navigator.clipboard.writeText(text)

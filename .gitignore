@@ -3,8 +3,8 @@ node_modules/
 
 # next.js
 .next/
-.next-e2e/
-.next-design/
+# other build folders (tests, previews, extra dev servers: NEXT_DIST_DIR=.next-<name>)
+.next-*/
 # written by `next dev`
 AGENTS.md
 out/

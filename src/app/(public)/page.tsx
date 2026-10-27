@@ -8,9 +8,9 @@ import { VerificationMark } from '@/components/VerificationMark'
 import { BarList } from '@/components/charts/BarList'
 import { MonthColumns } from '@/components/charts/MonthColumns'
 import { StateMap } from '@/components/charts/StateMap'
-import { CHARGED_OR_LATER, INCIDENT_TYPES, INCIDENT_TYPE_META, VERIFICATION_META } from '@/db/enums'
+import { CHARGED_OR_LATER, DEFAULT_VERIFICATION_LEVELS, INCIDENT_TYPES, INCIDENT_TYPE_META, VERIFICATION_META } from '@/db/enums'
 import { EMPTY_FILTERS, explorePath, type Filters } from '@/lib/filters'
-import { addDays, formatDate, formatDateRange, formatNumber, formatTimestamp, plural, todayIso } from '@/lib/format'
+import { addDays, formatDate, formatDateRange, formatNumber, formatTimestamp, isoTimestamp, plural, todayIso } from '@/lib/format'
 import { stateByCode } from '@/lib/states'
 import { countIncidents, latestIncidents } from '@/server/public/incidents'
 import { lastUpdatedSafe } from '@/server/public/site-status'
@@ -95,6 +95,9 @@ export default async function HomePage() {
   const types = INCIDENT_TYPES.filter((t) => byType[t] > 0)
     .sort((a, b) => byType[b] - byType[a])
     .map((t) => ({ key: t, label: INCIDENT_TYPE_META[t].label, value: byType[t], href: explorePath({ type: [t] }) }))
+  // The chart's partial month runs to the last update, the same date as the hero says.
+  const updatedDay = updated ? todayIso(new Date(isoTimestamp(updated))) : null
+  const through = updatedDay && updatedDay.slice(0, 7) === asOf.slice(0, 7) ? updatedDay : asOf
   const bars = months.map((m, i) => ({
     month: m.month,
     count: m.count,
@@ -129,7 +132,7 @@ export default async function HomePage() {
       <section aria-label={`Headline numbers, ${year}`} className="wrap mt-10 md:mt-12">
         <ul className="register">
           <li>
-            <StatTile icon={<CalendarDays />} value={yearCount.incidents} label={`Incidents in ${year}`} href={explorePath(thisYear)} />
+            <StatTile icon={<CalendarDays />} value={yearCount.incidents} label={`Incidents in ${year}`} href={explorePath(thisYear)} />
           </li>
           <li>
             <StatTile
@@ -138,14 +141,18 @@ export default async function HomePage() {
               label="Incidents in the last 30 days"
               href={explorePath(last30)}
               // A zero needs its context: when the latest one was, not a blank.
-              note={month.incidents === 0 && latest[0] ? `Latest: ${formatDate(latest[0].dateStart)}` : formatDateRange(last30.from!, last30.to!, 'day')}
+              note={
+                <span className="whitespace-nowrap">
+                  {month.incidents === 0 && latest[0] ? `Latest: ${formatDate(latest[0].dateStart)}` : formatDateRange(last30.from!, last30.to!, 'day')}
+                </span>
+              }
             />
           </li>
           <li>
-            <StatTile icon={<MapPinned />} value={yearCount.states} label={`States with incidents in ${year}`} href={`${explorePath(thisYear)}#map`} />
+            <StatTile icon={<MapPinned />} value={yearCount.states} label={`States with incidents in ${year}`} href={`${explorePath(thisYear)}#map`} />
           </li>
           <li>
-            <StatTile icon={<Gavel />} value={chargedCount.incidents} label={`With charges filed in ${year}`} href={explorePath(charged)} />
+            <StatTile icon={<Gavel />} value={chargedCount.incidents} label={`Incidents with charges in ${year}`} href={explorePath(charged)} />
           </li>
         </ul>
         <p className="mt-3 text-xs text-muted">Verified incidents only. Select a number to see its records.</p>
@@ -157,7 +164,7 @@ export default async function HomePage() {
         </SectionHead>
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
           <div className="map-card">
-            <p className="sr-only">Map of the United States with each state shaded by its number of records. The states with the most are listed beside the map.</p>
+            <p className="sr-only">Map of the United States with each state shaded by its number of records. The states with the most are listed with the map.</p>
             <StateMap counts={byState} stateHref={(code) => `${explorePath({ state: [code] })}#map`} noun="record" />
           </div>
           {topStates.length ? (
@@ -170,14 +177,16 @@ export default async function HomePage() {
               {ranked.length < 10 ? (
                 <p className="mt-4 text-sm text-muted">
                   No verified records in the other {plural(quietStates, 'state')}
-                  {quietDc ? ' or D.C.' : ''}. That is not evidence that nothing happened there.
+                  {quietDc ? ' or D.C.' : '.'} That is not evidence that nothing happened there.
                 </p>
               ) : null}
-              <p className="mt-5">
-                <Link href="/incidents#map" className="arrow-link text-base">
-                  All {plural(ranked.length, 'state')} with records <ArrowRight aria-hidden="true" size={16} />
-                </Link>
-              </p>
+              {ranked.length > topStates.length ? (
+                <p className="mt-5">
+                  <Link href="/incidents#map" className="arrow-link text-base">
+                    All {plural(ranked.length, 'state')} with records <ArrowRight aria-hidden="true" size={16} />
+                  </Link>
+                </p>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -190,11 +199,11 @@ export default async function HomePage() {
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
           <figure className="panel">
             <figcaption>
-              <span className="block text-lg font-semibold">Records per month</span>
+              <h3 className="text-lg">Records per month</h3>
               <span className="block text-sm text-muted">Last 12 months</span>
             </figcaption>
             <div className="mt-4">
-              <MonthColumns bars={bars} noun="record" asOf={asOf} />
+              <MonthColumns bars={bars} noun="record" asOf={through} />
             </div>
             <p className="mt-3 text-sm text-muted">A record whose dates span two months counts in both.</p>
             <div className="mt-3">
@@ -217,7 +226,9 @@ export default async function HomePage() {
                     {bars.map((b) => (
                       <tr key={b.month}>
                         <td>
-                          {MONTH_NAMES[Number(b.month.slice(5, 7)) - 1]} {b.month.slice(0, 4)}
+                          <Link href={b.href} className="inline-block py-1">
+                            {MONTH_NAMES[Number(b.month.slice(5, 7)) - 1]} {b.month.slice(0, 4)}
+                          </Link>
                           {b.partial ? ' (to date)' : ''}
                         </td>
                         <td className="num">{formatNumber(b.count)}</td>
@@ -230,7 +241,7 @@ export default async function HomePage() {
           </figure>
           <figure className="panel">
             <figcaption>
-              <span className="block text-lg font-semibold">Records by incident type</span>
+              <h3 className="text-lg">Records by incident type</h3>
               <span className="block text-sm text-muted">Since 2020</span>
             </figcaption>
             <div className="mt-4">
@@ -246,7 +257,7 @@ export default async function HomePage() {
           <p>Newest first, by the date of the incident.</p>
           <p className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm">
             <span className="font-semibold text-text">Verification:</span>
-            {(['V3', 'V2', 'V1'] as const).map((v) => (
+            {(['V3', 'V2'] as const).filter((v) => DEFAULT_VERIFICATION_LEVELS.includes(v)).map((v) => (
               <span key={v} className="inline-flex items-center gap-1.5">
                 <span className={v === 'V3' ? 'text-confirmed' : 'text-reported'}>
                   <VerificationMark level={v} size={11} />
@@ -254,6 +265,7 @@ export default async function HomePage() {
                 {VERIFICATION_META[v].label}
               </span>
             ))}
+            <span className="text-muted">Single-source reports are left out here.</span>
           </p>
         </SectionHead>
         {latest.length ? (
@@ -273,17 +285,26 @@ export default async function HomePage() {
         <SectionHead id="method" title="How the record is kept" link={{ href: '/methodology', label: 'Read the methodology' }}>
           The rules every record follows before it appears here.
         </SectionHead>
-        <ul className="grid gap-3 md:grid-cols-3 md:gap-4">
-          {PRINCIPLES.map(({ Icon, title, text, href, link }) => (
+        <ul className="grid gap-3 lg:grid-cols-3 lg:gap-4">
+          {PRINCIPLES.map(({ Icon, title, text, href, link }, i) => (
             <li key={title}>
-              <Link href={href} className="feature lift group h-full text-text no-underline hover:no-underline">
+              <Link
+                href={href}
+                className="feature lift group h-full text-text no-underline hover:no-underline"
+                aria-describedby={`principle-${i}`}
+              >
                 <span className="icon-chip icon-chip-lg" aria-hidden="true">
                   <Icon />
                 </span>
                 <span className="text-lg font-semibold tracking-[-0.015em]">{title}</span>
-                <span className="text-base leading-relaxed text-muted">{text}</span>
-                <span className="mt-auto inline-flex items-center gap-1.5 text-base font-semibold text-accent">
-                  {link} <ArrowRight aria-hidden="true" size={16} className="nudge" />
+                <span id={`principle-${i}`} className="text-base leading-relaxed text-muted">
+                  {text}
+                </span>
+                <span className="feature-link text-base font-semibold text-accent" aria-hidden="true">
+                  {link.split(' ').slice(0, -1).join(' ')}{' '}
+                  <span className="whitespace-nowrap">
+                    {link.split(' ').at(-1)} <ArrowRight aria-hidden="true" size={16} className="nudge inline align-[-2px]" />
+                  </span>
                 </span>
               </Link>
             </li>
@@ -293,7 +314,7 @@ export default async function HomePage() {
         {/* A quiet comparison, not a fourth card: four sources, four different things counted. */}
         <div className="compare mt-4">
           <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-            <h3 className="text-lg">How this count relates to others</h3>
+            <h3 className="text-lg">What each source counts</h3>
             <Link href="/methodology#comparison" className="arrow-link text-sm">
               Why the counts differ <ArrowRight aria-hidden="true" size={16} />
             </Link>

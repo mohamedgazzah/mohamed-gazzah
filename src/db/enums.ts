@@ -257,8 +257,8 @@ export const VERIFICATION_META: Record<VerificationLevel, Meta & { rule: string 
   },
   V0: {
     label: 'Unverified submission',
-    description: 'Admin only. Never public.',
-    rule: 'Admin only. Never public.',
+    description: 'Seen only by editors; never published.',
+    rule: 'Seen only by editors; never published.',
   },
 }
 

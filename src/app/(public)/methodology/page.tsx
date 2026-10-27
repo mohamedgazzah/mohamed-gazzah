@@ -19,6 +19,7 @@ import {
   VERIFICATION_META,
   BIAS_INDICATORS,
   BIAS_INDICATOR_META,
+  type LegalStatus,
 } from '@/db/enums'
 import { PageHeader } from '@/components/PageHeader'
 import { ReadingLayout, ReadingSection } from '@/components/ReadingLayout'
@@ -46,6 +47,14 @@ const SECTIONS = [
   ['urls', 'Stable links'],
   ['versions', 'Version history'],
 ] as const
+
+/** The lifecycle in stages, matching the definitions below; side states leave it early and are not drawn. */
+const LIFECYCLE: readonly { label: string; steps: readonly LegalStatus[]; choice?: boolean }[] = [
+  { label: 'Investigation', steps: ['reported', 'under_investigation', 'suspect_identified', 'arrested'] },
+  { label: 'Charges and court', steps: ['charged', 'in_court'] },
+  { label: 'Outcome, one of', steps: ['convicted', 'acquitted', 'dismissed', 'plea_deal', 'deferred'], choice: true },
+  { label: 'After a conviction or plea agreement', steps: ['sentenced'] },
+]
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   const n = SECTIONS.findIndex(([sid]) => sid === id) + 1
@@ -90,7 +99,9 @@ export default function MethodologyPage() {
             </ul>
             <p>{INCLUSION_POLICY_NOTE}</p>
             <h3>Bias indicators</h3>
-            <p>The anti-Muslim elements a source can state are recorded as bias indicators:</p>
+            <p>
+              The <span className="whitespace-nowrap">anti-Muslim</span> elements a source can state are recorded as bias indicators:
+            </p>
             <dl className="defs">
               {BIAS_INDICATORS.map((b) => (
                 <div key={b}>
@@ -103,13 +114,14 @@ export default function MethodologyPage() {
 
           <Section id="taxonomy" title="Incident types">
             <p>Each record has one or more of these types.</p>
-            <div className="table-scroll" role="region" aria-label="Incident type taxonomy" tabIndex={0}>
+            {/* Two columns that always fit, so no scroller and no extra tab stop. */}
+            <div className="table-scroll">
               <table className="data-table data-table-static">
-                <caption className="sr-only">Incident types, their codes and examples</caption>
+                <caption className="sr-only">Incident types, their codes and what each covers</caption>
                 <thead>
                   <tr>
                     <th scope="col">Type</th>
-                    <th scope="col">Examples</th>
+                    <th scope="col">What it covers</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -134,7 +146,7 @@ export default function MethodologyPage() {
             <dl className="defs">
               {SEVERITIES.map((s) => (
                 <div key={s} id={`severity-${s}`}>
-                  <dt className="flex items-center gap-2.5">
+                  <dt className="flex items-baseline gap-2.5">
                     <span className="tabular inline-grid h-7 min-w-7 place-items-center rounded-[8px] bg-accent-tint text-sm font-semibold text-accent">{s}</span>
                     {SEVERITY_META[s].label}
                   </dt>
@@ -172,35 +184,31 @@ export default function MethodologyPage() {
           </Section>
 
           <Section id="legal" title="Legal status">
-            <p>Each record follows a lifecycle:</p>
-            {/* Each step links to its definition below; the outcomes are one step with five possible values. */}
-            <ol className="flow" aria-label="Legal lifecycle, in order">
-              {LEGAL_STATUSES.slice(0, 6).map((s) => (
-                <li key={s}>
-                  <a href={`#legal-${s}`} className="flow-pill">
-                    {LEGAL_STATUS_META[s].label}
-                  </a>
-                </li>
-              ))}
-              <li>
-                <span className="flow-group">
-                  <span className="flow-group-label">Outcome, one of:</span>
-                  {LEGAL_STATUSES.slice(6, 11).map((s, i) => (
-                    <span key={s} className="whitespace-nowrap">
-                      {i ? <span aria-hidden="true" className="flow-sep">·</span> : null}
-                      <a href={`#legal-${s}`}>{LEGAL_STATUS_META[s].label}</a>
-                    </span>
-                  ))}
-                </span>
-              </li>
-              <li>
-                <a href="#legal-sentenced" className="flow-pill">
-                  {LEGAL_STATUS_META.sentenced.label}
-                </a>
-              </li>
+            <p>Each record follows a lifecycle, stage by stage:</p>
+            {/* Each step links to its definition below. The outcomes are alternatives, and a sentence follows only a conviction or a plea. */}
+            <ol className="lifecycle" aria-label="Legal lifecycle, in order">
+              {LIFECYCLE.map((stage, i) => {
+                const List = stage.choice ? 'ul' : 'ol'
+                return (
+                  <li key={stage.label}>
+                    <p id={`lifecycle-${i}`} className="lifecycle-label">
+                      {stage.label}
+                    </p>
+                    <List className={`flow ${stage.choice ? 'flow-choice' : ''}`} aria-labelledby={`lifecycle-${i}`}>
+                      {stage.steps.map((s) => (
+                        <li key={s}>
+                          <a href={`#legal-${s}`} className="flow-pill">
+                            {LEGAL_STATUS_META[s].label}
+                          </a>
+                        </li>
+                      ))}
+                    </List>
+                  </li>
+                )
+              })}
             </ol>
             <p>
-              Some cases stop outside this line; those side states are listed below. Whether a hate-crime or bias charge was filed is recorded
+              Some cases leave this path early; they are listed below as side states. Whether a hate-crime or bias charge was filed is recorded
               separately. Every status is supported by a dated legal event with a source, shown on the record’s legal timeline.
             </p>
             {(
@@ -246,12 +254,10 @@ export default function MethodologyPage() {
             <ul className="list-disc space-y-2 ps-6">
               <li>No incident is published without at least one public, linkable source. Each claim states who made it.</li>
               <li>
-                The most authoritative source available is used for each fact, in this order:
-                <ol className="flow mt-2" aria-label="Sources, most authoritative first">
+                The most authoritative source available is used for each fact, ranked from most to least authoritative:
+                <ol className="tabular mt-2 list-decimal ps-6 sm:columns-2 sm:gap-x-12 [&>li]:break-inside-avoid" aria-label="Sources, most authoritative first">
                   {SOURCE_AUTHORITY_ORDER.map((t) => (
-                    <li key={t}>
-                      <span className="flow-pill">{SOURCE_TYPE_META[t].label}</span>
-                    </li>
+                    <li key={t}>{SOURCE_TYPE_META[t].label}</li>
                   ))}
                 </ol>
               </li>
@@ -289,11 +295,11 @@ export default function MethodologyPage() {
           <Section id="corrections" title="Corrections and takedowns">
             <ul className="list-disc space-y-2 ps-6">
               <li>
-                Anyone can request a correction from any record (<Link href="/report?mode=correction">correction form</Link>). We respond within{' '}
-                {SLA.correctionResponseHours} hours and fix material errors within {SLA.correctionFixDays} days, with a public note in the record’s
-                change log.
+                Anyone can request a correction from any record (<Link href="/report?mode=correction">correction form</Link>). Editors respond
+                within {SLA.correctionResponseHours} hours and fix material errors within {SLA.correctionFixDays} days, with a public note in the
+                record’s change log.
               </li>
-              <li>People described in a record can ask for identifying details to be removed at any time. We do this within {SLA.privacyRemovalHours} hours, no questions asked.</li>
+              <li>People described in a record can ask for identifying details to be removed at any time. They are removed within {SLA.privacyRemovalHours} hours, no questions asked.</li>
               <li>Legal demands go to counsel. Records are not removed because of pressure alone, only on a legal or factual basis.</li>
               <li>Every change to a published record is listed in its change log, with the date and a one-line reason.</li>
             </ul>
@@ -309,7 +315,10 @@ export default function MethodologyPage() {
           </Section>
 
           <Section id="comparison" title="Comparison with other counts">
-            <p>No single source counts every anti-Muslim incident, and each measures something different:</p>
+            <p>
+              No single source counts every <span className="whitespace-nowrap">anti-Muslim</span> incident, and each measures something
+              different:
+            </p>
             <ul className="list-disc space-y-2 ps-6">
               <li>
                 <strong>FBI hate crime statistics</strong> count crimes reported by participating police agencies. Participation is voluntary

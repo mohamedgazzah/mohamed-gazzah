@@ -25,26 +25,34 @@ const TONE: Record<BadgeTone, string> = {
 }
 
 /**
- * A mark and a word, linked to the method, with a tooltip that explains it
- * (off where the explanation is already printed beside the badge).
+ * A mark and a word, linked to the method, with a tooltip that explains it.
+ * Where the explanation and its link are already printed beside the badge,
+ * it is plain text: no tooltip, no link (no second tab stop to the same place).
  */
 function Pill({ tone, href, label, tip, tipId, marker, tooltip = true }: {
   tone: BadgeTone
-  href: string
+  href?: string
   label: string
   tip: string
   tipId: string
   marker?: ReactNode
   tooltip?: boolean
 }) {
-  const badge = (
-    <Link href={href} aria-describedby={tooltip ? tipId : undefined} className={`badge ${marker ? '' : 'badge-box'} ${TONE[tone]}`}>
+  const className = `badge ${marker ? '' : 'badge-box'} ${TONE[tone]}`
+  const inner = (
+    <>
       {marker ? (
         <span aria-hidden="true" className="inline-flex w-2.5 items-center justify-center">
           {marker}
         </span>
       ) : null}
       {label}
+    </>
+  )
+  if (!href) return <span className={className}>{inner}</span>
+  const badge = (
+    <Link href={href} aria-describedby={tooltip ? tipId : undefined} className={className}>
+      {inner}
     </Link>
   )
   if (!tooltip) return badge
@@ -70,17 +78,20 @@ export function VerificationBadge({
   sourceTypes,
   idPrefix,
   tooltip,
+  plain = false,
 }: {
   level: PublicVerificationLevel
   sourceTypes?: readonly SourceType[]
   idPrefix: string
   tooltip?: boolean
+  /** Text only, where the rule and its link are printed beside the badge. */
+  plain?: boolean
 }) {
   return (
     <Pill
       tone={level === 'V3' ? 'confirmed' : 'reported'}
       marker={<VerificationMark level={level} />}
-      href={`/methodology#verification-${level.toLowerCase()}`}
+      href={plain ? undefined : `/methodology#verification-${level.toLowerCase()}`}
       label={verificationLabel(level, sourceTypes)}
       tip={VERIFICATION_META[level].rule}
       tipId={`${idPrefix}-tip-verification`}
@@ -113,6 +124,7 @@ export function LegalStatusBadges({
   idPrefix,
   alleged: showAlleged = true,
   tooltip,
+  plain = false,
 }: {
   status: LegalStatus
   hateCrimeCharged: YesNoUnknown
@@ -120,6 +132,8 @@ export function LegalStatusBadges({
   /** The "Alleged" part; off where the status is explained in words beside it. */
   alleged?: boolean
   tooltip?: boolean
+  /** Text only, where the status is explained and linked beside the badge. */
+  plain?: boolean
 }) {
   const alleged = showAlleged && ALLEGATION_STATUSES.includes(status)
   return (
@@ -127,7 +141,7 @@ export function LegalStatusBadges({
       <Gavel aria-hidden="true" className="badge-group-icon" />
       <Pill
         tone="neutral"
-        href={`/methodology#legal-${status}`}
+        href={plain ? undefined : `/methodology#legal-${status}`}
         label={legalLabel(status, hateCrimeCharged)}
         tip={legalTip(status, hateCrimeCharged)}
         tipId={`${idPrefix}-tip-legal`}
@@ -136,7 +150,7 @@ export function LegalStatusBadges({
       {alleged ? (
         <Pill
           tone="neutral"
-          href="/methodology#language"
+          href={plain ? undefined : '/methodology#language'}
           label="Alleged"
           tip="No one has been convicted. Anyone accused is presumed innocent."
           tipId={`${idPrefix}-tip-alleged`}
@@ -156,7 +170,7 @@ export function SeverityMarker({ severity, idPrefix }: { severity: Severity; idP
       marker={<span className="badge-square" />}
       href={`/methodology#severity-${severity}`}
       label={SEVERITY_META[severity].label}
-      tip={`Severity ${severity}: ${SEVERITY_META[severity].description}`}
+      tip={`Severity ${severity} of 5: ${SEVERITY_META[severity].description}`}
       tipId={`${idPrefix}-tip-severity`}
     />
   )
