@@ -16,7 +16,7 @@ const ZOOM_MS = 450
 
 const parse = (viewBox: string) => viewBox.split(' ').map(Number) as Frame
 
-/** The part of a view the map shows: all of it, or on a phone, where the box is a state's own shape, less the sides "slice" crops. */
+/** The part of a view the map shows: all of it, less what "slice" crops where the box has another shape (a state on a phone). */
 function shown(el: SVGSVGElement, [x, y, w, h]: Frame): Frame {
   const box = el.getBoundingClientRect()
   const aspect = box.height > 0 ? box.width / box.height : w / h
@@ -61,7 +61,7 @@ export function MapFrame({
   useLayoutEffect(() => {
     const el = svg.current
     if (!el) return
-    // A click in the map's section left from a view; Back, Forward and the filters zoom from this map's own.
+    // Zoom from the view a click in the map's section left, or else from this map's last one (Back, Forward, a filter).
     const from = departure && performance.now() - departure.at < 5000 ? departure.frame : onScreen.current
     departure = null
     // React has written the new view, unless a zoom was under way: write it again, so the frame is always current.

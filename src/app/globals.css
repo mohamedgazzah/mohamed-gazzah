@@ -1781,6 +1781,13 @@
   a.bar-row:hover .bar {
     filter: brightness(1.15);
   }
+  /* Forced colors drop backgrounds: bars take the text color, so the list keeps its bars. */
+  @media (forced-colors: active) {
+    .bar {
+      forced-color-adjust: none;
+      background: CanvasText;
+    }
+  }
   .bar-value {
     text-align: end;
     font-weight: 600;
@@ -3405,13 +3412,12 @@
   .print-totals .data-table thead th {
     position: static;
   }
-  /* Many places: one table in two columns; a row never splits between them. */
+  /* Many places: the list as two tables side by side (one above the other on a narrow phone). */
   .print-places-columns {
-    columns: 2 10rem;
-    column-gap: 1.5rem;
-  }
-  .print-places-columns tr {
-    break-inside: avoid;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0 1.5rem;
+    align-items: start;
   }
   /* The records table fits the sheet, as it does the paper: the incident column has no minimum and the cells are tighter. */
   .print-sheet .table-scroll .data-table :is(th, td) {

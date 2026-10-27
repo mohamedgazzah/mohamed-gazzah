@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { legalLabel, verificationLabel } from '@/components/Badges'
+import { BrandMark } from '@/components/BrandMark'
 import { PrintButton } from '@/components/PrintButton'
 import { StateMap } from '@/components/charts/StateMap'
 import { INCIDENT_TYPES, INCIDENT_TYPE_META, type IncidentType } from '@/db/enums'
@@ -73,6 +74,8 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
     ? (focusData?.cities ?? []).map((c) => ({ key: c.city, name: c.city, n: c.count }))
     : states.map(([code, n]) => ({ key: code, name: stateByCode(code)?.name ?? code, n }))
   const wide = places.length > SIDE_BY_SIDE_PLACES
+  const half = Math.ceil(places.length / 2)
+  const placeTables = wide ? [places.slice(0, half), places.slice(half)] : [places]
 
   // The headline says what was counted, so read or copied on its own it never overstates the record:
   // "1 verified threat matching “mosque” in 1 state, all dates".
@@ -122,7 +125,13 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
       {/* On screen the report is shown as the sheet it prints on, in the light theme. */}
       <div className="paper print-sheet">
       <header className="border-b border-rule pb-5">
-        <p className="kicker">{SITE.fullName} · Report</p>
+        <p className="kicker flex items-center gap-2">
+          {/* The mark is drawn, so it prints even without background graphics. */}
+          <span className="text-accent">
+            <BrandMark size={16} />
+          </span>
+          {SITE.fullName} · Report
+        </p>
         <h1 className="mt-2 text-2xl leading-tight">{title}</h1>
         <p className="mono mt-3 text-muted">
           Printed {formatDate(today)} from {exploreUrl}
@@ -166,25 +175,28 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
           <h2 id="print-states" className="mb-2 text-base font-semibold">
             {focusName ? 'Records by city' : 'Records by state'}
           </h2>
+          {/* Many places: two tables side by side, each with its column names. */}
           <div className={wide ? 'print-places-columns' : undefined}>
-          <table className="data-table print-table">
-            <thead>
-              <tr>
-                <th scope="col">{focusName ? 'City' : 'State'}</th>
-                <th scope="col" className="num">
-                  Records
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {places.map((p) => (
-                <tr key={p.key}>
-                  <td>{p.name}</td>
-                  <td className="num">{formatNumber(p.n)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            {placeTables.map((rows, i) => (
+              <table key={i} className="data-table print-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{focusName ? 'City' : 'State'}</th>
+                    <th scope="col" className="num">
+                      Records
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((p) => (
+                    <tr key={p.key}>
+                      <td>{p.name}</td>
+                      <td className="num">{formatNumber(p.n)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ))}
           </div>
         </section>
         <section aria-labelledby="print-types" className="break-inside-avoid">

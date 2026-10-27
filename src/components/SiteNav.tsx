@@ -52,9 +52,9 @@ export function SiteNav() {
   const close = () => {
     if (menu.current) menu.current.open = false
   }
-  // A menu opened before the page finished loading stays open, and the code now knows it.
+  // A menu opened before the script loaded stays open; pick up its state.
   useEffect(() => setOpen(menu.current?.open ?? false), [])
-  // Another page (back and forward too) closes the menu.
+  // Another page (back and forward too) closes the menu; the first render is not another page.
   const shown = useRef(pathname)
   useEffect(() => {
     if (shown.current !== pathname && menu.current) menu.current.open = false

@@ -141,7 +141,10 @@ test.describe('Explore URLs', () => {
 
   test('an empty result explains itself', async ({ page }) => {
     await page.goto('/incidents?from=2020-01-01&to=2020-01-02')
-    await expect(page.getByText('No verified incidents match these filters.')).toBeVisible()
+    // The count says there are none; the panel's heading says what to change, and offers it.
+    await expect(page.locator('#results-heading')).toContainText('No verified incidents')
+    await expect(page.getByRole('heading', { name: 'Try other dates', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Show all dates' })).toBeVisible()
   })
 })
 
