@@ -3712,8 +3712,19 @@
     align-items: start;
   }
   .print-totals {
-    display: block !important;
-    margin-top: 0 !important;
+    display: block;
+    margin-top: 0;
+  }
+  /* Many places: the map across the page, then the places in two columns beside the types, so no column stands empty. */
+  .print-summary-wide {
+    display: block;
+  }
+  .print-summary-wide > .print-totals {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+    margin-top: 1rem;
   }
   .print-report.wrap {
     padding-inline: 0;
@@ -3734,6 +3745,9 @@
   }
   .print-totals > * + * {
     margin-top: 1rem;
+  }
+  .print-summary-wide > .print-totals > * + * {
+    margin-top: 0;
   }
   .print-report h1 {
     font-size: 20pt;
