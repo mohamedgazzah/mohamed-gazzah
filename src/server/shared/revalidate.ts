@@ -8,7 +8,8 @@ import { incidentPath } from '@/lib/slug'
  * no cache to refresh there.
  */
 export function revalidateRecord(id: string, slugs: (string | null | undefined)[] = []) {
-  const paths = new Set<string>(['/', '/incidents', '/sitemap.xml', '/data'])
+  // The bare-id address caches a redirect to the current slug, so it is refreshed too.
+  const paths = new Set<string>(['/', '/incidents', '/sitemap.xml', '/data', `/incidents/${id}`])
   for (const slug of slugs) if (slug) paths.add(incidentPath(id, slug))
   for (const p of paths) {
     try {

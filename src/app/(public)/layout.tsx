@@ -10,7 +10,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const lastUpdated = await lastUpdatedSafe()
   return (
     <>
-      <SiteHeader />
+      <SiteHeader lastUpdated={lastUpdated} />
       <div id="main" tabIndex={-1} className="outline-none">
         {children}
       </div>

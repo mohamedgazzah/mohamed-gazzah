@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { Arrow } from '@/components/Arrow'
 import { EmptyState } from '@/components/EmptyState'
 import { IncidentCard } from '@/components/IncidentCard'
 import { IncidentTable } from '@/components/IncidentTable'
@@ -60,14 +61,19 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
   }
 
   return (
-    <main className="mx-auto max-w-content px-4 py-8 sm:px-6">
-      <h1 className="text-2xl sm:text-3xl">Explore incidents</h1>
-      <p className="mt-2 max-w-[72ch] text-base text-muted">
-        Every published record, with its sources and legal status. Filters are kept in the page address, so any view can be shared or
-        cited. <Link href="/methodology#inclusion">What is included</Link>.
-      </p>
+    <main className="wrap pt-10 pb-4 md:pt-14">
+      <div className="grid gap-x-6 gap-y-4 border-b border-ink pb-8 md:grid-cols-12">
+        <div className="md:col-span-8">
+          <p className="kicker">The record · Explore</p>
+          <h1 className="display mt-3 text-4xl">Explore incidents</h1>
+        </div>
+        <p className="max-w-[46ch] self-end text-[15.5px] text-muted md:col-span-4">
+          Every published record, with its sources and legal status. Filters are kept in the page address, so any view can be shared or
+          cited. <Link href="/methodology#inclusion">What is included</Link>.
+        </p>
+      </div>
 
-      <div className="mt-6 grid gap-8 md:grid-cols-[17rem_1fr]">
+      <div className="mt-8 grid gap-10 md:grid-cols-[16.5rem_minmax(0,1fr)]">
         <aside aria-label="Filters" className="md:sticky md:top-4 md:max-h-[calc(100vh-2rem)] md:self-start md:overflow-y-auto md:pe-1">
           <FilterDrawer activeCount={active.length}>
             <FilterRail filters={filters} view={vs} />
@@ -75,32 +81,27 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
         </aside>
 
         <section aria-labelledby="results-heading" className="min-w-0">
-          <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule pb-3">
-            <h2 id="results-heading" className="font-sans text-lg font-semibold tabular" aria-live="polite">
+          <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+            <h2 id="results-heading" className="text-[34px] leading-none tabular" aria-live="polite">
               {formatNumber(result.total)} {result.total === 1 ? noun : `${noun}s`}
               {result.total > result.pageSize ? (
-                <span className="font-normal text-muted">
-                  {' '}
-                  · showing {formatNumber(first)}–{formatNumber(last)}
+                <span className="mono ms-2 align-middle text-muted">
+                  showing {formatNumber(first)}–{formatNumber(last)}
                 </span>
               ) : null}
             </h2>
-            <a href={`/incidents/download${downloadQs ? `?${downloadQs}` : ''}`} className="text-base font-semibold" download>
-              Download these results (CSV)
+            <a href={`/incidents/download${downloadQs ? `?${downloadQs}` : ''}`} className="arrow-link text-[15px]" download>
+              Download these results (CSV) <Arrow direction="down" />
             </a>
           </div>
 
           {active.length ? (
-            <ul aria-label="Active filters" className="mt-3 flex flex-wrap gap-2">
+            <ul aria-label="Active filters" className="mt-4 flex flex-wrap gap-2">
               {active.map((c) => (
                 <li key={c.key}>
-                  <Link
-                    href={c.removeHref}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-control bg-surface px-3 text-sm text-text no-underline hover:border-accent"
-                    aria-label={`Remove filter: ${c.label}`}
-                  >
+                  <Link href={c.removeHref} className="chip" aria-label={`Remove filter: ${c.label}`}>
                     {c.label}
-                    <span aria-hidden="true" className="text-base leading-none">
+                    <span aria-hidden="true" className="text-base leading-none text-muted">
                       ×
                     </span>
                   </Link>
@@ -109,43 +110,37 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
             </ul>
           ) : null}
 
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-base">
-            <nav aria-label="Sort order" className="flex flex-wrap items-center gap-1">
-              <span className="text-muted">Sort:</span>
-              {SORTS.map((s) => (
-                <Link
-                  key={s}
-                  href={explorePath(filters, { ...vs, sort: s, page: 1 })}
-                  aria-current={vs.sort === s ? 'true' : undefined}
-                  className={`inline-flex min-h-11 items-center rounded px-2 ${vs.sort === s ? 'font-semibold text-text no-underline' : ''}`}
-                >
-                  {SORT_LABELS[s]}
-                </Link>
-              ))}
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <nav aria-label="Sort order" className="flex flex-wrap items-center gap-3">
+              <span className="kicker">Sort</span>
+              <span className="segmented">
+                {SORTS.map((s) => (
+                  <Link key={s} href={explorePath(filters, { ...vs, sort: s, page: 1 })} aria-current={vs.sort === s ? 'true' : undefined}>
+                    {SORT_LABELS[s]}
+                  </Link>
+                ))}
+              </span>
             </nav>
-            <nav aria-label="View" className="flex items-center gap-1">
-              <span className="text-muted">View:</span>
-              {(['table', 'cards', 'map'] as const).map((v) => (
-                <Link
-                  key={v}
-                  href={explorePath(filters, { ...vs, view: v, page: 1 })}
-                  aria-current={vs.view === v ? 'page' : undefined}
-                  className={`inline-flex min-h-11 items-center rounded px-2 ${vs.view === v ? 'font-semibold text-text no-underline' : ''}`}
-                >
-                  {VIEW_LABELS[v]}
-                </Link>
-              ))}
+            <nav aria-label="View" className="flex items-center gap-3">
+              <span className="kicker">View</span>
+              <span className="segmented">
+                {(['table', 'cards', 'map'] as const).map((v) => (
+                  <Link key={v} href={explorePath(filters, { ...vs, view: v, page: 1 })} aria-current={vs.view === v ? 'page' : undefined}>
+                    {VIEW_LABELS[v]}
+                  </Link>
+                ))}
+              </span>
             </nav>
           </div>
 
-          <div className="mt-4">
+          <div className="mt-6">
             {result.total === 0 ? (
               <EmptyState>
                 {includesV1 ? 'No incidents match these filters.' : 'No verified incidents match these filters.'} Try widening the date
                 range or removing a filter.
               </EmptyState>
             ) : vs.view === 'cards' ? (
-              <ul className="grid gap-4 lg:grid-cols-2">
+              <ul className="ledger">
                 {result.rows.map((r) => (
                   <li key={r.id}>
                     <IncidentCard item={r} query={filters.q} />
@@ -162,7 +157,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                       styleLight={process.env.NEXT_PUBLIC_MAP_STYLE_LIGHT ?? 'https://tiles.openfreemap.org/styles/positron'}
                       styleDark={process.env.NEXT_PUBLIC_MAP_STYLE_DARK ?? 'https://tiles.openfreemap.org/styles/dark'}
                     />
-                    <h3 className="mt-6 mb-2 font-sans text-base font-semibold">The same incidents as a list</h3>
+                    <h3 className="kicker mt-8 mb-3 text-text">The same incidents as a list</h3>
                   </div>
                 ) : null}
                 <IncidentTable
@@ -170,13 +165,13 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                   query={filters.q}
                   caption={`Incidents ${formatNumber(first)} to ${formatNumber(last)} of ${formatNumber(result.total)}`}
                   dateSort={{
-                    label: dateDesc ? 'Date ↓' : vs.sort === 'oldest' ? 'Date ↑' : 'Date',
+                    label: 'Date',
                     href: explorePath(filters, { ...vs, sort: dateDesc ? 'oldest' : 'newest', page: 1 }),
                     active: vs.sort !== 'severity',
                     direction: vs.sort === 'oldest' ? 'ascending' : 'descending',
                   }}
                   severitySort={{
-                    label: vs.sort === 'severity' ? 'Severity ↓' : 'Severity',
+                    label: 'Severity',
                     href: explorePath(filters, { ...vs, sort: 'severity', page: 1 }),
                     active: vs.sort === 'severity',
                     direction: 'descending',
@@ -187,7 +182,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
           </div>
 
           <Pagination page={result.page} pages={result.pages} hrefFor={(n) => explorePath(filters, { ...vs, page: n })} />
-          <p className="mt-6 text-sm text-muted">
+          <p className="mono mt-8 max-w-[80ch] text-muted">
             {PAGE_SIZE} records per page, in a stable order, so a page number can be cited. Counts include V2 and V3 records unless V1 is
             selected.
           </p>

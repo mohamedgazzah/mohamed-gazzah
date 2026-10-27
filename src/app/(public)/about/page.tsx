@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
+import { PageHeader } from '@/components/PageHeader'
+import { ReadingLayout, ReadingSection } from '@/components/ReadingLayout'
 import { SLA } from '@/db/enums'
 import { SITE } from '@/lib/site'
 
@@ -9,39 +11,41 @@ export const metadata: Metadata = {
   description: 'Who runs this record, how it is funded, how to reach the editors, and the privacy policy.',
 }
 
+const SECTIONS = [
+  ['team', 'Team and advisory board'],
+  ['partners', 'Partners and funding'],
+  ['contact', 'Contact'],
+  ['privacy', 'Privacy policy'],
+] as const
+
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  const n = SECTIONS.findIndex(([sid]) => sid === id) + 1
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-6 border-t border-rule pt-8">
-      <h2 id={`${id}-h`} className="mb-4 text-2xl">
-        {title}
-      </h2>
-      <div className="reading space-y-4">{children}</div>
-    </section>
+    <ReadingSection id={id} n={n || undefined} title={title}>
+      {children}
+    </ReadingSection>
   )
 }
 
 /** Content the project's people must supply before launch. Shown plainly, never filled with guesses. */
 function ToComplete({ children }: { children: ReactNode }) {
-  return <p className="card border-dashed p-3 text-base text-muted">To be completed before launch: {children}</p>
+  return <p className="note">To be completed before launch: {children}</p>
 }
 
 export default function AboutPage() {
   return (
-    <main className="mx-auto max-w-content px-4 py-10 sm:px-6">
-      <div className="mx-auto max-w-reading space-y-10">
-        <div>
-          <h1 className="text-3xl">About</h1>
-          <p className="mt-3 reading">
-            {SITE.fullName} is a public, searchable record of anti-Muslim incidents in the United States. Each incident is linked to its
-            sources and followed through its legal outcome. It exists because the available data — police-reported hate crimes, complaints to
-            advocacy groups, surveys, and state counts — is spread across systems that cannot be joined, and none lists individual incidents
-            with sources and case status.
-          </p>
-          <p className="mt-3 reading">
-            It is a record, not a campaign: the dataset stands on its stated <Link href="/methodology">methodology</Link>. Partners are credited
-            here, but they do not decide what is published.
-          </p>
-        </div>
+    <main className="wrap pt-10 pb-4 md:pt-14">
+      <PageHeader kicker="About · Privacy" title="About">
+        It is a record, not a campaign: the dataset stands on its stated <Link href="/methodology">methodology</Link>. Partners are credited here,
+        but they do not decide what is published.
+      </PageHeader>
+      <ReadingLayout contents={SECTIONS}>
+        <p className="font-serif text-[22px] leading-[1.5]">
+          {SITE.fullName} is a public, searchable record of anti-Muslim incidents in the United States. Each incident is linked to its sources
+          and followed through its legal outcome. It exists because the available data — police-reported hate crimes, complaints to advocacy
+          groups, surveys, and state counts — is spread across systems that cannot be joined, and none lists individual incidents with sources
+          and case status.
+        </p>
 
         <Section id="team" title="Team and advisory board">
           <ToComplete>names and roles of the editors, the senior editors and the advisory board, and the organizational home (fiscal sponsor or university research center).</ToComplete>
@@ -72,13 +76,13 @@ export default function AboutPage() {
 
         <Section id="privacy" title="Privacy policy">
           <p>This policy is written in plain language. It covers the public website and the report form.</p>
-          <h3 className="text-xl">When you browse</h3>
+          <h3>When you browse</h3>
           <ul className="list-disc space-y-1 ps-6">
             <li>Public pages set no cookies, except one setting in your own browser if you choose a light or dark theme.</li>
             <li>There are no ad trackers. Visits are counted with a cookie-free analytics tool that does not identify you.</li>
             <li>Searches are not stored on our servers.</li>
           </ul>
-          <h3 className="text-xl">When you send a report or a correction</h3>
+          <h3>When you send a report or a correction</h3>
           <ul className="list-disc space-y-1 ps-6">
             <li>
               <strong>What we collect:</strong> what you tell us, the date and place, links, any files you attach, whether you were targeted or a
@@ -106,7 +110,7 @@ export default function AboutPage() {
           </ul>
           <ToComplete>the legal entity responsible for the data and its address, and review of this policy by counsel (and by the host institution’s IRB, if it applies).</ToComplete>
         </Section>
-      </div>
+      </ReadingLayout>
     </main>
   )
 }

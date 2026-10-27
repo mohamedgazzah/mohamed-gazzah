@@ -23,6 +23,12 @@
   --chart-seq-3: #7cb2a3;
   --chart-seq-4: #3f8372;
   --chart-seq-5: #1f5c4e;
+  /* Ink band: the footer and other closing blocks, dark in both themes. */
+  --band-bg: #1a1d21;
+  --band-text: #f2f1ec;
+  --band-muted: #a3a9b0;
+  --band-accent: #6fb8a4;
+  --band-rule: #3a3f46;
   /* QR codes must stay dark-on-light in both themes to scan. */
   --qr-dark: #000000;
   --qr-light: #ffffff;
@@ -45,6 +51,11 @@
     --chart-seq-3: #4a8476;
     --chart-seq-4: #6fb8a4;
     --chart-seq-5: #a8dccd;
+    --band-bg: #0b0c0e;
+    --band-text: #e8e6e1;
+    --band-muted: #a3a9b0;
+    --band-accent: #6fb8a4;
+    --band-rule: #2c3036;
   }
 }
 
@@ -64,6 +75,11 @@
   --chart-seq-3: #4a8476;
   --chart-seq-4: #6fb8a4;
   --chart-seq-5: #a8dccd;
+  --band-bg: #0b0c0e;
+  --band-text: #e8e6e1;
+  --band-muted: #a3a9b0;
+  --band-accent: #6fb8a4;
+  --band-rule: #2c3036;
 }
 
 /* Derived tokens: computed from the base tokens, so they follow the theme. */
@@ -79,16 +95,31 @@
   --scrim: color-mix(in srgb, var(--text) 45%, transparent);
   --mark-bg: color-mix(in srgb, var(--status-reported) 16%, var(--surface));
 
-  /* Type scale: 14 / 16 / 18 / 22 / 28 / 40 px; reading body 17px / 1.6. */
+  /* Ruled lines in ink: section openings, table heads, the masthead. */
+  --rule-strong: var(--text);
+
+  /*
+   * Type. The specification's steps (14 / 16 / 18 / 22 / 28 / 40 px) plus
+   * display steps for headlines and figures. Reading text is set in the serif
+   * at 19px / 1.6: Newsreader has a smaller x-height than a UI sans, so this
+   * reads like the specified 17px.
+   */
+  --step--1: 13px;
   --step-0: 14px;
   --step-1: 16px;
   --step-2: 18px;
   --step-3: 22px;
   --step-4: 28px;
   --step-5: 40px;
-  --reading: 17px;
-  /* --font-source-serif and --font-inter are set by next/font (src/app/fonts.ts). */
-  --typeface-serif: var(--font-source-serif), 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
-  --typeface-sans: var(--font-inter), 'Inter Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --step-6: clamp(40px, 5.2vw, 60px);
+  --step-7: clamp(44px, 6.4vw, 88px);
+  --step-8: clamp(56px, 8vw, 112px);
+  --reading: 19px;
+  /* --font-* are set by next/font (src/app/fonts.ts); the @fontsource family covers other scripts. */
+  --typeface-serif: var(--font-newsreader), 'Newsreader Variable', Georgia, 'Times New Roman', serif;
+  --typeface-serif-italic: var(--font-newsreader-italic), Georgia, 'Times New Roman', serif;
+  --typeface-display-italic: var(--font-newsreader-display-italic), var(--font-newsreader-italic), Georgia, 'Times New Roman', serif;
+  --typeface-sans: var(--font-franklin), 'Libre Franklin Variable', 'Helvetica Neue', Arial, sans-serif;
+  --typeface-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --typeface-arabic: 'Noto Naskh Arabic', 'Geeza Pro', 'Arabic Typesetting', serif;
 }

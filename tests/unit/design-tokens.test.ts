@@ -65,6 +65,15 @@ describe.each([
   it('button text on the accent meets AA', () => {
     expect(contrast(t.surface!, t.accent!)).toBeGreaterThanOrEqual(4.5)
   })
+  it('text on the ink band (footer, tooltips) meets AA', () => {
+    for (const fg of ['band-text', 'band-muted', 'band-accent']) {
+      expect(contrast(t[fg]!, t['band-bg']!)).toBeGreaterThanOrEqual(4.5)
+    }
+    expect(contrast(t['band-bg']!, t['band-text']!)).toBeGreaterThanOrEqual(4.5)
+  })
+  it('the selected segment (ink on paper, reversed) meets AA', () => {
+    expect(contrast(t.bg!, t.text!)).toBeGreaterThanOrEqual(4.5)
+  })
   it('form control borders meet the 3:1 non-text contrast', () => {
     expect(contrast(t['text-muted']!, t.surface!)).toBeGreaterThanOrEqual(3)
     expect(contrast(t['text-muted']!, t.bg!)).toBeGreaterThanOrEqual(3)

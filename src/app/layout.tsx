@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
-import '@fontsource-variable/inter/wght.css'
-import '@fontsource-variable/source-serif-4/wght.css'
+import '@fontsource-variable/newsreader/opsz.css'
+import '@fontsource-variable/libre-franklin/wght.css'
+import '@fontsource/ibm-plex-mono/400.css'
+import '@fontsource/ibm-plex-mono/500.css'
 import '@fontsource/noto-naskh-arabic/arabic-400.css'
 import '@fontsource/noto-naskh-arabic/arabic-600.css'
 import './globals.css'
@@ -9,7 +11,7 @@ import { THEME_SCRIPT } from '@/components/ThemeToggle'
 import { TooltipDismisser } from '@/components/TooltipDismisser'
 import { indexingEnabled } from '@/lib/indexing'
 import { SITE } from '@/lib/site'
-import { inter, sourceSerif } from './fonts'
+import { franklin, newsreader, newsreaderDisplayItalic, newsreaderItalic, plexMono } from './fonts'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -30,7 +32,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   const analytics = process.env.NEXT_PUBLIC_ANALYTICS_SCRIPT
   return (
-    <html lang="en" dir="ltr" className={`${inter.variable} ${sourceSerif.variable}`} suppressHydrationWarning>
+    <html lang="en" dir="ltr" className={`${newsreader.variable} ${newsreaderItalic.variable} ${newsreaderDisplayItalic.variable} ${franklin.variable} ${plexMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {analytics ? <script defer src={analytics} data-domain={process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID} data-website-id={process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID} /> : null}

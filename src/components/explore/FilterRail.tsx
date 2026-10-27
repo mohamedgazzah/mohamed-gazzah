@@ -21,8 +21,8 @@ import { US_STATES, stateByCode } from '@/lib/states'
 
 function Group({ legend, open, children }: { legend: string; open: boolean; children: ReactNode }) {
   return (
-    <details open={open} className="border-b border-rule py-1">
-      <summary className="flex min-h-11 cursor-pointer items-center font-semibold">{legend}</summary>
+    <details open={open} className="filter-group border-b border-rule">
+      <summary>{legend}</summary>
       <fieldset className="pb-3">
         <legend className="sr-only">{legend}</legend>
         {children}
@@ -38,8 +38,8 @@ function Checks<T extends string | number>({ name, values, checked, label }: { n
         const id = `f-${name}-${v}`
         return (
           <li key={String(v)}>
-            <label htmlFor={id} className="flex min-h-9 cursor-pointer items-start gap-2 py-1 text-base">
-              <input id={id} type="checkbox" name={name} value={String(v)} defaultChecked={checked.includes(v)} className="mt-1 h-4 w-4 shrink-0 accent-accent" />
+            <label htmlFor={id} className="flex min-h-9 cursor-pointer items-start gap-2.5 py-1 text-[15px] hover:text-accent">
+              <input id={id} type="checkbox" name={name} value={String(v)} defaultChecked={checked.includes(v)} className="mt-[3px] h-4 w-4 shrink-0" />
               <span>{label(v)}</span>
             </label>
           </li>
@@ -60,8 +60,8 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
       {view.sort !== 'newest' ? <input type="hidden" name="sort" value={view.sort} /> : null}
       {view.view !== 'table' ? <input type="hidden" name="view" value={view.view} /> : null}
 
-      <div className="pb-3">
-        <label htmlFor="f-q" className="label">
+      <div className="pb-4">
+        <label htmlFor="f-q" className="label caps">
           Search
         </label>
         <input id="f-q" name="q" type="search" defaultValue={filters.q ?? ''} className="control" placeholder="Places, case names, words" />
@@ -150,7 +150,7 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
         <Checks name="src" values={SOURCE_TYPES} checked={filters.source} label={(s) => SOURCE_TYPE_META[s].label} />
       </Group>
 
-      <div className="sticky bottom-0 flex flex-wrap gap-2 border-t border-rule bg-bg py-3">
+      <div className="sticky bottom-0 flex flex-wrap gap-2 border-t border-ink bg-bg py-3">
         <button type="submit" className="btn">
           Apply filters
         </button>

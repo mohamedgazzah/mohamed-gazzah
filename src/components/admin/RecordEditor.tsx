@@ -449,7 +449,7 @@ export function RecordEditor({ initial, cases, isNew }: { initial: Draft; cases:
         <Section id="sec-sources" title={`Sources (${d.sources.length})`}>
           <p className="hint">Every public, linkable source. Numbers here are the [n] markers in the summary. Archived copies are captured automatically when you save.</p>
           {d.sources.map((s, i) => (
-            <div key={s.id} className="space-y-3 rounded-lg border border-rule p-3">
+            <div key={s.id} className="space-y-3 border border-rule p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold">Source [{i + 1}]</p>
                 <div className="flex gap-1">
@@ -539,7 +539,7 @@ export function RecordEditor({ initial, cases, isNew }: { initial: Draft; cases:
         <Section id="sec-legal" title={`Legal events (${d.legalEvents.length})`}>
           <p className="hint">Every status change is a dated event with a source: reported, arrest, charges, arraignment, plea, trial, verdict, sentence, dismissal, civil suit.</p>
           {d.legalEvents.map((e, i) => (
-            <div key={e.id} className="space-y-3 rounded-lg border border-rule p-3">
+            <div key={e.id} className="space-y-3 border border-rule p-3">
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Date" path={`legalEvents.${i}.date`} errors={errors}>
                   {(p) => <input {...p} type="date" className="control" value={e.date} onChange={(ev) => updateItem('legalEvents', i, { date: ev.target.value })} />}
@@ -602,7 +602,7 @@ export function RecordEditor({ initial, cases, isNew }: { initial: Draft; cases:
         <Section id="sec-statements" title={`Statements (${d.statements.length})`}>
           <p className="hint">Attributed responses. Quotes are 25 words or fewer; otherwise paraphrase.</p>
           {d.statements.map((s, i) => (
-            <div key={s.id} className="space-y-3 rounded-lg border border-rule p-3">
+            <div key={s.id} className="space-y-3 border border-rule p-3">
               <div className="grid gap-3 sm:grid-cols-3">
                 <Field label="Speaker" path={`statements.${i}.speaker`} errors={errors}>
                   {(p) => <input {...p} className="control" value={s.speaker} onChange={(ev) => updateItem('statements', i, { speaker: ev.target.value })} />}
@@ -752,7 +752,7 @@ export function RecordEditor({ initial, cases, isNew }: { initial: Draft; cases:
               ) : (
                 <ul className="space-y-3">
                   {dupes.map((c) => (
-                    <li key={c.id} className="rounded-lg border border-rule p-3">
+                    <li key={c.id} className="border border-rule p-3">
                       <p className="text-sm text-muted tabular">
                         {c.id} · {c.dateStart} · {c.city ?? ''} {stateByFips(c.stateFips)?.code ?? ''} · {c.workflowStatus}
                         {c.sameCity ? ' · same city' : ''}

@@ -32,7 +32,7 @@ import {
 import type { PublicCase, PublicChange, PublicLegalEvent, PublicSource, PublicStatement } from '@/db/schema'
 import { formatDate, formatDateRange, formatPlace, formatTimestamp, plural } from '@/lib/format'
 import { stateName } from '@/lib/states'
-import { DemoBadge, LegalStatusBadges, SeverityMarker, VerificationBadge } from './Badges'
+import { DemoBadge, LegalStatusBadges, SeverityMarker, VerificationBadge, WarningBadge } from './Badges'
 import { SourceChip } from './SourceChip'
 import { Summary } from './Summary'
 import { Timeline } from './Timeline'
@@ -81,10 +81,18 @@ function casualties(deaths: number | null, injuries: number | null): string {
 
 function Fact({ term, children }: { term: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-1 gap-x-4 border-b border-rule py-2.5 sm:grid-cols-[13rem_1fr]">
-      <dt className="text-sm font-semibold text-muted">{term}</dt>
-      <dd className="text-base">{children}</dd>
+    <div className="grid grid-cols-1 gap-x-6 gap-y-1 border-b border-rule py-3 sm:grid-cols-[12rem_1fr]">
+      <dt className="caps pt-0.5 text-[11.5px] text-muted">{term}</dt>
+      <dd className="text-[15.5px]">{children}</dd>
     </div>
+  )
+}
+
+function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <h2 id={id} className="section-head mb-5 scroll-mt-6 text-[28px] leading-tight">
+      {children}
+    </h2>
   )
 }
 
@@ -99,49 +107,45 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
 
   return (
     <article aria-labelledby={`${idPrefix}-title`}>
-      <header className="mb-6">
-        {died ? <hr className="mb-4 border-t border-text" aria-hidden="true" /> : null}
-        <p className="text-sm text-muted tabular">
+      <header className="mb-8">
+        {died ? <hr className="mb-5 border-t border-ink" aria-hidden="true" /> : null}
+        <p className="mono text-muted">
           <span>{formatDateRange(data.dateStart, data.dateEnd, data.datePrecision)}</span>
           <span aria-hidden="true"> · </span>
           <span>{formatPlace(data.city, data.stateCode) || stateName(data.stateCode)}</span>
           <span aria-hidden="true"> · </span>
           <span>{data.incidentTypes.map((t) => INCIDENT_TYPE_META[t].label).join(', ')}</span>
         </p>
-        <h1 id={`${idPrefix}-title`} className="mt-2 text-2xl font-semibold sm:text-3xl">
+        <h1 id={`${idPrefix}-title`} className="display mt-4 text-[clamp(34px,4.6vw,54px)] leading-[1.02]">
           {data.title || 'Untitled draft'}
         </h1>
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
           {publicLevel ? (
             <VerificationBadge level={publicLevel} sourceTypes={data.sourceTypes} idPrefix={idPrefix} />
           ) : (
-            <span className="inline-flex items-center rounded-full border border-dashed border-severe px-2 py-0.5 text-sm font-semibold text-severe">
-              V0 — unverified, cannot be published
-            </span>
+            <WarningBadge>V0 — unverified, cannot be published</WarningBadge>
           )}
           {data.legalStatus ? (
             <LegalStatusBadges status={data.legalStatus} hateCrimeCharged={data.hateCrimeCharged} idPrefix={idPrefix} />
           ) : (
-            <span className="inline-flex items-center rounded-full border border-dashed border-severe px-2 py-0.5 text-sm font-semibold text-severe">
-              Legal status not set
-            </span>
+            <WarningBadge>Legal status not set</WarningBadge>
           )}
           <SeverityMarker severity={data.severity} idPrefix={idPrefix} />
           {data.isDemo ? <DemoBadge /> : null}
         </div>
       </header>
 
-      <section aria-labelledby={`${idPrefix}-summary`} className="mb-8">
+      <section aria-labelledby={`${idPrefix}-summary`} className="mb-12">
         <h2 id={`${idPrefix}-summary`} className="sr-only">
           Summary
         </h2>
-        <p className="reading">{data.summary ? <Summary text={data.summary} idPrefix={`${idPrefix}-source`} /> : preview ? <em>No summary yet.</em> : null}</p>
+        <p className="font-serif text-[21px] leading-[1.55]">
+          {data.summary ? <Summary text={data.summary} idPrefix={`${idPrefix}-source`} /> : preview ? <em>No summary yet.</em> : null}
+        </p>
       </section>
 
-      <section aria-labelledby={`${idPrefix}-facts`} className="mb-8">
-        <h2 id={`${idPrefix}-facts`} className="mb-2 text-xl">
-          Key facts
-        </h2>
+      <section aria-labelledby={`${idPrefix}-facts`} className="mb-12">
+        <SectionTitle id={`${idPrefix}-facts`}>Key facts</SectionTitle>
         <dl className="border-t border-rule">
           <Fact term="Date">
             {formatDateRange(data.dateStart, data.dateEnd, data.datePrecision)}
@@ -175,25 +179,23 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
             {data.biasIndicators.length ? data.biasIndicators.map((b) => BIAS_INDICATOR_META[b].label).join(', ') : 'None recorded'}
           </Fact>
           <Fact term="Record">
-            <span className="tabular">{data.id || 'New draft'}</span>
+            <span className="mono text-[14px] text-text">{data.id || 'New draft'}</span>
             {data.updatedAt ? <span className="text-muted"> · last updated {formatTimestamp(data.updatedAt)}</span> : null}
           </Fact>
         </dl>
       </section>
 
       {data.legalEvents.length ? (
-        <section aria-labelledby={`${idPrefix}-legal`} className="mb-8">
-          <h2 id={`${idPrefix}-legal`} className="mb-3 text-xl">
-            Legal timeline
-          </h2>
+        <section aria-labelledby={`${idPrefix}-legal`} className="mb-12">
+          <SectionTitle id={`${idPrefix}-legal`}>Legal timeline</SectionTitle>
           <Timeline events={data.legalEvents} sourceIdPrefix={`${idPrefix}-source`} />
           {data.cases.length ? (
-            <ul className="mt-4 space-y-1 text-base">
+            <ul className="mt-6 space-y-1 border-t border-rule pt-4 text-[15px]">
               {data.cases.map((c) => (
                 <li key={c.id}>
                   <span className="font-semibold">{c.name}</span>
                   {c.court ? `, ${c.court}` : ''}
-                  {c.docket_number ? <span className="tabular"> · Docket {c.docket_number}</span> : null}
+                  {c.docket_number ? <span className="mono"> · Docket {c.docket_number}</span> : null}
                   {c.next_date ? <span className="text-muted"> · Next date {formatDate(c.next_date)}</span> : null}
                   {c.courtlistener_url ? (
                     <>
@@ -211,18 +213,20 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
       ) : null}
 
       {statementsByType.length ? (
-        <section aria-labelledby={`${idPrefix}-statements`} className="mb-8">
-          <h2 id={`${idPrefix}-statements`} className="mb-3 text-xl">
-            Statements
-          </h2>
+        <section aria-labelledby={`${idPrefix}-statements`} className="mb-12">
+          <SectionTitle id={`${idPrefix}-statements`}>Statements</SectionTitle>
           {statementsByType.map((g) => (
-            <div key={g.type} className="mb-4">
-              <h3 className="mb-2 text-lg">{STATEMENT_TYPE_META[g.type].label}</h3>
-              <ul className="space-y-3">
+            <div key={g.type} className="mb-8 last:mb-0">
+              <h3 className="kicker mb-3 text-text">{STATEMENT_TYPE_META[g.type].label}</h3>
+              <ul className="space-y-6">
                 {g.items.map((s, i) => (
-                  <li key={i} className="border-s-2 border-rule ps-4">
-                    {s.quote ? <blockquote className="reading">“{s.quote}”</blockquote> : <p className="reading">{s.paraphrase}</p>}
-                    <p className="text-sm text-muted">
+                  <li key={i} className="border-s border-ink ps-5">
+                    {s.quote ? (
+                      <blockquote className="font-serif text-[23px] leading-[1.4]">“{s.quote}”</blockquote>
+                    ) : (
+                      <p className="font-serif text-[19px] leading-[1.55]">{s.paraphrase}</p>
+                    )}
+                    <p className="mono mt-2 text-muted">
                       {s.quote ? '— ' : 'Paraphrased: '}
                       {[s.speaker, s.speaker_role, s.organization].filter(Boolean).join(', ')}
                       {s.date ? `, ${formatDate(s.date)}` : ''}
@@ -241,19 +245,17 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
         </section>
       ) : null}
 
-      <section aria-labelledby={`${idPrefix}-sources`} className="mb-8">
-        <h2 id={`${idPrefix}-sources`} className="mb-3 text-xl">
-          Sources
-        </h2>
+      <section aria-labelledby={`${idPrefix}-sources`} className="mb-12">
+        <SectionTitle id={`${idPrefix}-sources`}>Sources</SectionTitle>
         {data.sources.length ? (
-          <ol className="space-y-3">
+          <ol className="border-t border-rule">
             {data.sources.map((s) => (
-              <li key={s.n} id={`${idPrefix}-source-${s.n}`} className="flex gap-3 scroll-mt-24">
-                <span className="w-6 shrink-0 text-end font-semibold tabular">{s.n}.</span>
+              <li key={s.n} id={`${idPrefix}-source-${s.n}`} className="flex scroll-mt-24 gap-4 border-b border-rule py-4 target:bg-accent-tint">
+                <span className="mono w-6 shrink-0 pt-1 text-end text-[14px] text-text">{s.n}</span>
                 <div className="min-w-0">
                   <SourceChip source={s} idPrefix={idPrefix} />
-                  <p className="mt-1 text-base break-words">{s.title}</p>
-                  <p className="text-sm text-muted">
+                  <p className="mt-1 font-serif text-[18px] leading-snug break-words">{s.title}</p>
+                  <p className="mono mt-1 text-muted">
                     {SOURCE_TYPE_META[s.source_type].label}
                     {s.author ? ` · ${s.author}` : ''}
                     {s.claim_attribution ? ` · ${s.claim_attribution}` : ''}
@@ -269,15 +271,13 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
         )}
       </section>
 
-      <section aria-labelledby={`${idPrefix}-changes`} className="mb-8">
-        <h2 id={`${idPrefix}-changes`} className="mb-3 text-xl">
-          Change log
-        </h2>
+      <section aria-labelledby={`${idPrefix}-changes`} className="mb-12">
+        <SectionTitle id={`${idPrefix}-changes`}>Change log</SectionTitle>
         {data.changeLog.length ? (
-          <ol className="space-y-2 text-base">
+          <ol className="space-y-2 text-[15.5px]">
             {data.changeLog.map((c, i) => (
-              <li key={i} className="tabular">
-                <time dateTime={c.date} className="text-muted">
+              <li key={i}>
+                <time dateTime={c.date} className="mono text-muted">
                   {formatTimestamp(c.date)}
                 </time>
                 {' — '}

@@ -25,17 +25,24 @@ export function ThemeToggle() {
     else document.documentElement.setAttribute('data-theme', t)
   }
   return (
-    <fieldset className="flex flex-wrap items-center gap-2">
-      <legend className="sr-only">Color theme</legend>
-      <span aria-hidden="true" className="text-sm text-muted">
-        Theme:
-      </span>
-      {(['system', 'light', 'dark'] as const).map((t) => (
-        <label key={t} className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 text-sm">
-          <input type="radio" name="theme" value={t} checked={theme === t} onChange={() => choose(t)} className="accent-accent" />
-          {t === 'system' ? 'System' : t === 'light' ? 'Light' : 'Dark'}
-        </label>
-      ))}
+    <fieldset>
+      <legend className="kicker mb-2">Theme</legend>
+      <div className="segmented">
+        {(['system', 'light', 'dark'] as const).map((t) => (
+          <label key={t} className="relative cursor-pointer">
+            {/* The radio covers its label, so it stays the click and focus target. */}
+            <input
+              type="radio"
+              name="theme"
+              value={t}
+              checked={theme === t}
+              onChange={() => choose(t)}
+              className="absolute inset-0 m-0 cursor-pointer opacity-0"
+            />
+            {t === 'system' ? 'System' : t === 'light' ? 'Light' : 'Dark'}
+          </label>
+        ))}
+      </div>
     </fieldset>
   )
 }

@@ -17,29 +17,32 @@ import { VerificationMark } from './VerificationMark'
 type BadgeTone = 'confirmed' | 'reported' | 'neutral' | 'severe'
 
 const TONE: Record<BadgeTone, string> = {
-  confirmed: 'text-confirmed border-confirmed',
-  reported: 'text-reported border-reported',
-  neutral: 'text-text border-control',
-  severe: 'text-severe border-severe',
+  confirmed: 'text-confirmed',
+  reported: 'text-reported',
+  neutral: 'text-text',
+  severe: 'text-severe',
 }
 
-function Pill({ tone, href, label, tip, tipId, marker, dashed }: {
+/**
+ * A mark and a word, linked to the method, with a tooltip that explains it.
+ * Verification and severity carry a mark; legal status is boxed like a stamp.
+ */
+function Pill({ tone, href, label, tip, tipId, marker }: {
   tone: BadgeTone
   href: string
   label: string
   tip: string
   tipId: string
   marker?: ReactNode
-  dashed?: boolean
 }) {
   return (
     <Tooltip id={tipId} tip={<>{tip} <span className="text-muted">Select for the method.</span></>}>
-      <Link
-        href={href}
-        aria-describedby={tipId}
-        className={`inline-flex min-h-6 items-center gap-1 rounded-full border bg-surface px-2 py-0.5 text-sm font-semibold leading-tight no-underline hover:no-underline ${TONE[tone]} ${dashed ? 'border-dashed' : ''}`}
-      >
-        {marker ? <span aria-hidden="true">{marker}</span> : null}
+      <Link href={href} aria-describedby={tipId} className={`badge ${marker ? '' : 'badge-box'} ${TONE[tone]}`}>
+        {marker ? (
+          <span aria-hidden="true" className="inline-flex w-2.5 items-center justify-center">
+            {marker}
+          </span>
+        ) : null}
         {label}
       </Link>
     </Tooltip>
@@ -59,7 +62,6 @@ export function VerificationBadge({ level, sourceTypes, idPrefix }: { level: Pub
   return (
     <Pill
       tone={level === 'V3' ? 'confirmed' : 'reported'}
-      dashed={level === 'V1'}
       marker={<VerificationMark level={level} />}
       href={`/methodology#verification-${level.toLowerCase()}`}
       label={verificationLabel(level, sourceTypes)}
@@ -105,6 +107,7 @@ export function SeverityMarker({ severity, idPrefix }: { severity: Severity; idP
   return (
     <Pill
       tone="severe"
+      marker={<span className="badge-square" />}
       href={`/methodology#severity-${severity}`}
       label={SEVERITY_META[severity].label}
       tip={`Severity ${severity}: ${SEVERITY_META[severity].description}`}
@@ -115,8 +118,16 @@ export function SeverityMarker({ severity, idPrefix }: { severity: Severity; idP
 
 export function DemoBadge() {
   return (
-    <span className="inline-flex min-h-6 items-center rounded-full border border-dashed border-control px-2 py-0.5 text-sm font-semibold text-muted">
-      Demo record — fictional
+    <span className="badge badge-box border-dashed text-muted">Demo record — fictional</span>
+  )
+}
+
+/** Editor-only warnings in the preview (V0, missing legal status). */
+export function WarningBadge({ children }: { children: ReactNode }) {
+  return (
+    <span className="badge text-severe">
+      <span aria-hidden="true" className="badge-square" />
+      {children}
     </span>
   )
 }

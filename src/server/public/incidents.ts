@@ -185,6 +185,18 @@ export async function getRelated(inc: PublicIncidentDetail): Promise<RelatedGrou
   return { sameCity, samePerpetrator, sameCase }
 }
 
+export type TimelinePoint = Pick<PublicIncident, 'id' | 'slug' | 'title' | 'dateStart' | 'city' | 'stateCode' | 'severity'>
+
+/** Every record matching the filters, oldest first, for the home page's year strip. */
+export async function timelinePoints(f: Filters, limit = 5_000): Promise<TimelinePoint[]> {
+  return publicDb()
+    .select({ id: pi.id, slug: pi.slug, title: pi.title, dateStart: pi.dateStart, city: pi.city, stateCode: pi.stateCode, severity: pi.severity })
+    .from(pi)
+    .where(whereClause(f))
+    .orderBy(asc(pi.dateStart), asc(pi.id))
+    .limit(limit)
+}
+
 export async function latestIncidents(f: Filters, n = 10): Promise<IncidentListItem[]> {
   return publicDb().select(listColumns).from(pi).where(whereClause(f)).orderBy(desc(pi.dateStart), desc(pi.id)).limit(n)
 }

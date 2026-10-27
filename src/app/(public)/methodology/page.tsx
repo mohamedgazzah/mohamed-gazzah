@@ -18,6 +18,8 @@ import {
   BIAS_INDICATORS,
   BIAS_INDICATOR_META,
 } from '@/db/enums'
+import { PageHeader } from '@/components/PageHeader'
+import { ReadingLayout, ReadingSection } from '@/components/ReadingLayout'
 import { VerificationMark } from '@/components/VerificationMark'
 import { formatDate } from '@/lib/format'
 
@@ -44,38 +46,23 @@ const SECTIONS = [
 ] as const
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  const n = SECTIONS.findIndex(([sid]) => sid === id) + 1
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-6 border-t border-rule pt-8">
-      <h2 id={`${id}-h`} className="mb-4 text-2xl">
-        {title}
-      </h2>
-      <div className="reading space-y-4">{children}</div>
-    </section>
+    <ReadingSection id={id} n={n || undefined} title={title}>
+      {children}
+    </ReadingSection>
   )
 }
 
 export default function MethodologyPage() {
   return (
-    <main className="mx-auto max-w-content px-4 py-10 sm:px-6">
-      <div className="mx-auto max-w-reading">
-        <h1 className="text-3xl">Methodology</h1>
-        <p className="mt-3 reading text-muted">
-          Version {METHODOLOGY_VERSION}, effective {formatDate(METHODOLOGY_EFFECTIVE_DATE, 'day', 'long')}. Every dataset release and every
-          published record states the version it was produced under.
-        </p>
-
-        <nav aria-label="On this page" className="card my-8 p-4">
-          <p className="mb-2 font-semibold">On this page</p>
-          <ol className="grid list-decimal gap-x-6 gap-y-1 ps-5 text-base sm:grid-cols-2">
-            {SECTIONS.map(([id, title]) => (
-              <li key={id}>
-                <a href={`#${id}`}>{title}</a>
-              </li>
-            ))}
-          </ol>
-        </nav>
-
-        <div className="space-y-10">
+    <main className="wrap pt-10 pb-4 md:pt-14">
+      <PageHeader kicker={`Methodology · version ${METHODOLOGY_VERSION}`} title="Methodology">
+        Version {METHODOLOGY_VERSION}, effective {formatDate(METHODOLOGY_EFFECTIVE_DATE, 'day', 'long')}. Every dataset release and every published
+        record states the version it was produced under.
+      </PageHeader>
+      <ReadingLayout contents={SECTIONS}>
+        <div>
           <Section id="inclusion" title="What is included">
             <p>
               The unit of this record is one <strong>incident</strong>: a single event, at one time and place, that targets a person, a group or
@@ -120,7 +107,7 @@ export default function MethodologyPage() {
 
           <Section id="taxonomy" title="Incident types">
             <p>Each record has one or more of these types.</p>
-            <div className="table-scroll card" role="region" aria-label="Incident type taxonomy" tabIndex={0}>
+            <div className="table-scroll" role="region" aria-label="Incident type taxonomy" tabIndex={0}>
               <table className="data-table">
                 <caption className="sr-only">Incident type codes, labels and examples</caption>
                 <thead>
@@ -133,7 +120,7 @@ export default function MethodologyPage() {
                 <tbody>
                   {INCIDENT_TYPES.map((t) => (
                     <tr key={t} id={`type-${t}`}>
-                      <td className="font-semibold tabular">{t}</td>
+                      <td className="mono font-medium text-text">{t}</td>
                       <td>{INCIDENT_TYPE_META[t].label}</td>
                       <td>{INCIDENT_TYPE_META[t].description}</td>
                     </tr>
@@ -331,7 +318,7 @@ export default function MethodologyPage() {
             </table>
           </Section>
         </div>
-      </div>
+      </ReadingLayout>
     </main>
   )
 }

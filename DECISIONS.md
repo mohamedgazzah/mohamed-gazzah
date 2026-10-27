@@ -15,10 +15,10 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
    TypeScript next to hand-written SQL, generates migrations without a running database,
    and lets the public view be declared once and reused for queries, types and the data
    dictionary.
-4. **Self-hosted fonts.** Inter, Source Serif 4 and Noto Naskh Arabic are bundled from
-   npm (`@fontsource`, with `next/font/local` preloading the Latin files). No request
-   goes to Google: fewer third parties see readers' IP addresses, and builds need no
-   network.
+4. **Self-hosted fonts.** Newsreader, Libre Franklin, IBM Plex Mono and Noto Naskh Arabic
+   are bundled from npm (`@fontsource`, with `next/font/local` loading the Latin files).
+   No request goes to Google: fewer third parties see readers' IP addresses, and builds
+   need no network. (The typefaces themselves changed in the redesign; see item 47.)
 
 ## Authentication
 
@@ -107,10 +107,12 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
     a site needs a front page). The home map and the FBI/CAIR comparison figures are left
     for Phase 2: the comparison sentence links to Methodology, and **no external figures
     were invented**.
-26. **"Today"** (stat tiles, as-of dates, release versions) is the US Eastern calendar date.
-27. **Badges** sit on the surface color with a status-colored border. The spec's light
-    `--status-reported` on a 10% tint measures 4.30:1, below AA; on the surface it is
-    4.90:1. Each badge also carries text and, for verification, a shape (solid, half, ring).
+26. **"Today"** (stat tiles, as-of dates, release versions) is the US Eastern calendar date,
+    and so is the date shown for a timestamp ("Updated Oct. 26, 2026", change logs).
+27. **Badges** are status-colored text on the page or surface color, never on a tinted fill:
+    the spec's light `--status-reported` on a 10% tint measures 4.30:1, below AA, while on
+    the page and the surface it passes. Each badge also carries text and, for verification,
+    a shape (solid, half, ring). See item 49 for their form.
 28. **Demo records** are visible only where the database sets `record.allow_demo = on`
     (local and test databases). A production database never sets it, so even an accidental
     seed would not show.
@@ -184,6 +186,38 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
 45. **Role addresses follow the domain** (`editors@` and so on at the host of
     `NEXT_PUBLIC_SITE_URL`); Cloudflare Email Routing forwards them for free.
 46. **Node.js 22** is pinned in `package.json` (`engines`), the version the tests ran on.
+
+## Design (redesign, October 27, 2026)
+
+The first build followed Section 5 literally and looked like a template. At the project's
+request the look was redone; the colors, tone rules and components of Section 5 stand.
+
+47. **Typefaces replace Source Serif 4 and Inter** (the project's call). Newsreader, drawn for
+    news reading, sets headlines and reading text; its optical-size axis gives the finer
+    display cut at headline sizes. Libre Franklin, a revival of the American newspaper gothic,
+    sets the interface, labels and tables. IBM Plex Mono sets record ids, dates and other
+    reference data, so they read like docket entries. All three are under the SIL Open Font
+    License. Four pairings were compared on the same home-page mock-up before choosing. To keep
+    Lighthouse above 90 on mobile, Newsreader is trimmed to the weights the site uses
+    (400–600: 90 KB instead of 132 KB), the home headline's italic comes from a 14 KB cut that
+    is preloaded, the full italic loads only where running text uses it, and record pages set
+    quotations upright (`src/fonts/README.md`).
+48. **Type scale extended** beyond 14–40 px with fluid display steps (up to 60, 88 and 112 px)
+    for page titles, the home headline and headline numbers. Reading text is the serif at
+    19 px / 1.6, which reads like the specified 17 px because Newsreader's x-height is
+    smaller than a UI sans.
+49. **Badges** are a mark and a word (verification: solid, half or ring; severity: a square)
+    or a square-cornered stamp (legal status, demo), instead of rounded pills. They are still
+    text, never color alone, and each keeps its tooltip and link to the method.
+50. **Layout as a register**: ruled lists with the reference data in the margin instead of card
+    grids, numbered sections with ink rules, contents rails on long pages, square corners, and
+    an ink band for the footer and tooltips (new `--band-*` tokens, contrast-tested in both
+    themes like every other pair).
+51. **A year strip on the home page**: one line per verified record on a date axis, taller for
+    more severe incidents, with a "today" marker. Each month links to Explore filtered to that
+    month, each line opens its record, and the month links, a text summary and the list below
+    are the accessible version. The Phase 2 charts are still to come.
+52. **Date ranges in newsroom style**: "Aug. 1–2, 2026", "Aug. 30 – Sept. 2, 2026".
 
 ## Open questions (**Ask**)
 

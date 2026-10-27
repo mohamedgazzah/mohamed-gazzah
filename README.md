@@ -29,6 +29,7 @@ See [What is built](#what-is-built-phase-1) and [What remains](#what-remains).
 | Schema, migrations, types | Drizzle ORM + drizzle-kit, from one file: `src/db/schema.ts` |
 | Rules that must always hold | SQL triggers and functions: `drizzle/0002_rules.sql` |
 | Styling | Tailwind CSS 4 over the design tokens in `src/styles/tokens.css` |
+| Type | Newsreader (headlines, reading), Libre Franklin (interface), IBM Plex Mono (ids, dates); self-hosted |
 | Map | MapLibre GL JS (OpenFreeMap basemap by default, no key) |
 | Admin sign-in | Email + password, then mandatory TOTP two-factor authentication |
 | Spam protection | Cloudflare Turnstile (invisible), honeypot, Postgres rate limits |
@@ -159,8 +160,10 @@ changed. The audit log, reviews, change log and publications are append-only.
   with a plain-language privacy policy; sitemap and robots.
 - **Jobs**: nightly CSV/JSON release with SHA-256 and changelog; source
   archiving right after each save, with scheduled retries; 12-month retention purge.
-- **Design**: the Section 5 tokens exactly, light and dark themes (system or
-  manual toggle), WCAG 2.2 AA, logical CSS properties for future RTL.
+- **Design**: the Section 5 colors exactly, an editorial type system (Newsreader,
+  Libre Franklin, IBM Plex Mono), register-style lists, a year strip on the home page,
+  light and dark themes (system or manual toggle), WCAG 2.2 AA, logical CSS properties
+  for future RTL.
 
 ## What remains
 

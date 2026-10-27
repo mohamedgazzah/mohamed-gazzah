@@ -34,5 +34,7 @@ export function citations(rec: CitableRecord, accessed: string) {
 }
 
 export function datasetCitation(version: string) {
-  return `${SITE.publisher}. (${version.slice(0, 4)}). ${SITE.fullName} [Data set, version ${version}]. ${absoluteUrl('/data')}. License: ${SITE.dataLicense.name}.`
+  // Before the first release the version is "latest", which has no year: APA's "n.d.".
+  const year = /^\d{4}/.test(version) ? version.slice(0, 4) : 'n.d.'
+  return `${SITE.publisher}. (${year}). ${SITE.fullName} [Data set, version ${version}]. ${absoluteUrl('/data')}. License: ${SITE.dataLicense.name}.`
 }

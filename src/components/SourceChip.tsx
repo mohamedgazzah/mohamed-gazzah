@@ -17,11 +17,11 @@ function ArchiveIcon() {
 export function SourceChip({ source, idPrefix }: { source: Src; idPrefix: string }) {
   const tipId = `${idPrefix}-src-${source.n}`
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-control bg-surface ps-2.5 pe-1 text-sm">
+    <span className="inline-flex flex-wrap items-center gap-x-2 text-sm">
       <Tooltip id={tipId} tip={<>“{source.title}” · {SOURCE_TYPE_META[source.source_type].label}</>}>
-        <a href={source.url} rel="noopener noreferrer nofollow" target="_blank" aria-describedby={tipId} className="inline-flex min-h-8 items-center gap-1 text-text">
-          <span className="font-semibold">{source.outlet}</span>
-          {source.published_date ? <span className="text-muted tabular">{formatDate(source.published_date)}</span> : null}
+        <a href={source.url} rel="noopener noreferrer nofollow" target="_blank" aria-describedby={tipId} className="inline-flex min-h-7 items-center gap-2 text-text">
+          <span className="caps text-[12px]">{source.outlet}</span>
+          {source.published_date ? <span className="mono text-muted">{formatDate(source.published_date)}</span> : null}
           <span className="sr-only">(opens in a new tab)</span>
         </a>
       </Tooltip>
@@ -30,7 +30,7 @@ export function SourceChip({ source, idPrefix }: { source: Src; idPrefix: string
           href={source.archived_url}
           rel="noopener noreferrer nofollow"
           target="_blank"
-          className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-full text-accent"
+          className="inline-flex min-h-7 min-w-7 items-center justify-center text-accent"
           aria-label={`Archived copy of “${source.title}” (opens in a new tab)`}
         >
           <ArchiveIcon />

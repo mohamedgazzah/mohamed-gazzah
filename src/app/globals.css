@@ -14,6 +14,7 @@
   --color-text: var(--text);
   --color-muted: var(--text-muted);
   --color-rule: var(--rule);
+  --color-ink: var(--rule-strong);
   --color-accent: var(--accent);
   --color-confirmed: var(--status-confirmed);
   --color-reported: var(--status-reported);
@@ -24,13 +25,21 @@
   --color-on-accent: var(--on-accent);
   --color-control: var(--control-border);
   --color-mark: var(--mark-bg);
+  --color-band: var(--band-bg);
+  --color-band-text: var(--band-text);
+  --color-band-muted: var(--band-muted);
+  --color-band-accent: var(--band-accent);
+  --color-band-rule: var(--band-rule);
   --color-transparent: transparent;
   --color-current: currentColor;
 
   --font-serif: var(--typeface-serif);
   --font-sans: var(--typeface-sans);
+  --font-mono: var(--typeface-mono);
   --font-arabic: var(--typeface-arabic);
 
+  --text-xs: var(--step--1);
+  --text-xs--line-height: 1.45;
   --text-sm: var(--step-0);
   --text-sm--line-height: 1.5;
   --text-base: var(--step-1);
@@ -42,9 +51,15 @@
   --text-xl: var(--step-3);
   --text-xl--line-height: 1.3;
   --text-2xl: var(--step-4);
-  --text-2xl--line-height: 1.2;
+  --text-2xl--line-height: 1.15;
   --text-3xl: var(--step-5);
-  --text-3xl--line-height: 1.1;
+  --text-3xl--line-height: 1.06;
+  --text-4xl: var(--step-6);
+  --text-4xl--line-height: 1.02;
+  --text-5xl: var(--step-7);
+  --text-5xl--line-height: 0.98;
+  --text-6xl: var(--step-8);
+  --text-6xl--line-height: 0.92;
 
   --container-content: 1200px;
   --container-reading: 720px;
@@ -57,7 +72,10 @@
     font-family: var(--typeface-sans);
     font-size: 100%;
     -webkit-text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    font-optical-sizing: auto;
   }
   body {
     min-height: 100vh;
@@ -68,21 +86,34 @@
   }
   h1, h2, h3, h4 {
     font-family: var(--typeface-serif);
-    font-weight: 600;
+    font-weight: 500;
+    letter-spacing: -0.012em;
     text-wrap: balance;
+  }
+  h1 {
+    letter-spacing: -0.022em;
+  }
+  /* Serif italics come from their own faces: a small preloaded cut for display headlines, the full one (lazy) elsewhere. */
+  :is(h1, h2, h3, h4, blockquote, .font-serif, .serif) :is(em, i, cite),
+  .serif-italic {
+    font-family: var(--typeface-serif-italic);
+    font-style: italic;
+  }
+  .display :is(em, i) {
+    font-family: var(--typeface-display-italic);
   }
   a {
     color: var(--accent);
-    text-underline-offset: 0.18em;
+    text-underline-offset: 0.2em;
     text-decoration-thickness: 1px;
+    transition: text-decoration-thickness 120ms ease, color 120ms ease;
   }
   a:hover {
     text-decoration-thickness: 2px;
   }
   :focus-visible {
     outline: 2px solid var(--focus-ring);
-    outline-offset: 2px;
-    border-radius: 2px;
+    outline-offset: 3px;
   }
   ::selection {
     background: var(--accent-tint);
@@ -93,46 +124,159 @@
   mark {
     background: var(--mark-bg);
     color: inherit;
-    border-radius: 2px;
     padding: 0 1px;
   }
   table {
-    font-variant-numeric: tabular-nums;
+    font-variant-numeric: tabular-nums lining-nums;
   }
   input, select, textarea, button {
     font: inherit;
     color: inherit;
   }
+  input[type='checkbox'], input[type='radio'] {
+    accent-color: var(--accent);
+  }
   hr {
     border-color: var(--rule);
+  }
+  code, kbd, samp, pre {
+    font-family: var(--typeface-mono);
   }
 }
 
 @layer components {
   .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  /* Reference data: record ids, dates in metadata, as-of lines. */
+  .mono {
+    font-family: var(--typeface-mono);
+    font-size: var(--step--1);
+    letter-spacing: 0.01em;
     font-variant-numeric: tabular-nums;
   }
+  /* Small uppercase labels above sections and fields. */
+  .kicker {
+    font-family: var(--typeface-mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .caps {
+    font-family: var(--typeface-sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .display {
+    font-family: var(--typeface-serif);
+    font-weight: 500;
+    letter-spacing: -0.026em;
+    line-height: 0.98;
+    text-wrap: balance;
+  }
+  .figure {
+    font-family: var(--typeface-serif);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 0.9;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
   .reading {
+    font-family: var(--typeface-serif);
     font-size: var(--reading);
     line-height: 1.6;
-    max-width: 72ch;
+    max-width: 68ch;
   }
   .reading p + p {
     margin-top: 1em;
   }
+  /* Tables, code and lists inside serif reading text. */
+  .reading .data-table,
+  .reading .table-scroll {
+    font-family: var(--typeface-sans);
+    font-size: var(--step-0);
+    line-height: 1.5;
+  }
+  .reading code,
+  .prose-record code {
+    font-family: var(--typeface-mono);
+    font-size: 0.8em;
+    padding: 0.05em 0.3em;
+    background: var(--row-alt);
+    border: 1px solid var(--rule);
+  }
+  .reading h3 {
+    font-size: var(--step-3);
+    line-height: 1.25;
+    padding-top: 0.75rem;
+  }
+  /* A boxed note for content still to be supplied, or a caution. */
+  .note {
+    border: 1px dashed var(--control-border);
+    padding: 0.85rem 1rem;
+    font-family: var(--typeface-sans);
+    font-size: var(--step-0);
+    color: var(--text-muted);
+  }
+  .notice {
+    border-inline-start: 2px solid var(--rule-strong);
+    background: var(--surface);
+    padding: 1rem 1.25rem;
+  }
+  .wrap {
+    margin-inline: auto;
+    max-width: var(--container-content);
+    padding-inline: 1rem;
+  }
+  @media (min-width: 40rem) {
+    .wrap {
+      padding-inline: 1.5rem;
+    }
+  }
+  /* A section opens with an ink rule and a numbered label. */
+  .section-head {
+    border-top: 1px solid var(--rule-strong);
+    padding-top: 0.75rem;
+  }
+  .arrow-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .arrow-link:hover {
+    text-decoration: underline;
+  }
+  .arrow-link svg {
+    transition: transform 160ms ease;
+  }
+  .arrow-link:hover svg {
+    transform: translateX(3px);
+  }
+
   .control {
     display: block;
     width: 100%;
-    min-height: 44px;
+    min-height: 46px;
     border: 1px solid var(--control-border);
-    border-radius: 6px;
+    border-radius: 2px;
     background: var(--surface);
     color: var(--text);
-    padding: 0.5rem 0.75rem;
+    padding: 0.55rem 0.75rem;
+    transition: border-color 120ms ease;
+  }
+  .control:hover {
+    border-color: var(--text);
   }
   .control:focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 1px;
+    border-color: var(--text);
   }
   textarea.control {
     min-height: 7rem;
@@ -143,27 +287,31 @@
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    min-height: 44px;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
+    min-height: 46px;
+    padding: 0.55rem 1.15rem;
+    border-radius: 2px;
     border: 1px solid var(--accent);
     background: var(--accent);
     color: var(--on-accent);
     font-weight: 600;
+    letter-spacing: 0.01em;
     text-decoration: none;
     cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
   }
   .btn:hover {
     text-decoration: none;
-    filter: brightness(1.08);
+    background: var(--text);
+    border-color: var(--text);
+    color: var(--bg);
   }
   .btn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
   .btn-secondary {
-    background: var(--surface);
-    color: var(--accent);
+    background: transparent;
+    color: var(--text);
     border-color: var(--control-border);
   }
   .btn-quiet {
@@ -172,11 +320,17 @@
     border-color: transparent;
     padding-inline: 0.5rem;
   }
+  .btn-quiet:hover {
+    background: transparent;
+    border-color: transparent;
+    color: var(--accent);
+    text-decoration: underline;
+  }
   .label {
     display: block;
     font-weight: 600;
     font-size: var(--step-0);
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
   }
   .hint {
     color: var(--text-muted);
@@ -190,8 +344,151 @@
   .card {
     background: var(--surface);
     border: 1px solid var(--rule);
-    border-radius: 8px;
+    border-radius: 2px;
   }
+
+  /* Badges: a mark and a word, never color alone. */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 24px;
+    font-size: var(--step--1);
+    font-weight: 600;
+    line-height: 1.2;
+    text-decoration: none;
+  }
+  .badge:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+  .badge-box {
+    border: 1px solid var(--control-border);
+    padding: 0.05rem 0.45rem;
+    font-weight: 500;
+  }
+  .badge-square {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    background: currentColor;
+  }
+
+  /* A list of records set like a register: rules between entries. */
+  .ledger {
+    border-top: 1px solid var(--rule-strong);
+  }
+  .ledger > li {
+    border-bottom: 1px solid var(--rule);
+  }
+
+  /* Headline numbers in a row, divided by hairlines. */
+  .register {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-bottom: 1px solid var(--rule);
+  }
+  .register > li {
+    border-top: 1px solid var(--rule);
+  }
+  .register > li:nth-child(even) {
+    border-inline-start: 1px solid var(--rule);
+    padding-inline-start: 1.25rem;
+  }
+  @media (min-width: 64rem) {
+    .register {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .register > li {
+      border-top: 0;
+    }
+    .register > li + li {
+      border-inline-start: 1px solid var(--rule);
+      padding-inline-start: 1.5rem;
+    }
+  }
+
+  .segmented {
+    display: inline-flex;
+    flex-wrap: wrap;
+    border: 1px solid var(--control-border);
+    border-radius: 2px;
+  }
+  .segmented > * {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    padding: 0 0.85rem;
+    font-size: var(--step-0);
+    font-weight: 500;
+    color: var(--text);
+    text-decoration: none;
+  }
+  .segmented > * + * {
+    border-inline-start: 1px solid var(--control-border);
+  }
+  .segmented > :hover {
+    background: var(--row-hover);
+  }
+  .segmented > [aria-current],
+  .segmented > :has(input:checked) {
+    background: var(--text);
+    color: var(--bg);
+  }
+  .segmented > :has(input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .chip {
+    display: inline-flex;
+    min-height: 36px;
+    align-items: center;
+    gap: 0.4rem;
+    border: 1px solid var(--control-border);
+    border-radius: 2px;
+    background: var(--surface);
+    padding: 0 0.7rem;
+    font-size: var(--step-0);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .chip:hover {
+    border-color: var(--text);
+  }
+
+  /* Explore filter groups: a labelled row that opens. */
+  .filter-group > summary {
+    display: flex;
+    min-height: 46px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: space-between;
+    list-style: none;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .filter-group > summary::-webkit-details-marker {
+    display: none;
+  }
+  .filter-group > summary::after {
+    content: '+';
+    content: '+' / '';
+    font-family: var(--typeface-mono);
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  .filter-group[open] > summary::after {
+    content: '–';
+    content: '–' / '';
+  }
+  .filter-group > fieldset {
+    padding-bottom: 1rem;
+  }
+
   .sr-only-focusable:not(:focus):not(:focus-within) {
     position: absolute;
     width: 1px;
@@ -214,16 +511,18 @@
     top: calc(100% + 6px);
     z-index: 30;
     width: max-content;
-    max-width: min(18rem, calc(100vw - 2rem));
-    padding: 0.5rem 0.625rem;
-    border: 1px solid var(--rule);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--text);
+    max-width: min(19rem, calc(100vw - 2rem));
+    padding: 0.6rem 0.75rem;
+    border-radius: 2px;
+    background: var(--band-bg);
+    color: var(--band-text);
+    font-family: var(--typeface-sans);
     font-size: var(--step-0);
     font-weight: 400;
     line-height: 1.45;
-    box-shadow: 0 4px 16px color-mix(in srgb, var(--text) 12%, transparent);
+    text-transform: none;
+    letter-spacing: normal;
+    box-shadow: 0 6px 24px color-mix(in srgb, var(--band-bg) 22%, transparent);
     /* display:none, not visibility:hidden, so hidden tooltips never widen the page */
     display: none;
   }
@@ -234,11 +533,15 @@
   .tips-dismissed .tip-body {
     display: none !important;
   }
+
   .table-scroll {
     /* relative: keeps absolutely positioned descendants (sr-only text) inside the scroll box */
     position: relative;
     overflow-x: auto;
     max-width: 100%;
+    background: var(--surface);
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule);
   }
   .data-table {
     width: 100%;
@@ -251,19 +554,31 @@
     top: 0;
     z-index: 1;
     background: var(--surface);
-    border-bottom: 2px solid var(--rule);
+    border-bottom: 1px solid var(--rule-strong);
     text-align: start;
+    font-size: 11.5px;
     font-weight: 600;
-    padding: 0.625rem 0.75rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 0.7rem 0.85rem;
     white-space: nowrap;
   }
+  .data-table thead th a {
+    color: var(--text);
+  }
   .data-table td {
-    padding: 0.625rem 0.75rem;
+    padding: 0.85rem;
     border-bottom: 1px solid var(--rule);
     vertical-align: top;
   }
+  .data-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
   .data-table tbody tr:nth-child(even) {
     background: var(--row-alt);
+  }
+  .data-table tbody tr {
+    transition: background-color 120ms ease;
   }
   .data-table tbody tr:hover,
   .data-table tbody tr:focus-within {
@@ -272,6 +587,90 @@
   .data-table .num {
     text-align: end;
     font-variant-numeric: tabular-nums;
+  }
+
+  /* Long-form pages (Methodology, About, Data). */
+  .prose-record {
+    font-size: var(--step-1);
+  }
+  .prose-record h2 {
+    font-size: var(--step-5);
+    line-height: 1.06;
+    margin-top: 4.5rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--rule-strong);
+  }
+  .prose-record h3 {
+    font-size: var(--step-3);
+    line-height: 1.25;
+    margin-top: 2.25rem;
+  }
+  .prose-record > p,
+  .prose-record section > p,
+  .prose-record li {
+    font-family: var(--typeface-serif);
+    font-size: var(--reading);
+    line-height: 1.6;
+  }
+  .prose-record p + p {
+    margin-top: 1em;
+  }
+}
+
+/*
+ * The ink band: footer, tooltips and closing blocks. Unlayered on purpose, so
+ * these colors win over the color utilities used inside them.
+ */
+.tip-body .text-muted {
+  color: var(--band-muted);
+}
+.band {
+  background: var(--band-bg);
+  color: var(--band-text);
+}
+.band a {
+  color: var(--band-text);
+}
+.band a:hover {
+  color: var(--band-accent);
+}
+.band .text-muted,
+.band .kicker {
+  color: var(--band-muted);
+}
+.band :focus-visible {
+  outline-color: var(--band-accent);
+}
+.band .segmented {
+  border-color: var(--band-rule);
+}
+.band .segmented > * {
+  color: var(--band-text);
+}
+.band .segmented > * + * {
+  border-inline-start-color: var(--band-rule);
+}
+.band .segmented > :hover {
+  background: color-mix(in srgb, var(--band-text) 8%, var(--band-bg));
+}
+.band .segmented > :has(input:checked) {
+  background: var(--band-text);
+  color: var(--band-bg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .draw-up {
+    transform-box: fill-box;
+    transform-origin: bottom;
+    animation: draw-up 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  @keyframes draw-up {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
   }
 }
 

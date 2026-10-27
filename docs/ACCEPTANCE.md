@@ -10,7 +10,7 @@ npm run typecheck && npm test && npm run test:e2e && npm run test:db-down && npm
 | Suite | Result |
 | --- | --- |
 | Type check (`tsc --noEmit`, app + tests) | clean |
-| Unit tests (Vitest, `tests/unit`) | 83 passed |
+| Unit tests (Vitest, `tests/unit`) | 88 passed |
 | Database integration tests (Vitest, `tests/db`, real Postgres) | 56 passed |
 | End-to-end tests (Playwright, `tests/e2e`, production build) | 69 passed (67 desktop, 2 mobile) |
 | Database-down check (`scripts/test-db-down.ts`) | 9 of 9 pages served |
@@ -71,11 +71,22 @@ mobile emulation, production build on localhost):
 
 | Page | Performance | Accessibility | Best practices | SEO |
 | --- | --- | --- | --- | --- |
-| Home `/` | 99 | 100 | 100 | 100 |
-| Explore `/incidents` | 95 | 100 | 100 | 100 |
-| Incident `/incidents/DEMO-2026-0002…` | 99 | 100 | 100 | 66* |
+| Home `/` | 92, 92 | 100 | 100 | 100 |
+| Explore `/incidents` | 92, 97 | 100 | 100 | 100 |
+| Incident `/incidents/DEMO-2026-0002…` | 93, 92 | 100 | 100 | 66* |
 
 \* Demo records are deliberately `noindex`; real records are indexable.
+
+Two runs on the final build. Performance moves by a few points from run to run on
+this machine, so rerun before reading a dip as a regression: in one earlier run the
+incident page scored 85 because a one-second script with no source URL, which none
+of the site's scripts are, ran during the trace and counted as blocking time.
+
+These are the scores after the redesign (new typefaces). Keeping them above 90 took
+trimmed font files: Newsreader limited to the weights used (90 KB instead of 132 KB),
+a 14 KB italic cut for the home headline so it paints once without reflowing, no
+italics on record pages, and drawn arrows instead of ↑ and ↓, which the typefaces
+lack: asking for them fetched a second copy of a font (see `src/fonts/README.md`).
 
 **7. axe-core reports zero serious accessibility violations. Full keyboard
 navigation works on Explore and the Report form.** **Pass.**
@@ -112,8 +123,9 @@ text/background pair, derived tints (zebra rows, hover, search highlight), butto
 text and control borders in both themes, confirms the exact Section 5 values, and
 scans the source for any color literal outside `src/styles/tokens.css`. axe's
 color-contrast rule passes in both themes. Note: the spec's light
-`--status-reported` on a 10% tint is 4.30:1, so badges use the surface color with
-a status border instead (4.90:1). See `DECISIONS.md` item 27.
+`--status-reported` on a 10% tint is 4.30:1, so badges are colored text on the page or
+surface color, never on a tint. The ink band used by the footer and tooltips is checked the
+same way. See `DECISIONS.md` items 27 and 50.
 
 **11. Incident pages are statically generated and still load if the database is
 down.** **Pass.** The build prerenders every published record. `npm run test:db-down`
