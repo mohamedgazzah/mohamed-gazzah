@@ -32,6 +32,17 @@
   /* QR codes must stay dark-on-light in both themes to scan. */
   --qr-dark: #000000;
   --qr-light: #ffffff;
+  /* Backdrop wash behind glass (with --accent), and the glass itself. */
+  --ambient-2: #6f86b0;
+  --mask: #000000;
+  --glass: rgb(255 255 255 / 0.62);
+  --glass-strong: rgb(255 255 255 / 0.88);
+  --glass-rim: rgb(255 255 255 / 0.95);
+  --glass-edge: rgb(26 29 33 / 0.1);
+  --glass-sheen: rgb(255 255 255 / 0.65);
+  --shadow-sm: 0 1px 2px rgb(26 29 33 / 0.05), 0 2px 6px rgb(26 29 33 / 0.04);
+  --shadow-md: 0 2px 6px rgb(26 29 33 / 0.05), 0 14px 34px -10px rgb(26 29 33 / 0.16);
+  --shadow-lg: 0 6px 16px rgb(26 29 33 / 0.06), 0 30px 60px -18px rgb(26 29 33 / 0.24);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -56,6 +67,15 @@
     --band-muted: #a3a9b0;
     --band-accent: #6fb8a4;
     --band-rule: #2c3036;
+    --ambient-2: #4b67a0;
+    --glass: rgb(30 34 39 / 0.56);
+    --glass-strong: rgb(30 34 39 / 0.88);
+    --glass-rim: rgb(255 255 255 / 0.16);
+    --glass-edge: rgb(0 0 0 / 0.5);
+    --glass-sheen: rgb(255 255 255 / 0.08);
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+    --shadow-md: 0 2px 8px rgb(0 0 0 / 0.35), 0 18px 40px -12px rgb(0 0 0 / 0.6);
+    --shadow-lg: 0 8px 20px rgb(0 0 0 / 0.4), 0 32px 64px -16px rgb(0 0 0 / 0.7);
   }
 }
 
@@ -80,6 +100,15 @@
   --band-muted: #a3a9b0;
   --band-accent: #6fb8a4;
   --band-rule: #2c3036;
+  --ambient-2: #4b67a0;
+  --glass: rgb(30 34 39 / 0.56);
+  --glass-strong: rgb(30 34 39 / 0.88);
+  --glass-rim: rgb(255 255 255 / 0.16);
+  --glass-edge: rgb(0 0 0 / 0.5);
+  --glass-sheen: rgb(255 255 255 / 0.08);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 2px 8px rgb(0 0 0 / 0.35), 0 18px 40px -12px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 8px 20px rgb(0 0 0 / 0.4), 0 32px 64px -16px rgb(0 0 0 / 0.7);
 }
 
 /* Print on paper in the light theme's colors, whatever the screen shows. */
@@ -109,6 +138,16 @@
     --band-rule: #3a3f46;
     --qr-dark: #000000;
     --qr-light: #ffffff;
+    --ambient-2: #6f86b0;
+    --mask: #000000;
+    --glass: rgb(255 255 255 / 0.62);
+    --glass-strong: rgb(255 255 255 / 0.88);
+    --glass-rim: rgb(255 255 255 / 0.95);
+    --glass-edge: rgb(26 29 33 / 0.1);
+    --glass-sheen: rgb(255 255 255 / 0.65);
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
   }
 }
 
@@ -125,14 +164,13 @@
   --scrim: color-mix(in srgb, var(--text) 45%, transparent);
   --mark-bg: color-mix(in srgb, var(--status-reported) 16%, var(--surface));
 
-  /* Ruled lines in ink: section openings, table heads, the masthead. */
-  --rule-strong: var(--text);
+  /* A slightly firmer hairline than --rule: table heads, section openings. */
+  --rule-strong: color-mix(in srgb, var(--text) 16%, var(--rule));
 
   /*
-   * Type. The specification's steps (14 / 16 / 18 / 22 / 28 / 40 px) plus
-   * display steps for headlines and figures. Reading text is set in the serif
-   * at 19px / 1.6: Newsreader has a smaller x-height than a UI sans, so this
-   * reads like the specified 17px.
+   * Type: the specification's steps (14 / 16 / 18 / 22 / 28 / 40 px) plus
+   * display steps for headlines and figures. One family, Instrument Sans,
+   * for everything; reading text is 17.5px / 1.7.
    */
   --step--1: 13px;
   --step-0: 14px;
@@ -141,15 +179,22 @@
   --step-3: 22px;
   --step-4: 28px;
   --step-5: 40px;
-  --step-6: clamp(40px, 5.2vw, 60px);
-  --step-7: clamp(44px, 6.4vw, 88px);
-  --step-8: clamp(56px, 8vw, 112px);
-  --reading: 19px;
-  /* --font-* are set by next/font (src/app/fonts.ts); the @fontsource family covers other scripts. */
-  --typeface-serif: var(--font-newsreader), 'Newsreader Variable', Georgia, 'Times New Roman', serif;
-  --typeface-serif-italic: var(--font-newsreader-italic), Georgia, 'Times New Roman', serif;
-  --typeface-display-italic: var(--font-newsreader-display-italic), var(--font-newsreader-italic), Georgia, 'Times New Roman', serif;
-  --typeface-sans: var(--font-franklin), 'Libre Franklin Variable', 'Helvetica Neue', Arial, sans-serif;
-  --typeface-mono: var(--font-plex-mono), 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --step-6: clamp(36px, 4.8vw, 56px);
+  --step-7: clamp(40px, 6vw, 76px);
+  --step-8: clamp(48px, 7.4vw, 96px);
+  --reading: 17.5px;
+  /* --font-instrument is set by next/font (src/app/fonts.ts); the @fontsource family covers other scripts. */
+  --typeface-sans: var(--font-instrument), 'Instrument Sans Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --typeface-italic: var(--font-instrument-italic), var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
+  --typeface-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
   --typeface-arabic: 'Noto Naskh Arabic', 'Geeza Pro', 'Arabic Typesetting', serif;
+
+  /* Shape and motion. */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 26px;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+  --focus-glow: 0 0 0 4px color-mix(in srgb, var(--accent) 24%, transparent);
 }

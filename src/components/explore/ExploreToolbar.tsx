@@ -1,3 +1,4 @@
+import { CalendarDays, CalendarRange, Tags } from 'lucide-react'
 import Link from 'next/link'
 import { INCIDENT_TYPES, INCIDENT_TYPE_META, type IncidentType } from '@/db/enums'
 import { activePreset, datePresets, describeDates, explorePath, serializeFilters, type Filters, type ViewState } from '@/lib/filters'
@@ -40,9 +41,10 @@ export function ExploreToolbar({
     explorePath({ ...filters, type: filters.type.includes(t) ? filters.type.filter((x) => x !== t) : [...filters.type, t] }, base)
 
   return (
-    <div className="toolbar">
+    <div className="glass toolbar">
       <div className="toolbar-row">
         <span className="kicker toolbar-label" id="tb-dates">
+          <CalendarRange aria-hidden="true" />
           Dates
         </span>
         <nav aria-labelledby="tb-dates" className="segmented">
@@ -53,8 +55,11 @@ export function ExploreToolbar({
           ))}
         </nav>
         <details className="custom-range">
-          <summary data-active={preset ? undefined : 'true'}>{preset ? 'Custom range' : describeDates(filters, today)}</summary>
-          <form method="get" action="/incidents" className="custom-range-form">
+          <summary data-active={preset ? undefined : 'true'}>
+            <CalendarDays aria-hidden="true" />
+            {preset ? 'Custom range' : describeDates(filters, today)}
+          </summary>
+          <form method="get" action="/incidents" className="glass-strong custom-range-form">
             <Carry filters={filters} view={view} except={['from', 'to']} />
             <label>
               <span className="label">From</span>
@@ -73,6 +78,7 @@ export function ExploreToolbar({
 
       <div className="toolbar-row">
         <span className="kicker toolbar-label" id="tb-types">
+          <Tags aria-hidden="true" />
           Incident type
         </span>
         <ul aria-labelledby="tb-types" className="type-toggles">

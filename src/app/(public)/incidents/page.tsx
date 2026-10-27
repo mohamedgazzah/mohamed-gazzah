@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Arrow } from '@/components/Arrow'
+import { ArrowLeft, Download, FileSpreadsheet, Map as MapIcon, Printer, X } from 'lucide-react'
 import { EmptyState } from '@/components/EmptyState'
 import { IncidentCard } from '@/components/IncidentCard'
 import { IncidentTable } from '@/components/IncidentTable'
+import { PageHeader } from '@/components/PageHeader'
 import { Pagination } from '@/components/Pagination'
 import { BarList } from '@/components/charts/BarList'
 import { StateMap } from '@/components/charts/StateMap'
@@ -79,22 +80,18 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
   const cityRows = (cities?.cities ?? []).map((c) => ({ key: c.city, label: c.city, value: c.count, href: explorePath({ ...filters, city: c.city }, base) }))
 
   return (
-    <main className="wrap pt-10 pb-4 md:pt-14">
-      <div className="grid gap-x-6 gap-y-4 pb-6 md:grid-cols-12">
-        <div className="md:col-span-8">
-          <p className="kicker">The record · Explore</p>
-          <h1 className="display mt-3 text-4xl">Explore incidents</h1>
-        </div>
-        <p className="max-w-[46ch] self-end text-[15.5px] text-muted md:col-span-4">
-          Every published record, by date, place and type. Filters are kept in the page address, so any view can be shared, printed or
-          downloaded. <Link href="/methodology#inclusion">What is included</Link>.
-        </p>
+    <main className="wrap pt-6 pb-4 md:pt-8">
+      <PageHeader kicker="Explore the record" icon={<MapIcon aria-hidden="true" />} title="Explore incidents">
+        Every published record, by date, place and type. Filters are kept in the page address, so any view can be shared, printed or downloaded.{' '}
+        <Link href="/methodology#inclusion">What is included</Link>.
+      </PageHeader>
+
+      <div className="mt-6">
+        <ExploreToolbar key={canonical} filters={filters} view={vs} today={today} typeCounts={typeCounts} />
       </div>
 
-      <ExploreToolbar key={canonical} filters={filters} view={vs} today={today} typeCounts={typeCounts} />
-
-      <div className="mt-8 grid gap-10 md:grid-cols-[16.5rem_minmax(0,1fr)]">
-        <aside aria-label="More filters" className="no-print md:sticky md:top-4 md:max-h-[calc(100vh-2rem)] md:self-start md:overflow-y-auto md:pe-1">
+      <div className="mt-8 grid gap-8 md:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside aria-label="More filters" className="no-print md:sticky md:top-24 md:max-h-[calc(100vh-7rem)] md:self-start md:overflow-y-auto">
           <FilterDrawer activeCount={active.length}>
             {/* Keyed by the filters, so after a link changes them the form shows the new values. */}
             <FilterRail key={canonical} filters={filters} view={vs} />
@@ -109,15 +106,18 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                 {focusName ? `in ${filters.city ? `${filters.city}, ` : ''}${focusName}` : `in ${plural(stateCount, 'state')}`}, {when}
               </span>
             </h2>
-            <div className="no-print flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
-              <a href={withQs('/incidents/download')} className="arrow-link" download>
-                Download incidents (CSV) <Arrow direction="down" />
+            <div className="no-print flex flex-wrap items-center gap-2">
+              <a href={withQs('/incidents/download')} className="btn btn-secondary btn-sm" download>
+                <Download aria-hidden="true" className="nudge-down" />
+                Download incidents (CSV)
               </a>
-              <a href={withQs('/incidents/download/states')} className="arrow-link" download>
-                Download totals by state (CSV) <Arrow direction="down" />
+              <a href={withQs('/incidents/download/states')} className="btn btn-secondary btn-sm" download>
+                <FileSpreadsheet aria-hidden="true" />
+                Download totals by state (CSV)
               </a>
-              <Link href={withQs('/incidents/print')} className="arrow-link">
-                Print or save as PDF <Arrow />
+              <Link href={withQs('/incidents/print')} className="btn btn-secondary btn-sm">
+                <Printer aria-hidden="true" />
+                Print or save as PDF
               </Link>
             </div>
           </div>
@@ -128,25 +128,21 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
                 <li key={c.key}>
                   <Link href={c.removeHref} className="chip" aria-label={`Remove filter: ${c.label}`}>
                     {c.label}
-                    <span aria-hidden="true" className="text-base leading-none text-muted">
-                      ×
-                    </span>
+                    <X aria-hidden="true" />
                   </Link>
                 </li>
               ))}
             </ul>
           ) : null}
 
-          <section id="map" aria-labelledby="map-heading" className="mt-8 border-t border-ink pt-4">
-            <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-              <h3 id="map-heading" className="text-[24px] leading-tight">
+          <section id="map" aria-labelledby="map-heading" className="map-card mt-6 scroll-mt-24">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+              <h3 id="map-heading" className="text-[22px] leading-tight">
                 {focusName ? `${focusName}, by city` : 'By state'}
               </h3>
               {focusName ? (
-                <Link href={allStatesHref} className="arrow-link no-print text-[15px]">
-                  <span className="rotate-180">
-                    <Arrow />
-                  </span>
+                <Link href={allStatesHref} className="btn btn-secondary btn-sm no-print">
+                  <ArrowLeft aria-hidden="true" />
                   All states
                 </Link>
               ) : (
@@ -178,9 +174,9 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
               noun={includesV1 ? 'incident' : 'record'}
             />
 
-            <div className="mt-8 grid gap-x-10 gap-y-6 lg:grid-cols-2">
+            <div className="mt-6 grid gap-x-10 gap-y-6 border-t border-rule pt-6 lg:grid-cols-2">
               <div>
-                <h4 className="kicker mb-2 text-text">{focusName ? 'Cities with the most records' : 'States with the most records'}</h4>
+                <h4 className="mb-2 text-[15px] font-semibold">{focusName ? 'Cities with the most records' : 'States with the most records'}</h4>
                 {(focusName ? cityRows : ranked).length ? (
                   <BarList rows={(focusName ? cityRows : ranked).slice(0, 10)} label={focusName ? `Records by city in ${focusName}` : 'Records by state'} noun="records" />
                 ) : (
@@ -220,12 +216,12 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
             </div>
           </section>
 
-          <section aria-labelledby="list-heading" className="mt-12 border-t border-ink pt-4">
+          <section aria-labelledby="list-heading" className="mt-12">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h3 id="list-heading" className="text-[24px] leading-tight">
                 The records
                 {result.total > result.pageSize ? (
-                  <span className="mono ms-3 align-middle text-[13px] text-muted">
+                  <span className="mono ms-3 align-middle text-[14px] font-normal text-muted">
                     {formatNumber(first)}–{formatNumber(last)} of {formatNumber(result.total)}
                   </span>
                 ) : null}
@@ -290,7 +286,7 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
             </div>
 
             <Pagination page={result.page} pages={result.pages} hrefFor={(n) => explorePath(filters, { ...vs, page: n })} />
-            <p className="mono mt-8 max-w-[80ch] text-muted">
+            <p className="mt-8 max-w-[80ch] text-sm text-muted">
               {PAGE_SIZE} records per page, in a stable order, so a page number can be cited. Counts include V2 and V3 records unless V1 is
               selected. The CSV and the printable version include every matching record, not just this page.
             </p>

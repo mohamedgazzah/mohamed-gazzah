@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ChevronRight, Copy, FileWarning, Hash, Quote, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
 import { CopyButton } from '@/components/CopyButton'
@@ -44,7 +45,7 @@ function RelatedList({ title, items }: { title: string; items: IncidentListItem[
   if (!items.length) return null
   return (
     <div className="mb-8">
-      <h3 className="kicker mb-3 text-text">{title}</h3>
+      <h3 className="mb-3 text-[15px] font-semibold text-muted">{title}</h3>
       <ul className="ledger">
         {items.map((i) => (
           <li key={i.id}>
@@ -79,27 +80,36 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
   ].filter((c) => c.show)
 
   return (
-    <main className="wrap pt-8 pb-4 md:pt-10">
-      <nav aria-label="Breadcrumb" className="mono mb-8 md:mb-12">
-        <Link href="/incidents">All incidents</Link>
-        <span aria-hidden="true" className="text-muted">
-          {' '}
-          /{' '}
-        </span>
-        <span className="text-muted">{inc.id}</span>
+    <main className="wrap pt-6 pb-4 md:pt-8">
+      <nav aria-label="Breadcrumb" className="mb-8 md:mb-10">
+        <p className="glass eyebrow">
+          <Link href="/incidents" className="font-semibold">
+            All incidents
+          </Link>
+          <ChevronRight aria-hidden="true" className="text-muted" />
+          <span className="tabular text-muted">{inc.id}</span>
+        </p>
       </nav>
-      <div className="grid gap-x-6 gap-y-8 md:grid-cols-12">
-        <aside aria-label="About this record" className="md:col-span-3">
-          <div className="border-t border-ink pt-3 md:sticky md:top-8">
-            <p className="kicker">Record</p>
-            <p className="mono mt-2 text-[15px] text-text">{inc.id}</p>
-            {inc.updatedAt ? <p className="mono mt-1 text-muted">Updated {formatTimestamp(inc.updatedAt)}</p> : null}
-            <nav aria-label="On this page" className="mt-8 hidden md:block">
-              <p className="kicker">On this page</p>
-              <ol className="mt-3 space-y-1.5 text-[14.5px]">
+      <div className="grid gap-x-8 gap-y-8 md:grid-cols-12">
+        <aside aria-label="About this record" className="md:order-last md:col-span-4 lg:col-span-3 lg:col-start-10">
+          <div className="glass rounded-[var(--radius-md)] p-4 md:sticky md:top-24">
+            <p className="flex items-center gap-2 text-[13px] font-semibold text-muted">
+              <Hash aria-hidden="true" size={15} />
+              Record
+            </p>
+            <p className="tabular mt-1 text-[16px] font-semibold">{inc.id}</p>
+            {inc.updatedAt ? (
+              <p className="mono mt-1 flex items-center gap-1.5 text-muted">
+                <RefreshCw aria-hidden="true" size={13} />
+                Updated {formatTimestamp(inc.updatedAt)}
+              </p>
+            ) : null}
+            <nav aria-label="On this page" className="mt-5 hidden border-t border-rule pt-4 md:block">
+              <p className="kicker px-2">On this page</p>
+              <ol className="mt-2 space-y-0.5 text-[14.5px]">
                 {contents.map((c) => (
                   <li key={c.id}>
-                    <a href={`#${c.id}`} className="text-text no-underline hover:text-accent hover:underline">
+                    <a href={`#${c.id}`} className="block rounded-[10px] px-2 py-1.5 text-text no-underline hover:bg-row-hover hover:no-underline">
                       {c.label}
                     </a>
                   </li>
@@ -108,28 +118,32 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
             </nav>
           </div>
         </aside>
-        <div className="min-w-0 md:col-span-9 lg:col-span-8">
+        <div className="min-w-0 md:col-span-8 lg:col-span-8">
           <div className="max-w-reading">
             {inc.isDemo ? (
-              <p className="mb-8 border border-dashed border-control p-3 text-[15px] text-muted" role="note">
+              <p className="note mb-8 text-[15px]" role="note">
                 This is a fictional demonstration record used for development. It describes no real event.
               </p>
             ) : null}
             <IncidentView data={{ ...inc, updatedAt: inc.updatedAt }} />
 
             <section aria-labelledby="actions-heading" className="mb-12">
-              <h2 id="actions-heading" className="section-head mb-5 scroll-mt-6 text-[28px] leading-tight">
+              <h2 id="actions-heading" className="section-head mb-4 scroll-mt-24 text-[26px] leading-tight">
                 Cite or correct this record
               </h2>
               <div className="flex flex-wrap gap-2">
-                <CopyButton text={cite.url} label="Copy link" />
+                <CopyButton text={cite.url} label="Copy link" icon={<Copy aria-hidden="true" />} />
                 <Link href={`/report?mode=correction&record=${encodeURIComponent(inc.id)}`} className="btn btn-secondary">
+                  <FileWarning aria-hidden="true" />
                   Report a correction
                 </Link>
               </div>
-              <details className="mt-4">
-                <summary className="flex min-h-11 cursor-pointer items-center font-semibold text-accent">Cite this record (APA, Chicago, BibTeX)</summary>
-                <div className="space-y-5 pt-3">
+              <details className="card mt-4 px-5 py-1">
+                <summary className="flex min-h-12 cursor-pointer items-center gap-2 font-semibold text-accent">
+                  <Quote aria-hidden="true" size={16} />
+                  Cite this record (APA, Chicago, BibTeX)
+                </summary>
+                <div className="space-y-5 pt-2 pb-4">
                   {(
                     [
                       ['APA', cite.apa],
@@ -139,7 +153,7 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
                   ).map(([label, text]) => (
                     <div key={label}>
                       <p className="kicker mb-2">{label}</p>
-                      <pre className="overflow-x-auto border-s border-ink bg-surface p-3 text-[13px] leading-relaxed whitespace-pre-wrap">{text}</pre>
+                      <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-[13px] leading-relaxed whitespace-pre-wrap">{text}</pre>
                       <CopyButton text={text} label={`Copy ${label}`} className="btn btn-quiet mt-1" />
                     </div>
                   ))}
@@ -149,7 +163,7 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
 
             {hasRelated ? (
               <section aria-labelledby="related-heading" className="mb-12">
-                <h2 id="related-heading" className="section-head mb-5 text-[28px] leading-tight">
+                <h2 id="related-heading" className="section-head mb-4 text-[26px] leading-tight">
                   Related records
                 </h2>
                 <RelatedList title="Same case" items={related.sameCase} />

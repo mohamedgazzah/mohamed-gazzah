@@ -4,6 +4,9 @@ node_modules/
 # next.js
 .next/
 .next-e2e/
+.next-design/
+# written by `next dev`
+AGENTS.md
 out/
 next-env.d.ts
 *.tsbuildinfo

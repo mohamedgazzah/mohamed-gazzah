@@ -1,73 +1,96 @@
+import { ArrowRight, MessageSquarePlus } from 'lucide-react'
 import Link from 'next/link'
 import { METHODOLOGY_VERSION } from '@/db/enums'
 import { formatTimestamp } from '@/lib/format'
 import { SITE } from '@/lib/site'
-import { Arrow } from './Arrow'
+import { BrandMark } from './BrandMark'
 import { ThemeToggle } from './ThemeToggle'
 
-const LINKS = [
+const RECORD_LINKS = [
   { href: '/incidents', label: 'Explore the record' },
   { href: '/methodology', label: 'Methodology' },
   { href: '/data', label: 'Data and downloads' },
+]
+
+const PROJECT_LINKS = [
+  { href: '/about', label: 'About' },
   { href: '/report?mode=correction', label: 'Request a correction' },
   { href: '/about#privacy', label: 'Privacy' },
-  { href: '/about', label: 'About' },
+  { href: '/about#contact', label: 'Contact' },
 ]
 
 export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   return (
-    <footer className="band mt-24">
-      <div className="wrap pt-14 pb-6">
-        <div className="grid gap-10 md:grid-cols-12">
-          <div className="md:col-span-5">
-            <p className="kicker">About this record</p>
-            <p className="mt-3 max-w-[34ch] font-serif text-[22px] leading-snug">
-              A public record. Every entry is sourced, and allegations are never presented as convictions.
+    <footer className="band mt-28 rounded-t-[32px]">
+      <div className="wrap pt-14 pb-8 md:pt-16">
+        <div className="grid gap-x-8 gap-y-12 md:grid-cols-12">
+          <div className="md:col-span-6 lg:col-span-4">
+            <p className="flex items-center gap-3 text-[19px] font-semibold tracking-[-0.02em]">
+              <span className="brand-mark">
+                <BrandMark />
+              </span>
+              {SITE.name}
             </p>
-            <p className="mt-5">
-              <Link href="/report" className="arrow-link">
-                Tell us about an incident <Arrow />
+            <p className="mt-4 max-w-[38ch] text-[17px] leading-relaxed">
+              A public record of anti-Muslim incidents in the United States. Every entry is sourced, and allegations are never presented as
+              convictions.
+            </p>
+            <p className="mt-6">
+              <Link href="/report" className="btn btn-sm">
+                <MessageSquarePlus aria-hidden="true" />
+                Report an incident
               </Link>
             </p>
           </div>
-          <nav aria-label="Footer" className="md:col-span-3 md:col-start-7">
-            <p className="kicker">The record</p>
-            <ul className="mt-3 space-y-1.5">
-              {LINKS.map((l) => (
-                <li key={l.href}>
-                  <Link href={l.href} className="no-underline hover:underline">
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="space-y-5 md:col-span-3">
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-8 md:col-span-6 lg:col-span-4 lg:col-start-5">
             <div>
-              <p className="kicker">Colophon</p>
-              <ul className="mt-3 space-y-1.5 text-sm text-muted">
-                <li>
-                  Data{' '}
-                  <a href={SITE.dataLicense.url} rel="license noopener">
-                    {SITE.dataLicense.name}
-                  </a>
-                  . Code{' '}
-                  <a href={SITE.codeLicense.url} rel="license noopener">
-                    {SITE.codeLicense.name}
-                  </a>
-                  .
-                </li>
-                <li className="mono">{lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'}</li>
-                <li className="mono">Methodology {METHODOLOGY_VERSION}</li>
-                <li>Set in Newsreader, Libre Franklin and IBM Plex Mono.</li>
+              <p className="kicker">The record</p>
+              <ul className="mt-3 space-y-2">
+                {RECORD_LINKS.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className="group inline-flex items-center gap-1.5 no-underline hover:underline">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
+            <div>
+              <p className="kicker">The project</p>
+              <ul className="mt-3 space-y-2">
+                {PROJECT_LINKS.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className="no-underline hover:underline">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </nav>
+          <div className="md:col-span-12 lg:col-span-4 lg:col-start-9 lg:justify-self-end">
             <ThemeToggle />
           </div>
         </div>
-        <p aria-hidden="true" className="mt-14 pt-2 font-serif text-[clamp(60px,16vw,224px)] leading-[0.86] font-medium tracking-[-0.045em] whitespace-nowrap select-none">
-          {SITE.name}
-        </p>
+        <div className="mt-14 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-band-rule pt-6 text-sm text-muted">
+          <p className="tabular">
+            {lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'} · Methodology {METHODOLOGY_VERSION}
+          </p>
+          <p>
+            Data{' '}
+            <a href={SITE.dataLicense.url} rel="license noopener">
+              {SITE.dataLicense.name}
+            </a>{' '}
+            · Code{' '}
+            <a href={SITE.codeLicense.url} rel="license noopener">
+              {SITE.codeLicense.name}
+            </a>{' '}
+            ·{' '}
+            <Link href="/methodology" className="inline-flex items-center gap-1">
+              How records are verified <ArrowRight aria-hidden="true" size={14} className="nudge" />
+            </Link>
+          </p>
+        </div>
       </div>
     </footer>
   )

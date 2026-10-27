@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { BookOpenText } from 'lucide-react'
 import Link from 'next/link'
 import { INCLUSION_CRITERIA, INCLUSION_EXCLUSIONS, INCLUSION_POLICY_NOTE } from '@/lib/inclusion'
 import type { ReactNode } from 'react'
@@ -57,8 +58,8 @@ function Section({ id, title, children }: { id: string; title: string; children:
 
 export default function MethodologyPage() {
   return (
-    <main className="wrap pt-10 pb-4 md:pt-14">
-      <PageHeader kicker={`Methodology · version ${METHODOLOGY_VERSION}`} title="Methodology">
+    <main className="wrap pt-6 pb-4 md:pt-8">
+      <PageHeader kicker={`Methodology · version ${METHODOLOGY_VERSION}`} icon={<BookOpenText aria-hidden="true" />} title="Methodology">
         Version {METHODOLOGY_VERSION}, effective {formatDate(METHODOLOGY_EFFECTIVE_DATE, 'day', 'long')}. Every dataset release and every published
         record states the version it was produced under.
       </PageHeader>

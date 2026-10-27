@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
+import { Copy, Database, Download, FileJson, FileSpreadsheet, PackageCheck, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { CopyButton } from '@/components/CopyButton'
-import { Arrow } from '@/components/Arrow'
 import { EmptyState } from '@/components/EmptyState'
 import { PageHeader } from '@/components/PageHeader'
 import { METHODOLOGY_VERSION } from '@/db/enums'
@@ -27,20 +27,21 @@ export default async function DataPage() {
   const latest = releases[0]
 
   return (
-    <main className="wrap pt-10 pb-4 md:pt-14">
-      <PageHeader kicker={`Data · ${SITE.dataLicense.name}`} title="Data and downloads">
+    <main className="wrap pt-6 pb-4 md:pt-8">
+      <PageHeader kicker={`Open data · ${SITE.dataLicense.name}`} icon={<Database aria-hidden="true" />} title="Data and downloads">
         The full dataset is rebuilt every night as CSV and JSON. Each release has a version number, a SHA-256 checksum and a list of what
         changed since the previous release. Data is licensed <a href={SITE.dataLicense.url}>{SITE.dataLicense.name}</a>; please cite it.
       </PageHeader>
 
       <section aria-labelledby="latest-h" className="mt-10 grid gap-x-6 gap-y-6 md:grid-cols-12">
-        <div className="md:col-span-4">
-          <h2 id="latest-h" className="kicker text-text">
+        <div className="glass rounded-[var(--radius-lg)] p-6 md:col-span-4">
+          <h2 id="latest-h" className="flex items-center gap-2 text-[15px] font-semibold">
+            <PackageCheck aria-hidden="true" size={18} className="text-accent" />
             Latest release
           </h2>
           {latest ? (
             <>
-              <p className="figure mt-4 text-[clamp(44px,5vw,64px)]">v{latest.version}</p>
+              <p className="figure mt-5 text-[clamp(44px,5vw,64px)]">v{latest.version}</p>
               <p className="mono mt-4 leading-relaxed text-muted">
                 {formatNumber(latest.recordCount)} records · methodology {latest.methodologyVersion}
                 <br />
@@ -54,12 +55,15 @@ export default async function DataPage() {
             <div>
               <ul className="ledger">
                 {(['csv', 'json'] as const).map((ext) => (
-                  <li key={ext} className="grid gap-x-6 gap-y-1 py-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <li key={ext} className="hover-icon grid gap-x-4 gap-y-1 px-5 py-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
+                    <span className="icon-chip row-span-2 hidden sm:inline-grid" aria-hidden="true">
+                      {ext === 'csv' ? <FileSpreadsheet /> : <FileJson />}
+                    </span>
                     <a href={`/data/downloads/${releaseFileName(latest.version, ext)}`} className="arrow-link text-[17px]" download>
-                      {releaseFileName(latest.version, ext)} <Arrow direction="down" />
+                      {releaseFileName(latest.version, ext)} <Download aria-hidden="true" size={16} className="nudge-down" />
                     </a>
                     <span className="mono text-muted sm:text-end">{bytes(ext === 'csv' ? latest.csvBytes : latest.jsonBytes)}</span>
-                    <span className="mono break-all text-muted sm:col-span-2">
+                    <span className="mono break-all text-muted sm:col-span-2 sm:col-start-2">
                       SHA-256 {ext === 'csv' ? latest.csvSha256 : latest.jsonSha256} ·{' '}
                       <a href={`/data/downloads/${releaseFileName(latest.version, ext)}.sha256`}>checksum file</a>
                     </span>
@@ -124,16 +128,19 @@ export default async function DataPage() {
           <h2 id="cite-h" className="section-head mb-5 text-[34px] leading-[1.08]">
             How to cite
           </h2>
-          <pre className="border-s border-ink bg-surface p-4 text-[13px] leading-relaxed whitespace-pre-wrap">{datasetCitation(latest?.version ?? 'latest')}</pre>
-          <CopyButton text={datasetCitation(latest?.version ?? 'latest')} label="Copy citation" className="btn btn-quiet mt-1" />
+          <pre className="rounded-[var(--radius-sm)] border border-rule bg-surface p-4 text-[13px] leading-relaxed whitespace-pre-wrap shadow-[var(--shadow-sm)]">{datasetCitation(latest?.version ?? 'latest')}</pre>
+          <CopyButton text={datasetCitation(latest?.version ?? 'latest')} label="Copy citation" className="btn btn-quiet mt-2" icon={<Copy aria-hidden="true" />} />
           <p className="mt-3 reading">Each record also has its own citation in APA, Chicago and BibTeX formats on its page.</p>
         </section>
 
-        <section aria-labelledby="never-h">
-          <h2 id="never-h" className="section-head mb-5 text-[34px] leading-[1.08]">
+        <section aria-labelledby="never-h" className="panel">
+          <span className="icon-chip" aria-hidden="true">
+            <ShieldCheck />
+          </span>
+          <h2 id="never-h" className="section-head mt-4 mb-3 text-[26px] leading-[1.1]">
             What is never included
           </h2>
-          <p className="reading">
+          <p className="reading text-[16.5px]">
             Editors’ private notes, submitters’ contact details, exact private addresses, uploaded files, and unpublished or unverified (V0)
             records are never in any download, page or feed. The public site reads from a database role that cannot see them.
           </p>

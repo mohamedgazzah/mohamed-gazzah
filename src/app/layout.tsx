@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
-import '@fontsource-variable/newsreader/opsz.css'
-import '@fontsource-variable/libre-franklin/wght.css'
-import '@fontsource/ibm-plex-mono/400.css'
-import '@fontsource/ibm-plex-mono/500.css'
+import '@fontsource-variable/instrument-sans/wght.css'
 import '@fontsource/noto-naskh-arabic/arabic-400.css'
 import '@fontsource/noto-naskh-arabic/arabic-600.css'
 import './globals.css'
@@ -11,7 +8,7 @@ import { THEME_SCRIPT } from '@/components/ThemeToggle'
 import { TooltipDismisser } from '@/components/TooltipDismisser'
 import { indexingEnabled } from '@/lib/indexing'
 import { SITE } from '@/lib/site'
-import { franklin, newsreader, newsreaderDisplayItalic, newsreaderItalic, plexMono } from './fonts'
+import { instrument, instrumentItalic } from './fonts'
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
@@ -32,7 +29,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   const analytics = process.env.NEXT_PUBLIC_ANALYTICS_SCRIPT
   return (
-    <html lang="en" dir="ltr" className={`${newsreader.variable} ${newsreaderItalic.variable} ${newsreaderDisplayItalic.variable} ${franklin.variable} ${plexMono.variable}`} suppressHydrationWarning>
+    <html lang="en" dir="ltr" className={`${instrument.variable} ${instrumentItalic.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         {analytics ? <script defer src={analytics} data-domain={process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID} data-website-id={process.env.NEXT_PUBLIC_ANALYTICS_SITE_ID} /> : null}

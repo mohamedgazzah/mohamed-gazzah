@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { Check } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 
-export function CopyButton({ text, label, className = 'btn btn-secondary' }: { text: string; label: string; className?: string }) {
+export function CopyButton({ text, label, className = 'btn btn-secondary', icon }: { text: string; label: string; className?: string; icon?: ReactNode }) {
   const [copied, setCopied] = useState(false)
   return (
     <button
@@ -18,6 +19,7 @@ export function CopyButton({ text, label, className = 'btn btn-secondary' }: { t
         }
       }}
     >
+      {copied ? <Check aria-hidden="true" /> : icon}
       {label}
       <span aria-live="polite" className="text-sm font-normal">
         {copied ? '— copied' : ''}

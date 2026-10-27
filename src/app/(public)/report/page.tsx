@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { LockKeyhole, ShieldAlert } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/PageHeader'
 import { ReadingLayout } from '@/components/ReadingLayout'
@@ -23,20 +24,20 @@ export default async function ReportPage(props: PageProps<'/report'>) {
   ]
 
   return (
-    <main className="wrap pt-10 pb-4 md:pt-14">
-      <PageHeader kicker="Report · Private and encrypted" title={mode === 'correction' ? 'Request a correction' : 'Report an incident'}>
+    <main className="wrap pt-6 pb-4 md:pt-8">
+      <PageHeader kicker="Private and encrypted" icon={<LockKeyhole aria-hidden="true" />} title={mode === 'correction' ? 'Request a correction' : 'Report an incident'}>
         Tell the editors about an anti-Muslim incident, or about an error in a published record.
       </PageHeader>
 
       <ReadingLayout
         rail={
-          <div className="border-t border-ink pt-3">
+          <div className="glass rounded-[var(--radius-md)] p-5">
             <p className="kicker">What happens next</p>
             <ol className="mt-4 space-y-4 text-[14.5px]">
               {steps.map((step, i) => (
                 <li key={i} className="flex gap-3">
-                  <span aria-hidden="true" className="mono w-5 shrink-0 pt-px text-muted">
-                    {String(i + 1).padStart(2, '0')}
+                  <span aria-hidden="true" className="tabular inline-grid h-6 min-w-6 shrink-0 place-items-center rounded-full bg-accent-tint text-[12.5px] font-semibold text-accent">
+                    {i + 1}
                   </span>
                   <span>{step}</span>
                 </li>
@@ -57,7 +58,11 @@ export default async function ReportPage(props: PageProps<'/report'>) {
           </Link>
         </nav>
 
-        <div id="report-notice" className="notice my-8 space-y-2 text-[15.5px]">
+        <div id="report-notice" className="notice my-8 flex gap-4 text-[15.5px]">
+          <span className="icon-chip hidden sm:inline-grid" aria-hidden="true">
+            <ShieldAlert />
+          </span>
+          <div className="space-y-2">
           <p>
             <strong>If someone is in danger, call 911.</strong>
           </p>
@@ -72,6 +77,7 @@ export default async function ReportPage(props: PageProps<'/report'>) {
               You can also write to <a href={`mailto:${SITE.emails.corrections}`}>{SITE.emails.corrections}</a>.
             </p>
           ) : null}
+          </div>
         </div>
 
         <ReportForm key={mode} mode={mode} recordId={recordId} siteKey={siteKey} />

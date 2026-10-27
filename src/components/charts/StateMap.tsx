@@ -115,9 +115,9 @@ export function StateMap({
         </MapFrame>
       </ChartTips>
 
-      <figcaption className="mt-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+      <figcaption className="mt-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         {focus ? (
-          <span className="flex items-center gap-2 text-sm text-muted">
+          <span className="glass-strong map-legend text-muted">
             <svg aria-hidden="true" width="34" height="24" viewBox="0 0 34 24" className="shrink-0">
               <circle cx="6" cy="17" r="5" className="map-bubble" />
               <circle cx="23" cy="12" r="10" className="map-bubble" />
@@ -125,8 +125,8 @@ export function StateMap({
             Circle area shows the number of {noun}s in each city.
           </span>
         ) : (
-          <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-            <span className="text-muted">{noun[0]!.toUpperCase() + noun.slice(1)}s per state</span>
+          <span className="glass-strong map-legend">
+            <span className="font-semibold">{noun[0]!.toUpperCase() + noun.slice(1)}s per state</span>
             <span className="legend-key">
               <span className="swatch map-fill-0" aria-hidden="true" />
               None

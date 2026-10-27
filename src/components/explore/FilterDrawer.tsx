@@ -1,5 +1,6 @@
 'use client'
 
+import { SlidersHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 /**
@@ -43,6 +44,7 @@ export function FilterDrawer({ activeCount, children }: { activeCount: number; c
         aria-controls="filters"
         onClick={() => setOpen(true)}
       >
+        <SlidersHorizontal aria-hidden="true" />
         Filters{activeCount ? ` (${activeCount} active)` : ''}
       </button>
       {open ? <div className="fixed inset-0 z-40 bg-[var(--scrim)] md:hidden" aria-hidden="true" onClick={() => setOpen(false)} /> : null}
@@ -53,11 +55,11 @@ export function FilterDrawer({ activeCount, children }: { activeCount: number; c
         role={open ? 'dialog' : undefined}
         aria-modal={open ? true : undefined}
         aria-label={open ? 'Filters' : undefined}
-        className="filter-panel max-md:hidden max-md:data-[open=true]:fixed max-md:data-[open=true]:inset-x-0 max-md:data-[open=true]:bottom-0 max-md:data-[open=true]:z-50 max-md:data-[open=true]:block max-md:data-[open=true]:max-h-[85vh] max-md:data-[open=true]:overflow-y-auto max-md:data-[open=true]:border-t max-md:data-[open=true]:border-ink max-md:data-[open=true]:bg-surface max-md:data-[open=true]:p-4"
+        className="filter-panel max-md:hidden max-md:data-[open=true]:fixed max-md:data-[open=true]:inset-x-0 max-md:data-[open=true]:bottom-0 max-md:data-[open=true]:z-50 max-md:data-[open=true]:block max-md:data-[open=true]:max-h-[85vh] max-md:data-[open=true]:overflow-y-auto max-md:data-[open=true]:rounded-t-[24px] max-md:data-[open=true]:bg-surface max-md:data-[open=true]:p-4 max-md:data-[open=true]:shadow-[var(--shadow-lg)]"
       >
         {open ? (
           <div className="mb-3 flex items-center justify-between md:hidden">
-            <p className="font-serif text-2xl">Filters</p>
+            <p className="text-2xl font-semibold">Filters</p>
             <button type="button" className="btn btn-secondary" data-autofocus onClick={() => { setOpen(false); buttonRef.current?.focus() }}>
               Close
             </button>

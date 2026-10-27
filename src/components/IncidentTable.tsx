@@ -65,7 +65,7 @@ export function IncidentTable({
                   <span className="block text-muted">{formatPlace(r.city, r.stateCode)}</span>
                 </td>
                 <td className="min-w-60">
-                  <Link href={incidentPath(r.id, r.slug)} className="font-serif text-[17px] leading-snug text-text no-underline hover:underline">
+                  <Link href={incidentPath(r.id, r.slug)} className="text-[15.5px] leading-snug font-semibold text-text no-underline hover:underline">
                     <Highlight text={r.title} query={query} />
                   </Link>
                   <span className="mono mt-1 block text-muted">

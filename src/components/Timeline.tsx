@@ -6,10 +6,10 @@ type Event = { date: string; event_type: LegalEventType; description: string; so
 /** Vertical legal timeline: dated nodes, each with its label and source. */
 export function Timeline({ events, sourceIdPrefix = 'source' }: { events: Event[]; sourceIdPrefix?: string }) {
   return (
-    <ol className="relative ms-1 border-s border-ink">
+    <ol className="relative ms-2 border-s-2 border-rule">
       {events.map((e, i) => (
         <li key={i} className="relative grid gap-x-6 ps-6 pb-7 last:pb-0 sm:grid-cols-[8.5rem_1fr] sm:ps-7">
-          <span aria-hidden="true" className="absolute -start-[4.5px] top-[7px] h-2 w-2 bg-text" />
+          <span aria-hidden="true" className="absolute -start-[7px] top-[5px] h-3 w-3 rounded-full border-2 border-surface bg-accent shadow-[0_0_0_3px_var(--accent-tint)]" />
           <p className="mono pt-0.5 text-muted">
             <time dateTime={e.date}>{formatDate(e.date)}</time>
           </p>

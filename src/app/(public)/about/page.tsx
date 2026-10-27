@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Info } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { PageHeader } from '@/components/PageHeader'
@@ -34,13 +35,13 @@ function ToComplete({ children }: { children: ReactNode }) {
 
 export default function AboutPage() {
   return (
-    <main className="wrap pt-10 pb-4 md:pt-14">
-      <PageHeader kicker="About · Privacy" title="About">
+    <main className="wrap pt-6 pb-4 md:pt-8">
+      <PageHeader kicker="About the project" icon={<Info aria-hidden="true" />} title="About">
         It is a record, not a campaign: the dataset stands on its stated <Link href="/methodology">methodology</Link>. Partners are credited here,
         but they do not decide what is published.
       </PageHeader>
       <ReadingLayout contents={SECTIONS}>
-        <p className="font-serif text-[22px] leading-[1.5]">
+        <p className="text-[20px] leading-[1.6] font-medium tracking-[-0.01em]">
           {SITE.fullName} is a public, searchable record of anti-Muslim incidents in the United States. Each incident is linked to its sources
           and followed through its legal outcome. It exists because the available data — police-reported hate crimes, complaints to advocacy
           groups, surveys, and state counts — is spread across systems that cannot be joined, and none lists individual incidents with sources
