@@ -367,6 +367,28 @@ and components stand.
     (the browser asks first), and sending clears it. Choosing files again adds to the list.
     Without JavaScript the form says at the top that the spam check needs it and offers the
     editors' email instead of a Send button that cannot work.
+78. **Explore's results bar stays one line**: it names the search first and shortens long
+    lists ("3 types · 4 states · dates"), with the full line in a tooltip; its measured height
+    sets where the table's column heads stick. The filter sheet makes the page behind it inert
+    while open and is a side drawer from 48rem. On phones each row puts the date and place
+    above the title.
+79. **Map labels never overlap**: each label tries eight positions and, for the largest
+    cities, a short leader line; the largest and the selected city are always named, the rest
+    are dropped rather than stacked. Labels stay 13 px on phones, where a zoomed state gets a
+    frame of its own shape (the printable report keeps the usual frame). When zoomed, the
+    neighboring states' tooltips count without the state filter, so they no longer say 0.
+80. **The data dictionary is shorter**: a value's meaning is shown only when it says more than
+    its code; JSON fields list their keys (and the coded keys their values); a jump-to-field
+    index; cards up to tablet width.
+81. **Header**: the phone menu is a disclosure that works without JavaScript (the theme switch
+    appears once the page has loaded, since it needs script); the inline links start at 56rem;
+    "Report an incident" is not marked current on the correction form. With reduced
+    transparency or forced colors, the header bar and all glass are solid.
+82. **One 404 page, rendered on the server**: unmatched addresses fall through to the root
+    not-found page, which wraps the public layout, so it is prerendered and works without
+    JavaScript (the earlier catch-all route rendered it only in the browser). A missing
+    record still goes through `notFound()` in a dynamic page, which Next.js 16 renders in the
+    browser; the status is 404 either way.
 
 ## Open questions (**Ask**)
 

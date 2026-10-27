@@ -1629,6 +1629,10 @@
       display: none;
     }
   }
+  /* The printable report keeps the map's usual frame: paper has the room, and a state-shaped map pushed the totals onto a second page. */
+  .print-report .map-frame {
+    aspect-ratio: auto;
+  }
   @media (pointer: coarse) {
     .map-hit {
       transform: scale(1.6);
