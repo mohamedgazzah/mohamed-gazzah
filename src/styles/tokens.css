@@ -17,11 +17,11 @@
   --status-confirmed: #2f6b3a;
   --status-reported: #8a6d1f;
   --status-severe: #7a2e2e;
-  /* 5-step single-hue ramp from --accent (choropleth). */
-  --chart-seq-1: #e4efec;
-  --chart-seq-2: #b3d3ca;
-  --chart-seq-3: #7cb2a3;
-  --chart-seq-4: #3f8372;
+  /* 5-step single-hue ramp ending at --accent (choropleth). The lightest step stays clearly apart from the empty fill. */
+  --chart-seq-1: #92bfb2;
+  --chart-seq-2: #6ca595;
+  --chart-seq-3: #4d8d7d;
+  --chart-seq-4: #347464;
   --chart-seq-5: #1f5c4e;
   /* Ink band: the footer and other closing blocks, dark in both themes. */
   --band-bg: #1a1d21;
@@ -35,6 +35,10 @@
   /* Backdrop wash behind glass (with --accent), and the glass itself. */
   --ambient-2: #6f86b0;
   --mask: #000000;
+  /* The raised thumb of a segmented control: above its track in both themes. */
+  --segment-thumb: #ffffff;
+  --map-shadow: rgb(26 29 33 / 0.14);
+  --tip-edge: rgb(26 29 33 / 0.12);
   --glass: rgb(255 255 255 / 0.62);
   --glass-strong: rgb(255 255 255 / 0.88);
   --glass-rim: rgb(255 255 255 / 0.95);
@@ -57,10 +61,10 @@
     --status-confirmed: #7cc48a;
     --status-reported: #d9b95c;
     --status-severe: #d48a8a;
-    --chart-seq-1: #1f3a34;
-    --chart-seq-2: #2f5a50;
-    --chart-seq-3: #4a8476;
-    --chart-seq-4: #6fb8a4;
+    --chart-seq-1: #2f5f53;
+    --chart-seq-2: #3f7a6b;
+    --chart-seq-3: #559a89;
+    --chart-seq-4: #74b9a6;
     --chart-seq-5: #a8dccd;
     --band-bg: #0b0c0e;
     --band-text: #e8e6e1;
@@ -68,6 +72,9 @@
     --band-accent: #6fb8a4;
     --band-rule: #2c3036;
     --ambient-2: #4b67a0;
+    --segment-thumb: #33373d;
+    --map-shadow: rgb(0 0 0 / 0.55);
+    --tip-edge: rgb(255 255 255 / 0.16);
     --glass: rgb(30 34 39 / 0.56);
     --glass-strong: rgb(30 34 39 / 0.88);
     --glass-rim: rgb(255 255 255 / 0.16);
@@ -90,10 +97,10 @@
   --status-confirmed: #7cc48a;
   --status-reported: #d9b95c;
   --status-severe: #d48a8a;
-  --chart-seq-1: #1f3a34;
-  --chart-seq-2: #2f5a50;
-  --chart-seq-3: #4a8476;
-  --chart-seq-4: #6fb8a4;
+  --chart-seq-1: #2f5f53;
+  --chart-seq-2: #3f7a6b;
+  --chart-seq-3: #559a89;
+  --chart-seq-4: #74b9a6;
   --chart-seq-5: #a8dccd;
   --band-bg: #0b0c0e;
   --band-text: #e8e6e1;
@@ -101,6 +108,9 @@
   --band-accent: #6fb8a4;
   --band-rule: #2c3036;
   --ambient-2: #4b67a0;
+  --segment-thumb: #33373d;
+  --map-shadow: rgb(0 0 0 / 0.55);
+  --tip-edge: rgb(255 255 255 / 0.16);
   --glass: rgb(30 34 39 / 0.56);
   --glass-strong: rgb(30 34 39 / 0.88);
   --glass-rim: rgb(255 255 255 / 0.16);
@@ -126,10 +136,10 @@
     --status-confirmed: #2f6b3a;
     --status-reported: #8a6d1f;
     --status-severe: #7a2e2e;
-    --chart-seq-1: #e4efec;
-    --chart-seq-2: #b3d3ca;
-    --chart-seq-3: #7cb2a3;
-    --chart-seq-4: #3f8372;
+    --chart-seq-1: #92bfb2;
+    --chart-seq-2: #6ca595;
+    --chart-seq-3: #4d8d7d;
+    --chart-seq-4: #347464;
     --chart-seq-5: #1f5c4e;
     --band-bg: #1a1d21;
     --band-text: #f2f1ec;
@@ -140,6 +150,9 @@
     --qr-light: #ffffff;
     --ambient-2: #6f86b0;
     --mask: #000000;
+    --segment-thumb: #ffffff;
+    --map-shadow: none;
+    --tip-edge: rgb(26 29 33 / 0.12);
     --glass: rgb(255 255 255 / 0.62);
     --glass-strong: rgb(255 255 255 / 0.88);
     --glass-rim: rgb(255 255 255 / 0.95);

@@ -223,13 +223,17 @@ export function hasActiveFilters(f: Filters): boolean {
 export type Chip = { key: string; label: string; removeHref: string }
 
 /** Active-filter chips, each with a link that removes just that value. */
-export function chips(f: Filters, view: Partial<ViewState> = {}): Chip[] {
+export function chips(f: Filters, view: Partial<ViewState> = {}, today?: string): Chip[] {
   const base = { ...view, page: 1 }
   const without = (patch: Partial<Filters>) => explorePath({ ...f, ...patch }, base)
   const list: Chip[] = []
   if (f.q) list.push({ key: 'q', label: `Search: “${f.q}”`, removeHref: without({ q: null }) })
-  if (f.from) list.push({ key: 'from', label: `From ${formatDate(f.from)}`, removeHref: without({ from: null }) })
-  if (f.to) list.push({ key: 'to', label: `To ${formatDate(f.to)}`, removeHref: without({ to: null }) })
+  // One chip for the date range: removing half a range is never what anyone means.
+  if (f.from || f.to) {
+    const preset = today ? activePreset(f, today) : null
+    const label = preset ? preset.label : `${f.from ? formatDate(f.from) : 'The start'} to ${f.to ? formatDate(f.to) : 'today'}`
+    list.push({ key: 'dates', label, removeHref: without({ from: null, to: null }) })
+  }
   for (const s of f.state)
     list.push({ key: `state-${s}`, label: stateByCode(s)?.name ?? s, removeHref: without({ state: f.state.filter((x) => x !== s) }) })
   if (f.city) list.push({ key: 'city', label: `City: ${f.city}`, removeHref: without({ city: null }) })

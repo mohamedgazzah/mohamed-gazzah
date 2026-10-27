@@ -1,6 +1,7 @@
 'use server'
 
 import { z } from 'zod'
+import { SITE } from '@/lib/site'
 import { issuesByPath } from '@/lib/validation'
 import { clientIp } from '@/server/shared/request'
 import { rateLimit } from '@/server/shared/ratelimit'
@@ -42,11 +43,11 @@ async function handle(fd: FormData): Promise<ReportState> {
 
   const ip = await clientIp()
   if (!(await verifyTurnstile(text(fd, 'cf-turnstile-response') ?? null, ip))) {
-    return { status: 'error', mode, message: 'We could not confirm the form was sent by a person. Reload the page and try again.' }
-  }
-  const limit = await rateLimit('report', ip, Number(process.env.REPORT_RATE_LIMIT ?? 5), 3600)
-  if (!limit.ok) {
-    return { status: 'error', mode, message: 'Too many submissions from this connection. Please wait an hour, or email us instead.' }
+    return {
+      status: 'error',
+      mode,
+      message: `We couldn’t finish our automatic spam check, so nothing has been sent yet. Your words are still here: please don’t reload. Press the button again. If it keeps failing, a content blocker may be stopping the check (allow challenges.cloudflare.com), or email ${SITE.emails.editors}.`,
+    }
   }
 
   const parsed = reportFields.safeParse({
@@ -67,6 +68,15 @@ async function handle(fd: FormData): Promise<ReportState> {
   })
   if (!parsed.success) {
     return { status: 'error', mode, message: 'Please check the highlighted fields.', errors: issuesByPath(parsed.error as z.ZodError) }
+  }
+  // Counted only for submissions that would be stored, so a corrected mistake never uses up the allowance.
+  const limit = await rateLimit('report', ip, Number(process.env.REPORT_RATE_LIMIT ?? 5), 3600)
+  if (!limit.ok) {
+    return {
+      status: 'error',
+      mode,
+      message: `You’ve sent several reports from this connection in the last hour, so new ones are paused. Your text is still here. Try again later, or email it to ${SITE.emails.editors}.`,
+    }
   }
 
   try {

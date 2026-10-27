@@ -37,6 +37,8 @@ export function ChartTips({ children, className = '' }: { children: ReactNode; c
       className={`relative ${className}`}
       onPointerMove={(e) => show(e.target, e.clientX, e.clientY)}
       onPointerLeave={() => setTip(null)}
+      // A click navigates (a state, a city, a month): the old tooltip must not outlive it.
+      onClick={() => setTip(null)}
       onFocus={(e) => show(e.target)}
       onBlur={() => setTip(null)}
     >

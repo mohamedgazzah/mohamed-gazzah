@@ -55,11 +55,11 @@ export function FilterDrawer({ activeCount, children }: { activeCount: number; c
         role={open ? 'dialog' : undefined}
         aria-modal={open ? true : undefined}
         aria-label={open ? 'Filters' : undefined}
-        className="filter-panel max-md:hidden max-md:data-[open=true]:fixed max-md:data-[open=true]:inset-x-0 max-md:data-[open=true]:bottom-0 max-md:data-[open=true]:z-50 max-md:data-[open=true]:block max-md:data-[open=true]:max-h-[85vh] max-md:data-[open=true]:overflow-y-auto max-md:data-[open=true]:rounded-t-[24px] max-md:data-[open=true]:bg-surface max-md:data-[open=true]:p-4 max-md:data-[open=true]:shadow-[var(--shadow-lg)]"
+        className="filter-panel max-md:hidden max-md:data-[open=true]:fixed max-md:data-[open=true]:inset-x-0 max-md:data-[open=true]:bottom-0 max-md:data-[open=true]:z-50 max-md:data-[open=true]:flex max-md:data-[open=true]:max-h-[88dvh] max-md:data-[open=true]:flex-col max-md:data-[open=true]:overflow-hidden max-md:data-[open=true]:rounded-t-[24px] max-md:data-[open=true]:bg-surface max-md:data-[open=true]:shadow-[var(--shadow-lg)]"
       >
         {open ? (
-          <div className="mb-3 flex items-center justify-between md:hidden">
-            <p className="text-2xl font-semibold">Filters</p>
+          <div className="flex shrink-0 items-center justify-between border-b border-rule px-4 py-3 md:hidden">
+            <p className="text-xl font-semibold">Filters</p>
             <button type="button" className="btn btn-secondary" data-autofocus onClick={() => { setOpen(false); buttonRef.current?.focus() }}>
               Close
             </button>

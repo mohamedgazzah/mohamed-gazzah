@@ -24,7 +24,7 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
     <footer className="band mt-28 rounded-t-[32px]">
       <div className="wrap pt-14 pb-8 md:pt-16">
         <div className="grid gap-x-8 gap-y-12 md:grid-cols-12">
-          <div className="md:col-span-6 lg:col-span-4">
+          <div className="md:col-span-6 lg:col-span-5">
             <p className="flex items-center gap-3 text-[19px] font-semibold tracking-[-0.02em]">
               <span className="brand-mark">
                 <BrandMark />
@@ -42,7 +42,7 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
               </Link>
             </p>
           </div>
-          <nav aria-label="Footer" className="grid grid-cols-2 gap-8 md:col-span-6 lg:col-span-4 lg:col-start-5">
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-8 md:col-span-6 lg:col-span-5 lg:col-start-8">
             <div>
               <p className="kicker">The record</p>
               <ul className="mt-3 space-y-2">
@@ -68,11 +68,9 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
               </ul>
             </div>
           </nav>
-          <div className="md:col-span-12 lg:col-span-4 lg:col-start-9 lg:justify-self-end">
-            <ThemeToggle />
-          </div>
         </div>
-        <div className="mt-14 flex flex-wrap items-center justify-between gap-x-8 gap-y-3 border-t border-band-rule pt-6 text-sm text-muted">
+        <div className="mt-14 flex flex-wrap items-center justify-between gap-x-8 gap-y-5 border-t border-band-rule pt-6 text-sm text-muted">
+          <div className="space-y-1.5">
           <p className="tabular">
             {lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'} · Methodology {METHODOLOGY_VERSION}
           </p>
@@ -90,6 +88,8 @@ export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
               How records are verified <ArrowRight aria-hidden="true" size={14} className="nudge" />
             </Link>
           </p>
+          </div>
+          <ThemeToggle />
         </div>
       </div>
     </footer>

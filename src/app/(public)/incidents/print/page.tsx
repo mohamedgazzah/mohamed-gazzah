@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { legalLabel, verificationLabel } from '@/components/Badges'
 import { PrintButton } from '@/components/PrintButton'
@@ -51,11 +52,14 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
     <main className="wrap print-report pt-8 pb-12">
       <div className="no-print mb-8 flex flex-wrap items-center gap-4 border-b border-rule pb-6">
         <PrintButton />
-        <Link href={explorePath(filters, vs)}>Back to Explore</Link>
+        <Link href={explorePath(filters, vs)} className="arrow-link">
+          <ArrowLeft aria-hidden="true" size={16} className="nudge-back" />
+          Back to Explore
+        </Link>
         <p className="text-sm text-muted">The printout lists every matching record. Use “Save as PDF” in the print dialog for a file.</p>
       </div>
 
-      <header className="border-b border-ink pb-5">
+      <header className="border-b border-rule pb-5">
         <p className="kicker">{SITE.fullName} · Report</p>
         <h1 className="mt-2 text-[34px] leading-tight">
           {plural(result.total, noun)}
@@ -70,8 +74,9 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
         </p>
       </header>
 
-      <section aria-labelledby="print-map" className="mt-6 break-inside-avoid">
-        <h2 id="print-map" className="kicker mb-2 text-text">
+      <div className="print-summary mt-6">
+      <section aria-labelledby="print-map" className="break-inside-avoid">
+        <h2 id="print-map" className="mb-2 text-[15px] font-semibold">
           {focusName ? `${focusName}, by city` : 'By state'}
         </h2>
         <StateMap
@@ -92,9 +97,9 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
         />
       </section>
 
-      <div className="mt-8 grid gap-8 sm:grid-cols-2">
+      <div className="print-totals mt-8 grid gap-8 sm:grid-cols-2">
         <section aria-labelledby="print-states" className="break-inside-avoid">
-          <h2 id="print-states" className="kicker mb-2 text-text">
+          <h2 id="print-states" className="mb-2 text-[15px] font-semibold">
             {focusName ? 'Records by city' : 'Records by state'}
           </h2>
           <table className="data-table print-table">
@@ -124,7 +129,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
           </table>
         </section>
         <section aria-labelledby="print-types" className="break-inside-avoid">
-          <h2 id="print-types" className="kicker mb-2 text-text">
+          <h2 id="print-types" className="mb-2 text-[15px] font-semibold">
             Records by incident type
           </h2>
           <table className="data-table print-table">
@@ -148,11 +153,13 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
           <p className="mt-2 text-sm text-muted">A record can have more than one type, so these can add up to more than the total.</p>
         </section>
       </div>
+      </div>
 
       <section aria-labelledby="print-records" className="mt-10">
-        <h2 id="print-records" className="kicker mb-2 text-text">
+        <h2 id="print-records" className="mb-2 text-[15px] font-semibold">
           The records
         </h2>
+        <div className="table-scroll">
         <table className="data-table print-table">
           <thead>
             <tr>
@@ -171,7 +178,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
               <tr key={r.id}>
                 <td className="whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</td>
                 <td>{formatPlace(r.city, r.stateCode)}</td>
-                <td>
+                <td className="min-w-60 print:min-w-0">
                   <Link href={incidentPath(r.id, r.slug)} className="text-text">
                     {r.title}
                   </Link>
@@ -186,6 +193,7 @@ export default async function PrintPage(props: PageProps<'/incidents/print'>) {
             ))}
           </tbody>
         </table>
+        </div>
         {result.total > MAX_ROWS ? (
           <p className="mt-3">
             The first {formatNumber(MAX_ROWS)} of {formatNumber(result.total)} records are listed. The{' '}

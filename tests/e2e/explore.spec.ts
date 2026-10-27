@@ -148,15 +148,15 @@ test.describe('Explore URLs', () => {
 test.describe('home stat tiles', () => {
   test('each tile links to Explore filtered to exactly the records it counts', async ({ page }) => {
     await page.goto('/')
-    const tiles = page.getByRole('list').filter({ has: page.getByText('As of') }).getByRole('link')
+    const tiles = page.getByRole('region', { name: /Headline numbers/ }).getByRole('link')
     const n = await tiles.count()
     expect(n).toBe(4)
+    await expect(page.getByText(/^Counts as of /)).toBeVisible()
     for (let i = 0; i < n; i++) {
       await page.goto('/')
-      const tile = page.getByRole('list').filter({ has: page.getByText('As of') }).getByRole('link').nth(i)
-      const value = Number((await tile.locator('span').first().innerText()).replace(/,/g, ''))
-      const label = await tile.locator('span').nth(1).innerText()
-      await expect(tile).toContainText('As of')
+      const tile = page.getByRole('region', { name: /Headline numbers/ }).getByRole('link').nth(i)
+      const value = Number((await tile.locator('[data-stat-value]').innerText()).replace(/,/g, ''))
+      const label = await tile.locator('[data-stat-label]').innerText()
       await tile.click()
       await expect(page).toHaveURL(/\/incidents/)
       if (/States/.test(label)) {

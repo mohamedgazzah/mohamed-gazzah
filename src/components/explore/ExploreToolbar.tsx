@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange, Tags } from 'lucide-react'
+import { CalendarDays, CalendarRange, Search, Tags } from 'lucide-react'
 import Link from 'next/link'
 import { INCIDENT_TYPES, INCIDENT_TYPE_META, type IncidentType } from '@/db/enums'
 import { activePreset, datePresets, describeDates, explorePath, serializeFilters, type Filters, type ViewState } from '@/lib/filters'
@@ -19,10 +19,10 @@ function Carry({ filters, view, except }: { filters: Filters; view: ViewState; e
 }
 
 /**
- * The two filters people reach for first, in one row above the map and list:
- * a date range (presets, or a custom range) and incident types, each type
+ * The filters people reach for first, above the map and list: search, a
+ * date range (presets, or a custom range) and incident types, each type
  * showing how many records it would add with the other filters as they are.
- * Plain links and a GET form, so it all works without JavaScript.
+ * Plain links and GET forms, so it all works without JavaScript.
  */
 export function ExploreToolbar({
   filters,
@@ -42,38 +42,74 @@ export function ExploreToolbar({
 
   return (
     <div className="glass toolbar">
+      <form method="get" action="/incidents" role="search" aria-label="Search incidents" className="toolbar-row">
+        <label htmlFor="f-q" className="kicker toolbar-label">
+          <Search aria-hidden="true" />
+          Search
+        </label>
+        <div className="toolbar-controls">
+          <Carry filters={filters} view={view} except={['q']} />
+          <div className="relative min-w-0 flex-1 basis-60">
+            <input
+              id="f-q"
+              name="q"
+              type="search"
+              defaultValue={filters.q ?? ''}
+              className="control min-h-10 py-1.5"
+              placeholder="City, place, case name or words"
+              aria-describedby="f-q-hint"
+            />
+          </div>
+          <button type="submit" className="btn btn-secondary btn-sm">
+            Search
+          </button>
+          <p id="f-q-hint" className="sr-only">
+            Searches titles, summaries, places and case names. Small typos are fine.
+          </p>
+        </div>
+      </form>
+
       <div className="toolbar-row">
         <span className="kicker toolbar-label" id="tb-dates">
           <CalendarRange aria-hidden="true" />
           Dates
         </span>
-        <nav aria-labelledby="tb-dates" className="segmented">
-          {datePresets(today).map((p) => (
-            <Link key={p.key} href={explorePath({ ...filters, from: p.from, to: p.to }, base)} aria-current={preset?.key === p.key ? 'true' : undefined}>
-              {p.label}
-            </Link>
-          ))}
-        </nav>
-        <details className="custom-range">
-          <summary data-active={preset ? undefined : 'true'}>
-            <CalendarDays aria-hidden="true" />
-            {preset ? 'Custom range' : describeDates(filters, today)}
-          </summary>
-          <form method="get" action="/incidents" className="glass-strong custom-range-form">
-            <Carry filters={filters} view={view} except={['from', 'to']} />
-            <label>
-              <span className="label">From</span>
-              <input name="from" type="date" min="2020-01-01" max={today} defaultValue={filters.from ?? ''} className="control" />
-            </label>
-            <label>
-              <span className="label">To</span>
-              <input name="to" type="date" min="2020-01-01" max={today} defaultValue={filters.to ?? ''} className="control" />
-            </label>
-            <button type="submit" className="btn">
-              Apply dates
-            </button>
-          </form>
-        </details>
+        <div className="toolbar-controls">
+          <nav aria-labelledby="tb-dates" className="segmented">
+            {datePresets(today).map((p) => (
+              <Link key={p.key} href={explorePath({ ...filters, from: p.from, to: p.to }, base)} aria-current={preset?.key === p.key ? 'true' : undefined}>
+                {p.label.startsWith('Last ') ? (
+                  <span>
+                    <span className="max-sm:sr-only">Last </span>
+                    {p.label.slice(5)}
+                  </span>
+                ) : (
+                  p.label
+                )}
+              </Link>
+            ))}
+          </nav>
+          <details className="custom-range">
+            <summary data-active={preset ? undefined : 'true'}>
+              <CalendarDays aria-hidden="true" />
+              {preset ? 'Custom range' : describeDates(filters, today)}
+            </summary>
+            <form method="get" action="/incidents" className="glass-strong custom-range-form">
+              <Carry filters={filters} view={view} except={['from', 'to']} />
+              <label>
+                <span className="label">From</span>
+                <input name="from" type="date" min="2020-01-01" max={today} defaultValue={filters.from ?? ''} className="control" />
+              </label>
+              <label>
+                <span className="label">To</span>
+                <input name="to" type="date" min="2020-01-01" max={today} defaultValue={filters.to ?? ''} className="control" />
+              </label>
+              <button type="submit" className="btn">
+                Apply dates
+              </button>
+            </form>
+          </details>
+        </div>
       </div>
 
       <div className="toolbar-row">
@@ -83,7 +119,7 @@ export function ExploreToolbar({
         </span>
         <ul aria-labelledby="tb-types" className="type-toggles">
           <li>
-            <Link href={explorePath({ ...filters, type: [] }, base)} className="toggle" aria-current={filters.type.length ? undefined : 'true'}>
+            <Link href={explorePath({ ...filters, type: [] }, base)} className="toggle toggle-all" aria-current={filters.type.length ? undefined : 'true'}>
               All types
             </Link>
           </li>

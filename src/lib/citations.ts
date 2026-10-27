@@ -33,8 +33,13 @@ export function citations(rec: CitableRecord, accessed: string) {
   return { url, apa, chicago, bibtex }
 }
 
-export function datasetCitation(version: string) {
-  // Before the first release the version is "latest", which has no year: APA's "n.d.".
-  const year = /^\d{4}/.test(version) ? version.slice(0, 4) : 'n.d.'
-  return `${SITE.publisher}. (${year}). ${SITE.fullName} [Data set, version ${version}]. ${absoluteUrl('/data')}. License: ${SITE.dataLicense.name}.`
+/**
+ * APA 7 for a data set. Before the first release there is no version or
+ * year: "n.d." and the date it was retrieved instead.
+ */
+export function datasetCitation(version: string | null, today?: string) {
+  const url = absoluteUrl('/data')
+  if (version && /^\d{4}/.test(version)) return `${SITE.publisher}. (${version.slice(0, 4)}). ${SITE.fullName} (Version ${version}) [Data set]. ${url}`
+  const retrieved = today ? `Retrieved ${formatDate(today, 'day', 'long')}, from ` : ''
+  return `${SITE.publisher}. (n.d.). ${SITE.fullName} [Data set]. ${retrieved}${url}`
 }

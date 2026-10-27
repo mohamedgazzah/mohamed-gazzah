@@ -7,9 +7,10 @@ test('an incident page shows facts, sources, timeline, change log and citations'
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Man charged with hate crime')
   await expect(page.getByRole('link', { name: /Confirmed by court record/ })).toBeVisible()
   await expect(page.getByRole('link', { name: /Charged — hate crime/ })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Alleged' })).toBeVisible()
+  // The status panel says in words that a charge is not a conviction.
+  await expect(page.getByRole('region', { name: 'Record status' })).toContainText('Not convicted.')
   await expect(page.getByRole('heading', { name: 'Key facts' })).toBeVisible()
-  await expect(page.getByText('Charged (alleged): Demo Defendant A')).toBeVisible()
+  await expect(page.getByText('Charged, not convicted: Demo Defendant A')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Legal timeline' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Sources' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Change log' })).toBeVisible()
@@ -20,7 +21,7 @@ test('an incident page shows facts, sources, timeline, change log and citations'
   // Citations.
   await page.getByText('Cite this record (APA, Chicago, BibTeX)').click()
   await expect(page.getByText(/^@misc\{record_DEMO20260002,/)).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Report a correction' })).toHaveAttribute('href', '/report?mode=correction&record=DEMO-2026-0002')
+  await expect(page.getByRole('link', { name: 'Request a correction' }).first()).toHaveAttribute('href', '/report?mode=correction&record=DEMO-2026-0002')
 })
 
 test('badge tooltips explain each badge and link to the method', async ({ page }) => {

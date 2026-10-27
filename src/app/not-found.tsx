@@ -1,7 +1,11 @@
 import { ArrowRight, Compass } from 'lucide-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { SiteHeader } from '@/components/SiteHeader'
 
+export const metadata: Metadata = { title: 'Page not found' }
+
+/** Fallback for addresses outside the public pages (the public ones use (public)/not-found.tsx). */
 export default function NotFound() {
   return (
     <div className="relative isolate">

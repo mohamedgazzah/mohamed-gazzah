@@ -6,7 +6,7 @@
 import 'server-only'
 import sharp from 'sharp'
 
-export const UPLOAD_LIMITS = { maxFiles: 5, maxFileBytes: 3 * 1024 * 1024, maxTotalBytes: 3.5 * 1024 * 1024 }
+export { UPLOAD_LIMITS } from '@/lib/upload-limits'
 
 export type SniffedType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' | 'application/pdf'
 

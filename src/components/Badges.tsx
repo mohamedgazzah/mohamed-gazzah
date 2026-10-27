@@ -36,7 +36,7 @@ function Pill({ tone, href, label, tip, tipId, marker }: {
   marker?: ReactNode
 }) {
   return (
-    <Tooltip id={tipId} tip={<>{tip} <span className="text-muted">Select for the method.</span></>}>
+    <Tooltip id={tipId} tip={<>{tip} <span className="text-muted">Select to see how this is decided.</span></>}>
       <Link href={href} aria-describedby={tipId} className={`badge ${marker ? '' : 'badge-box'} ${TONE[tone]}`}>
         {marker ? (
           <span aria-hidden="true" className="inline-flex w-2.5 items-center justify-center">
@@ -65,7 +65,7 @@ export function VerificationBadge({ level, sourceTypes, idPrefix }: { level: Pub
       marker={<VerificationMark level={level} />}
       href={`/methodology#verification-${level.toLowerCase()}`}
       label={verificationLabel(level, sourceTypes)}
-      tip={`${level}: ${VERIFICATION_META[level].rule}`}
+      tip={`Level ${level}. ${VERIFICATION_META[level].rule}`}
       tipId={`${idPrefix}-verification`}
     />
   )
@@ -77,8 +77,19 @@ export function legalLabel(status: LegalStatus, hateCrimeCharged: YesNoUnknown):
   return base
 }
 
-export function LegalStatusBadges({ status, hateCrimeCharged, idPrefix }: { status: LegalStatus; hateCrimeCharged: YesNoUnknown; idPrefix: string }) {
-  const alleged = ALLEGATION_STATUSES.includes(status)
+export function LegalStatusBadges({
+  status,
+  hateCrimeCharged,
+  idPrefix,
+  alleged: showAlleged = true,
+}: {
+  status: LegalStatus
+  hateCrimeCharged: YesNoUnknown
+  idPrefix: string
+  /** The "Alleged" pill; off where the status is explained in words beside it. */
+  alleged?: boolean
+}) {
+  const alleged = showAlleged && ALLEGATION_STATUSES.includes(status)
   return (
     <>
       <Pill

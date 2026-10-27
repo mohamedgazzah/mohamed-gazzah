@@ -1,12 +1,14 @@
 import type { Metadata } from 'next'
-import { ChevronRight, Copy, FileWarning, Hash, Quote, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronRight, Copy, FileWarning, Hash, Link2, Quote, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, permanentRedirect } from 'next/navigation'
+import { ContentsNav } from '@/components/ContentsNav'
 import { CopyButton } from '@/components/CopyButton'
 import { IncidentCard } from '@/components/IncidentCard'
 import { IncidentView } from '@/components/IncidentView'
 import { citations } from '@/lib/citations'
-import { formatTimestamp, isoTimestamp, todayIso } from '@/lib/format'
+import { SOURCE_TYPE_META } from '@/db/enums'
+import { formatTimestamp, isoTimestamp, plural, todayIso } from '@/lib/format'
 import { incidentPath, parseRecordParam } from '@/lib/slug'
 import { stripMarkers } from '@/lib/summary'
 import { allRecordPaths, getIncident, getRelated, type IncidentListItem } from '@/server/public/incidents'
@@ -76,48 +78,23 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
     { id: `${idPrefix}-statements`, label: 'Statements', show: inc.statements.length > 0 },
     { id: `${idPrefix}-sources`, label: 'Sources', show: true },
     { id: `${idPrefix}-changes`, label: 'Change log', show: true },
-    { id: 'actions-heading', label: 'Cite or correct', show: true },
+    { id: 'cite', label: 'Cite or correct', show: true },
   ].filter((c) => c.show)
+
+  const sourceKinds = [...new Set(inc.sources.map((src) => SOURCE_TYPE_META[src.source_type].label.toLowerCase()))]
 
   return (
     <main className="wrap pt-6 pb-4 md:pt-8">
       <nav aria-label="Breadcrumb" className="mb-8 md:mb-10">
         <p className="glass eyebrow">
           <Link href="/incidents" className="font-semibold">
-            All incidents
+            Explore
           </Link>
           <ChevronRight aria-hidden="true" className="text-muted" />
           <span className="tabular text-muted">{inc.id}</span>
         </p>
       </nav>
       <div className="grid gap-x-8 gap-y-8 md:grid-cols-12">
-        <aside aria-label="About this record" className="md:order-last md:col-span-4 lg:col-span-3 lg:col-start-10">
-          <div className="glass rounded-[var(--radius-md)] p-4 md:sticky md:top-24">
-            <p className="flex items-center gap-2 text-[13px] font-semibold text-muted">
-              <Hash aria-hidden="true" size={15} />
-              Record
-            </p>
-            <p className="tabular mt-1 text-[16px] font-semibold">{inc.id}</p>
-            {inc.updatedAt ? (
-              <p className="mono mt-1 flex items-center gap-1.5 text-muted">
-                <RefreshCw aria-hidden="true" size={13} />
-                Updated {formatTimestamp(inc.updatedAt)}
-              </p>
-            ) : null}
-            <nav aria-label="On this page" className="mt-5 hidden border-t border-rule pt-4 md:block">
-              <p className="kicker px-2">On this page</p>
-              <ol className="mt-2 space-y-0.5 text-[14.5px]">
-                {contents.map((c) => (
-                  <li key={c.id}>
-                    <a href={`#${c.id}`} className="block rounded-[10px] px-2 py-1.5 text-text no-underline hover:bg-row-hover hover:no-underline">
-                      {c.label}
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </nav>
-          </div>
-        </aside>
         <div className="min-w-0 md:col-span-8 lg:col-span-8">
           <div className="max-w-reading">
             {inc.isDemo ? (
@@ -127,21 +104,22 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
             ) : null}
             <IncidentView data={{ ...inc, updatedAt: inc.updatedAt }} />
 
-            <section aria-labelledby="actions-heading" className="mb-12">
-              <h2 id="actions-heading" className="section-head mb-4 scroll-mt-24 text-[26px] leading-tight">
+            <section id="cite" aria-labelledby="actions-heading" className="mb-12">
+              <h2 id="actions-heading" className="section-head mb-4 text-[26px] leading-tight">
                 Cite or correct this record
               </h2>
               <div className="flex flex-wrap gap-2">
                 <CopyButton text={cite.url} label="Copy link" icon={<Copy aria-hidden="true" />} />
                 <Link href={`/report?mode=correction&record=${encodeURIComponent(inc.id)}`} className="btn btn-secondary">
                   <FileWarning aria-hidden="true" />
-                  Report a correction
+                  Request a correction
                 </Link>
               </div>
-              <details className="card mt-4 px-5 py-1">
-                <summary className="flex min-h-12 cursor-pointer items-center gap-2 font-semibold text-accent">
+              <details className="card group mt-4 px-5 py-1">
+                <summary className="flex min-h-12 cursor-pointer list-none items-center gap-2 font-semibold text-accent">
                   <Quote aria-hidden="true" size={16} />
                   Cite this record (APA, Chicago, BibTeX)
+                  <ChevronDown aria-hidden="true" size={18} className="ms-auto transition-transform group-open:rotate-180" />
                 </summary>
                 <div className="space-y-5 pt-2 pb-4">
                   {(
@@ -153,8 +131,12 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
                   ).map(([label, text]) => (
                     <div key={label}>
                       <p className="kicker mb-2">{label}</p>
-                      <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-[13px] leading-relaxed whitespace-pre-wrap">{text}</pre>
-                      <CopyButton text={text} label={`Copy ${label}`} className="btn btn-quiet mt-1" />
+                      {label === 'BibTeX' ? (
+                        <pre className="overflow-x-auto rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-[13px] leading-relaxed">{text}</pre>
+                      ) : (
+                        <p className="rounded-[var(--radius-sm)] border border-rule bg-row-alt p-3 text-[15px] leading-relaxed">{text}</p>
+                      )}
+                      <CopyButton text={text} label={`Copy ${label}`} className="btn btn-quiet btn-sm mt-1" icon={<Copy aria-hidden="true" />} />
                     </div>
                   ))}
                 </div>
@@ -173,6 +155,42 @@ export default async function IncidentPage(props: PageProps<'/incidents/[record]
             ) : null}
           </div>
         </div>
+        <aside aria-label="About this record" className="hidden md:col-span-4 md:block lg:col-span-3 lg:col-start-10">
+          <div className="space-y-4 md:sticky md:top-24">
+            <div className="card p-4">
+              <p className="flex items-center gap-2 text-[13px] font-semibold text-muted">
+                <Hash aria-hidden="true" size={15} />
+                Record
+              </p>
+              <p className="tabular mt-1 text-[16px] font-semibold">{inc.id}</p>
+              {inc.updatedAt ? (
+                <p className="mono mt-1 flex items-center gap-1.5 text-muted">
+                  <RefreshCw aria-hidden="true" size={13} />
+                  Updated {formatTimestamp(inc.updatedAt)}
+                </p>
+              ) : null}
+              <p className="mt-3 flex items-start gap-1.5 text-[13.5px] text-muted">
+                <Link2 aria-hidden="true" size={14} className="mt-[3px] shrink-0" />
+                <span>
+                  {plural(inc.sources.length, 'source')}
+                  {sourceKinds.length ? `: ${sourceKinds.join(', ')}` : ''}
+                </span>
+              </p>
+              <div className="mt-4 grid gap-1.5 border-t border-rule pt-3">
+                <a href="#cite" className="menu-item">
+                  <Quote aria-hidden="true" size={16} className="text-accent" /> Cite this record
+                </a>
+                <Link href={`/report?mode=correction&record=${encodeURIComponent(inc.id)}`} className="menu-item">
+                  <FileWarning aria-hidden="true" size={16} className="text-accent" /> Request a correction
+                </Link>
+              </div>
+            </div>
+            <nav aria-label="On this page" className="contents-card">
+              <p className="kicker px-2 pt-1">On this page</p>
+              <ContentsNav items={contents.map((c) => ({ id: c.id, title: c.label }))} className="mt-2" />
+            </nav>
+          </div>
+        </aside>
       </div>
     </main>
   )

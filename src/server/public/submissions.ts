@@ -12,6 +12,7 @@ import { correctionTickets, leads, submissionFiles, submissionPrivate, submissio
 import { REPORTER_RELATIONS, SLA } from '@/db/enums'
 import { encryptBytes, encryptText, sha256Hex } from '@/lib/crypto'
 import { stateByFips } from '@/lib/states'
+import { CITY_MESSAGE, RECORD_ID_MESSAGE, WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN } from '@/lib/report-rules'
 import { isRecordId } from '@/lib/slug'
 import { putObject } from '../shared/storage'
 import { UPLOAD_LIMITS, sniffType, stripImageMetadata } from '../shared/uploads'
@@ -24,10 +25,13 @@ const optional = (max: number) =>
     .optional()
     .transform((v) => (v ? v : null))
 
+/** Shared with the form, which runs the same check before sending so attachments are not lost. */
+export { WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN } from '@/lib/report-rules'
+
 export const reportFields = z
   .object({
     mode: z.enum(['report', 'correction']),
-    whatHappened: z.string().trim().min(20, 'Please describe what happened in at least a sentence or two.').max(5000),
+    whatHappened: z.string().trim().max(5000),
     incidentDate: z
       .string()
       .optional()
@@ -56,9 +60,13 @@ export const reportFields = z
     privacyRequest: z.boolean(),
   })
   .superRefine((d, ctx) => {
-    if (d.mode === 'report' && !d.city) ctx.addIssue({ code: 'custom', path: ['city'], message: 'Enter the city or town.' })
+    // A removal request needs no explanation ("Please remove my details" is enough).
+    if (d.whatHappened.length < WHAT_HAPPENED_MIN && !(d.mode === 'correction' && d.privacyRequest)) {
+      ctx.addIssue({ code: 'custom', path: ['whatHappened'], message: WHAT_HAPPENED_MESSAGE[d.mode] })
+    }
+    if (d.mode === 'report' && !d.city) ctx.addIssue({ code: 'custom', path: ['city'], message: CITY_MESSAGE })
     if (d.mode === 'correction' && !(d.recordId && isRecordId(d.recordId.toUpperCase()))) {
-      ctx.addIssue({ code: 'custom', path: ['recordId'], message: 'Enter the record id, for example US-2026-0412.' })
+      ctx.addIssue({ code: 'custom', path: ['recordId'], message: RECORD_ID_MESSAGE })
     }
   })
 

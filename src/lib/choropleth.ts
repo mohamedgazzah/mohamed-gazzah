@@ -50,9 +50,15 @@ export function stepFor(value: number, classes: MapClass[]): number {
  * A viewBox around a bounding box, padded and widened to the map's aspect
  * ratio so the frame keeps its shape from state to state.
  */
-export function frameAround(bbox: readonly [number, number, number, number], aspect = 975 / 610, pad = 0.08): [number, number, number, number] {
+export function frameAround(
+  bbox: readonly [number, number, number, number],
+  aspect = 975 / 610,
+  pad = 0.08,
+  minWidth = 0,
+): [number, number, number, number] {
   const [x0, y0, x1, y1] = bbox
-  let w = (x1 - x0) * (1 + 2 * pad)
+  // Tiny states (DC, Rhode Island) are framed with some of their region, not blown up to fill the map.
+  let w = Math.max((x1 - x0) * (1 + 2 * pad), minWidth)
   let h = (y1 - y0) * (1 + 2 * pad)
   if (w / h < aspect) w = h * aspect
   else h = w / aspect

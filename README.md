@@ -1,4 +1,4 @@
-# The Record: Anti-Muslim Incidents in America
+# The Record: Anti-Muslim Incidents in the United States
 
 A public, searchable record of anti-Muslim incidents in the United States. Each
 incident is linked to its sources and tracked through its legal outcome. The

@@ -41,10 +41,10 @@ const SECTIONS = [
   ['process', 'How a record is made'],
   ['corrections', 'Corrections and takedowns'],
   ['privacy-standards', 'Privacy'],
-  ['comparison', 'Comparison with other counts'],
+  ['comparison', 'Comparison with other counts', 'Other counts'],
   ['limits', 'Limits'],
   ['urls', 'Stable links'],
-  ['versions', 'Methodology versions'],
+  ['versions', 'Version history'],
 ] as const
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -59,9 +59,13 @@ function Section({ id, title, children }: { id: string; title: string; children:
 export default function MethodologyPage() {
   return (
     <main className="wrap pt-6 pb-4 md:pt-8">
-      <PageHeader kicker={`Methodology · version ${METHODOLOGY_VERSION}`} icon={<BookOpenText aria-hidden="true" />} title="Methodology">
-        Version {METHODOLOGY_VERSION}, effective {formatDate(METHODOLOGY_EFFECTIVE_DATE, 'day', 'long')}. Every dataset release and every published
-        record states the version it was produced under.
+      <PageHeader
+        kicker={`Version ${METHODOLOGY_VERSION} · in effect since ${formatDate(METHODOLOGY_EFFECTIVE_DATE)}`}
+        icon={<BookOpenText aria-hidden="true" />}
+        title="Methodology"
+      >
+        The rules every record follows: what counts as an incident, how it is classified and verified, how legal outcomes are tracked, and how
+        mistakes are corrected. Every dataset release and every published record states the version it was produced under.
       </PageHeader>
       <ReadingLayout contents={SECTIONS}>
         <div>
@@ -71,37 +75,39 @@ export default function MethodologyPage() {
               a property because the victim is, or is perceived to be, Muslim. One incident can have many sources, legal events and statements.
               Several incidents can belong to one court case or one perpetrator.
             </p>
+            <h3>Criteria</h3>
             <p>An incident is included when all three of these are true (inclusion criteria, version {METHODOLOGY_VERSION}):</p>
             <ol className="list-decimal space-y-2 ps-6">
               {INCLUSION_CRITERIA.map((c) => (
                 <li key={c}>{c}</li>
               ))}
             </ol>
-            <p>Excluded:</p>
+            <h3>Excluded</h3>
             <ul className="list-disc space-y-1 ps-6">
               {INCLUSION_EXCLUSIONS.map((c) => (
                 <li key={c}>{c}</li>
               ))}
             </ul>
             <p>{INCLUSION_POLICY_NOTE}</p>
+            <h3>Bias indicators</h3>
             <p>The anti-Muslim elements a source can state are recorded as bias indicators:</p>
-            <ul className="list-disc space-y-1 ps-6">
+            <dl className="defs">
               {BIAS_INDICATORS.map((b) => (
-                <li key={b}>
-                  <strong>{BIAS_INDICATOR_META[b].label}.</strong> {BIAS_INDICATOR_META[b].description}
-                </li>
+                <div key={b}>
+                  <dt>{BIAS_INDICATOR_META[b].label}</dt>
+                  <dd>{BIAS_INDICATOR_META[b].description}</dd>
+                </div>
               ))}
-            </ul>
+            </dl>
           </Section>
 
           <Section id="taxonomy" title="Incident types">
             <p>Each record has one or more of these types.</p>
             <div className="table-scroll" role="region" aria-label="Incident type taxonomy" tabIndex={0}>
-              <table className="data-table">
-                <caption className="sr-only">Incident type codes, labels and examples</caption>
+              <table className="data-table data-table-static">
+                <caption className="sr-only">Incident types, their codes and examples</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Code</th>
                     <th scope="col">Type</th>
                     <th scope="col">Examples</th>
                   </tr>
@@ -109,8 +115,12 @@ export default function MethodologyPage() {
                 <tbody>
                   {INCIDENT_TYPES.map((t) => (
                     <tr key={t} id={`type-${t}`}>
-                      <td className="mono font-medium text-text">{t}</td>
-                      <td>{INCIDENT_TYPE_META[t].label}</td>
+                      <th scope="row" className="min-w-40 text-start align-top font-semibold">
+                        {INCIDENT_TYPE_META[t].label}
+                        <span className="mt-1 block">
+                          <code className="token">{t}</code>
+                        </span>
+                      </th>
                       <td>{INCIDENT_TYPE_META[t].description}</td>
                     </tr>
                   ))}
@@ -121,11 +131,12 @@ export default function MethodologyPage() {
 
           <Section id="severity" title="Severity">
             <p>Severity records the most serious harm a source reports. Death and injury counts are shown as numbers, and are left empty when unknown rather than shown as zero.</p>
-            <dl className="space-y-2">
+            <dl className="defs">
               {SEVERITIES.map((s) => (
-                <div key={s} id={`severity-${s}`} className="scroll-mt-6">
-                  <dt className="font-semibold">
-                    {s} — {SEVERITY_META[s].label}
+                <div key={s} id={`severity-${s}`}>
+                  <dt className="flex items-center gap-2.5">
+                    <span className="tabular inline-grid h-7 min-w-7 place-items-center rounded-[8px] bg-accent-tint text-[14px] font-semibold text-accent">{s}</span>
+                    {SEVERITY_META[s].label}
                   </dt>
                   <dd>{SEVERITY_META[s].description}</dd>
                 </div>
@@ -135,11 +146,19 @@ export default function MethodologyPage() {
 
           <Section id="verification" title="Verification levels">
             <p>Every record shows how well it is confirmed. Public counts include V3 and V2 by default; V1 records appear only when you choose to include them.</p>
-            <dl className="space-y-3">
+            <dl className="defs">
               {(['V3', 'V2', 'V1', 'V0'] as const).map((v) => (
-                <div key={v} id={`verification-${v.toLowerCase()}`} className="scroll-mt-6">
-                  <dt className="font-semibold">
-                    {v} — {VERIFICATION_META[v].label}
+                <div key={v} id={`verification-${v.toLowerCase()}`}>
+                  <dt>
+                    {v === 'V0' ? (
+                      <span className="badge border-dashed text-muted">{VERIFICATION_META[v].label}</span>
+                    ) : (
+                      <span className={`badge ${v === 'V3' ? 'text-confirmed' : 'text-reported'}`}>
+                        <VerificationMark level={v} />
+                        {VERIFICATION_META[v].label}
+                      </span>
+                    )}
+                    <span className="mt-1 block text-[13px] font-normal text-muted">Level {v}</span>
                   </dt>
                   <dd>{VERIFICATION_META[v].rule}</dd>
                 </div>
@@ -153,20 +172,38 @@ export default function MethodologyPage() {
           </Section>
 
           <Section id="legal" title="Legal status">
-            <p>
-              Each record follows a lifecycle: reported → under investigation → suspect identified → arrested → charged → in court → convicted,
-              acquitted, dismissed, plea agreement or deferred → sentenced. Side states are no arrest, suspect deceased, not prosecuted and unknown.
-              Whether a hate-crime or bias charge was filed is recorded separately.
-            </p>
-            <p>Every status is supported by a dated legal event with a source, shown on the record’s legal timeline.</p>
-            <dl className="space-y-2">
-              {LEGAL_STATUSES.map((s) => (
-                <div key={s} id={`legal-${s}`} className="scroll-mt-6">
-                  <dt className="font-semibold">{LEGAL_STATUS_META[s].label}</dt>
-                  <dd>{LEGAL_STATUS_META[s].description}</dd>
-                </div>
+            <p>Each record follows a lifecycle:</p>
+            <ol className="flow" aria-label="Legal lifecycle, in order">
+              {LEGAL_STATUSES.slice(0, 6).map((s) => (
+                <li key={s}>{LEGAL_STATUS_META[s].label}</li>
               ))}
-            </dl>
+              <li>{LEGAL_STATUSES.slice(6, 11).map((s) => LEGAL_STATUS_META[s].label).join(', ')}</li>
+              <li>{LEGAL_STATUS_META.sentenced.label}</li>
+            </ol>
+            <p>
+              Side states are {LEGAL_STATUSES.slice(12).map((s) => LEGAL_STATUS_META[s].label.toLowerCase()).join(', ')}. Whether a hate-crime or
+              bias charge was filed is recorded separately. Every status is supported by a dated legal event with a source, shown on the record’s
+              legal timeline.
+            </p>
+            {(
+              [
+                ['Investigation and charges', LEGAL_STATUSES.slice(0, 6)],
+                ['Outcomes', LEGAL_STATUSES.slice(6, 12)],
+                ['Side states', LEGAL_STATUSES.slice(12)],
+              ] as const
+            ).map(([group, statuses]) => (
+              <div key={group}>
+                <h3 className="defs-group">{group}</h3>
+                <dl className="defs">
+                  {statuses.map((s) => (
+                    <div key={s} id={`legal-${s}`}>
+                      <dt>{LEGAL_STATUS_META[s].label}</dt>
+                      <dd>{LEGAL_STATUS_META[s].description}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
           </Section>
 
           <Section id="language" title="Language and naming">
@@ -191,8 +228,12 @@ export default function MethodologyPage() {
             <ul className="list-disc space-y-2 ps-6">
               <li>No incident is published without at least one public, linkable source. Each claim states who made it.</li>
               <li>
-                The most authoritative source available is used for each fact, in this order:{' '}
-                {SOURCE_AUTHORITY_ORDER.map((t) => SOURCE_TYPE_META[t].label.toLowerCase()).join(' > ')}.
+                The most authoritative source available is used for each fact, in this order:
+                <ol className="flow mt-2" aria-label="Sources, most authoritative first">
+                  {SOURCE_AUTHORITY_ORDER.map((t) => (
+                    <li key={t}>{SOURCE_TYPE_META[t].label}</li>
+                  ))}
+                </ol>
               </li>
               <li>When sources conflict, the record shows both and says which source says what.</li>
               <li>Summaries are two to four neutral sentences; each ends with a marker pointing to its source.</li>
@@ -203,7 +244,7 @@ export default function MethodologyPage() {
 
           <Section id="process" title="How a record is made">
             <p>Nothing goes public without two people: one editor drafts the record, and a second editor, who did not write or edit that version, approves it. The database itself refuses to publish a record without that approval. Automation finds leads and keeps cases current; it never publishes.</p>
-            <ol className="list-decimal space-y-2 ps-6">
+            <ol className="steps" role="list">
               <li>
                 Leads come from public submissions, news monitoring, organization and agency press releases, and court dockets. Every morning an
                 automated scan reads news searches and press releases, and an AI model (Claude, by Anthropic) checks each article against the
@@ -284,7 +325,10 @@ export default function MethodologyPage() {
 
           <Section id="urls" title="Stable links">
             <p>
-              Every filtered view of the record has its own address, for example <code>/incidents?state=MI&amp;type=VAND,THRT&amp;from=2026-01-01</code>.
+              Every filtered view of the record has its own address. For example:
+            </p>
+            <code className="block overflow-x-auto rounded-[var(--radius-sm)] px-3.5 py-2.5 whitespace-nowrap">/incidents?state=MI&amp;type=VAND,THRT&amp;from=2026-01-01</code>
+            <p>
               An address without a <code>v</code> parameter means verification levels V2 and V3; without <code>sort</code>, newest first. These
               defaults will not change, so a cited address keeps its meaning. Lists are paginated in a stable order rather than scrolled endlessly,
               so page numbers can be cited too.
@@ -292,8 +336,9 @@ export default function MethodologyPage() {
             <p>Record ids such as <code>US-2026-0412</code> are permanent. If a record’s title changes, its old address redirects to the new one.</p>
           </Section>
 
-          <Section id="versions" title="Methodology versions">
-            <table className="data-table">
+          <Section id="versions" title="Version history">
+            <div className="table-scroll">
+            <table className="data-table data-table-static">
               <caption className="sr-only">Methodology version history</caption>
               <thead>
                 <tr>
@@ -310,6 +355,7 @@ export default function MethodologyPage() {
                 </tr>
               </tbody>
             </table>
+            </div>
           </Section>
         </div>
       </ReadingLayout>

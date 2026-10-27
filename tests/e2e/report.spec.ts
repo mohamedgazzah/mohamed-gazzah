@@ -37,7 +37,7 @@ test('missing required fields are listed and linked, and typed text is kept', as
   await page.getByRole('button', { name: 'Send report' }).click()
   const alert = appAlert(page)
   await expect(alert).toContainText('Please check the highlighted fields.')
-  await expect(alert.getByRole('link', { name: /City: Enter the city or town/ })).toBeVisible()
+  await expect(alert.getByRole('link', { name: /City or town: Enter the city or town/ })).toBeVisible()
   await expect(page.getByLabel(/What happened\?/)).toHaveValue('Too short')
   await expect(page.getByLabel(/City or town/)).toHaveAttribute('aria-invalid', 'true')
 })
@@ -53,7 +53,7 @@ test('photos upload with the report', async ({ page }) => {
 
 test('correction mode is tied to a record id and offers privacy removal', async ({ page }) => {
   await page.goto('/incidents/DEMO-2026-0001')
-  await page.getByRole('link', { name: 'Report a correction' }).click()
+  await page.getByRole('link', { name: 'Request a correction' }).first().click()
   await expect(page).toHaveURL(/\/report\?mode=correction&record=DEMO-2026-0001/)
   await expect(page.getByLabel(/Record id/)).toHaveValue('DEMO-2026-0001')
   await page.getByLabel(/What should be corrected/).fill('The second sentence names the wrong police department; the county sheriff responded.')

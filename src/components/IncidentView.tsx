@@ -3,11 +3,14 @@
  * editor's live preview, so editors see exactly what will be published.
  * Pure presentational: no data fetching, safe in server and client trees.
  */
+import { Archive, ArrowRight, CalendarDays, ExternalLink, MapPin, Quote, Tag } from 'lucide-react'
 import type { ReactNode } from 'react'
 import {
+  ALLEGATION_STATUSES,
   BIAS_INDICATOR_META,
   CONVICTION_STATUSES,
   INCIDENT_TYPE_META,
+  LEGAL_EVENT_META,
   LOCATION_PRECISION_META,
   PERPETRATOR_TYPE_META,
   SOURCE_TYPE_META,
@@ -15,6 +18,7 @@ import {
   STATEMENT_TYPES,
   TARGET_ATTRIBUTE_META,
   TARGET_TYPE_META,
+  VERIFICATION_META,
   YES_NO_UNKNOWN_META,
   type BiasIndicator,
   type DatePrecision,
@@ -30,11 +34,10 @@ import {
   type YesNoUnknown,
 } from '@/db/enums'
 import type { PublicCase, PublicChange, PublicLegalEvent, PublicSource, PublicStatement } from '@/db/schema'
-import { CalendarDays, MapPin, Tag } from 'lucide-react'
 import { formatDate, formatDateRange, formatPlace, formatTimestamp, plural } from '@/lib/format'
 import { stateName } from '@/lib/states'
 import { DemoBadge, LegalStatusBadges, SeverityMarker, VerificationBadge, WarningBadge } from './Badges'
-import { SourceChip } from './SourceChip'
+import { SourceRef } from './SourceRef'
 import { Summary } from './Summary'
 import { Timeline } from './Timeline'
 
@@ -74,11 +77,15 @@ export type IncidentViewData = {
 }
 
 function casualties(deaths: number | null, injuries: number | null): string {
+  if (deaths === null && injuries === null) return 'Not stated in sources'
   const parts: string[] = []
-  parts.push(deaths === null ? 'Deaths: unknown' : deaths === 0 ? 'No deaths reported' : plural(deaths, 'death'))
-  parts.push(injuries === null ? 'injuries: unknown' : injuries === 0 ? 'no injuries reported' : plural(injuries, 'person injured', 'people injured'))
+  parts.push(deaths === null ? 'Deaths not stated' : deaths === 0 ? 'No deaths reported' : plural(deaths, 'death'))
+  parts.push(injuries === null ? 'injuries not stated' : injuries === 0 ? 'no injuries reported' : plural(injuries, 'person injured', 'people injured'))
   return parts.join('; ')
 }
+
+/** "Stated motive, hate-crime charge": a list of labels as one phrase. */
+const phrase = (labels: string[]) => labels.map((l, i) => (i ? l[0]!.toLowerCase() + l.slice(1) : l)).join(', ')
 
 function Fact({ term, children }: { term: string; children: ReactNode }) {
   return (
@@ -91,19 +98,74 @@ function Fact({ term, children }: { term: string; children: ReactNode }) {
 
 function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
   return (
-    <h2 id={id} className="section-head mb-4 scroll-mt-24 text-[26px] leading-tight">
+    <h2 id={id} className="section-head mb-4 text-[26px] leading-tight">
       {children}
     </h2>
+  )
+}
+
+/**
+ * What is verified and where the case stands, side by side and in words, so
+ * a reader scanning the page never takes a charge for a conviction.
+ */
+function RecordStatus({ data, idPrefix }: { data: IncidentViewData; idPrefix: string }) {
+  const publicLevel = data.verificationLevel === 'V0' ? null : data.verificationLevel
+  const alleged = data.legalStatus ? ALLEGATION_STATUSES.includes(data.legalStatus) : false
+  const latest = [...data.legalEvents].sort((a, b) => a.date.localeCompare(b.date)).at(-1)
+  return (
+    <section aria-label="Record status" className="glass relative mt-6 grid gap-5 rounded-[var(--radius-md)] p-4 sm:grid-cols-2 sm:gap-6 md:p-5">
+      <div>
+        <p className="kicker">Verification</p>
+        <div className="mt-2">
+          {publicLevel ? (
+            <VerificationBadge level={publicLevel} sourceTypes={data.sourceTypes} idPrefix={idPrefix} />
+          ) : (
+            <WarningBadge>V0 — unverified, cannot be published</WarningBadge>
+          )}
+        </div>
+        <p className="mt-2 text-[14px] text-muted">{VERIFICATION_META[data.verificationLevel].rule}</p>
+        <p className="mt-2 text-[14px]">
+          <a href={`/methodology#verification-${data.verificationLevel.toLowerCase()}`} className="arrow-link">
+            How we verify <ArrowRight aria-hidden="true" size={14} />
+          </a>
+        </p>
+      </div>
+      <div className="sm:border-s sm:border-rule sm:ps-6">
+        <p className="kicker">Legal status</p>
+        <div className="mt-2">
+          {data.legalStatus ? (
+            <LegalStatusBadges status={data.legalStatus} hateCrimeCharged={data.hateCrimeCharged} idPrefix={idPrefix} alleged={false} />
+          ) : (
+            <WarningBadge>Legal status not set</WarningBadge>
+          )}
+        </div>
+        <p className="mt-2 text-[14px] text-muted">
+          {alleged ? (
+            <>
+              <strong className="font-semibold text-text">Not convicted.</strong> Anyone accused is presumed innocent.{' '}
+            </>
+          ) : null}
+          {latest ? `Latest: ${LEGAL_EVENT_META[latest.event_type].label.toLowerCase()}, ${formatDate(latest.date)}.` : null}
+        </p>
+        {data.legalStatus ? (
+          <p className="mt-2 text-[14px]">
+            <a href={`/methodology#legal-${data.legalStatus}`} className="arrow-link">
+              What this status means <ArrowRight aria-hidden="true" size={14} />
+            </a>
+          </p>
+        ) : null}
+      </div>
+    </section>
   )
 }
 
 export function IncidentView({ data, preview = false }: { data: IncidentViewData; preview?: boolean }) {
   const idPrefix = `rec-${data.id || 'draft'}`
   const convicted = data.legalStatus ? CONVICTION_STATUSES.includes(data.legalStatus) : false
-  const publicLevel = data.verificationLevel === 'V0' ? null : data.verificationLevel
   const statementsByType = STATEMENT_TYPES.map((t) => ({ type: t, items: data.statements.filter((s) => s.statement_type === t) })).filter(
     (g) => g.items.length,
   )
+  const nextDate = data.cases.map((c) => c.next_date).filter((d): d is string => !!d).sort()[0] ?? null
 
   return (
     <article aria-labelledby={`${idPrefix}-title`}>
@@ -121,32 +183,24 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
             <Tag aria-hidden="true" size={16} />
             {data.incidentTypes.map((t) => INCIDENT_TYPE_META[t].label).join(', ')}
           </span>
+          <span className="relative">
+            <SeverityMarker severity={data.severity} idPrefix={idPrefix} />
+          </span>
+          {preview && data.isDemo ? <DemoBadge /> : null}
+          {!preview && data.updatedAt ? <span className="tabular">Updated {formatTimestamp(data.updatedAt)}</span> : null}
         </p>
-        <h1 id={`${idPrefix}-title`} className="display mt-4 text-[clamp(32px,4.4vw,50px)] leading-[1.06]">
+        <h1 id={`${idPrefix}-title`} className="mt-4 text-[clamp(30px,2.2vw+18px,46px)] leading-[1.1] font-semibold tracking-[-0.02em] text-balance">
           {data.title || 'Untitled draft'}
         </h1>
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          {publicLevel ? (
-            <VerificationBadge level={publicLevel} sourceTypes={data.sourceTypes} idPrefix={idPrefix} />
-          ) : (
-            <WarningBadge>V0 — unverified, cannot be published</WarningBadge>
-          )}
-          {data.legalStatus ? (
-            <LegalStatusBadges status={data.legalStatus} hateCrimeCharged={data.hateCrimeCharged} idPrefix={idPrefix} />
-          ) : (
-            <WarningBadge>Legal status not set</WarningBadge>
-          )}
-          <SeverityMarker severity={data.severity} idPrefix={idPrefix} />
-          {data.isDemo ? <DemoBadge /> : null}
-        </div>
+        <RecordStatus data={data} idPrefix={idPrefix} />
       </header>
 
       <section aria-labelledby={`${idPrefix}-summary`} className="mb-12">
         <h2 id={`${idPrefix}-summary`} className="sr-only">
           Summary
         </h2>
-        <p className="text-[19px] leading-[1.65] md:text-[20px]">
-          {data.summary ? <Summary text={data.summary} idPrefix={`${idPrefix}-source`} /> : preview ? <em>No summary yet.</em> : null}
+        <p className="text-[17.5px] leading-[1.65] md:text-[20px]">
+          {data.summary ? <Summary text={data.summary} idPrefix={`${idPrefix}-source`} sources={data.sources} /> : preview ? <em>No summary yet.</em> : null}
         </p>
       </section>
 
@@ -159,7 +213,7 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
           </Fact>
           <Fact term="Location">
             {formatPlace(data.city, data.stateCode) || stateName(data.stateCode)}
-            <span className="block text-sm text-muted">Shown at: {LOCATION_PRECISION_META[data.locationPrecision].label.toLowerCase()}</span>
+            <span className="block text-sm text-muted">Mapped at {LOCATION_PRECISION_META[data.locationPrecision].label.toLowerCase()} level</span>
           </Fact>
           <Fact term="Target">
             {TARGET_TYPE_META[data.targetType].label}
@@ -172,7 +226,7 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
             {data.perpetratorCount ? `, ${plural(data.perpetratorCount, 'person', 'people')}` : ''}
             {data.perpetratorNames.length ? (
               <span className="block">
-                {convicted ? 'Convicted: ' : 'Charged (alleged): '}
+                {convicted ? 'Convicted: ' : 'Charged, not convicted: '}
                 {data.perpetratorNames.join(', ')}
               </span>
             ) : null}
@@ -182,73 +236,96 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
           <Fact term="Hate-crime charge">{YES_NO_UNKNOWN_META[data.hateCrimeCharged].label}</Fact>
           <Fact term="Agencies involved">{data.agenciesInvolved.length ? data.agenciesInvolved.join('; ') : 'None named in sources'}</Fact>
           <Fact term="Bias indicators stated by sources">
-            {data.biasIndicators.length ? data.biasIndicators.map((b) => BIAS_INDICATOR_META[b].label).join(', ') : 'None recorded'}
+            {data.biasIndicators.length ? phrase(data.biasIndicators.map((b) => BIAS_INDICATOR_META[b].label)) : 'None recorded'}
           </Fact>
-          <Fact term="Record">
-            <span className="tabular font-semibold">{data.id || 'New draft'}</span>
-            {data.updatedAt ? <span className="text-muted"> · last updated {formatTimestamp(data.updatedAt)}</span> : null}
-          </Fact>
+          {preview ? (
+            <Fact term="Record">
+              <span className="tabular font-semibold">{data.id || 'New draft'}</span>
+              {data.updatedAt ? <span className="text-muted"> · last updated {formatTimestamp(data.updatedAt)}</span> : null}
+            </Fact>
+          ) : null}
         </dl>
       </section>
 
       {data.legalEvents.length ? (
         <section aria-labelledby={`${idPrefix}-legal`} className="mb-12">
           <SectionTitle id={`${idPrefix}-legal`}>Legal timeline</SectionTitle>
-          <Timeline events={data.legalEvents} sourceIdPrefix={`${idPrefix}-source`} />
-          {data.cases.length ? (
-            <ul className="card mt-6 space-y-1 px-5 py-4 text-[15px]">
-              {data.cases.map((c) => (
-                <li key={c.id}>
-                  <span className="font-semibold">{c.name}</span>
-                  {c.court ? `, ${c.court}` : ''}
-                  {c.docket_number ? <span className="mono"> · Docket {c.docket_number}</span> : null}
-                  {c.next_date ? <span className="text-muted"> · Next date {formatDate(c.next_date)}</span> : null}
-                  {c.courtlistener_url ? (
-                    <>
-                      {' · '}
-                      <a href={c.courtlistener_url} rel="noopener noreferrer nofollow">
-                        Docket on CourtListener
-                      </a>
-                    </>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          <Timeline events={data.legalEvents} sourceIdPrefix={`${idPrefix}-source`} showCase={data.cases.length > 1} nextDate={nextDate} />
+          {data.cases.map((c) => (
+            <div key={c.id} className="card mt-6 px-5 py-4">
+              <h3 className="kicker">Court case</h3>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-5 gap-y-1 text-[15px]">
+                <dt className="text-muted">Case</dt>
+                <dd className="font-semibold">{c.name}</dd>
+                {c.court ? (
+                  <>
+                    <dt className="text-muted">Court</dt>
+                    <dd>{c.court}</dd>
+                  </>
+                ) : null}
+                {c.docket_number ? (
+                  <>
+                    <dt className="text-muted">Docket</dt>
+                    <dd className="tabular whitespace-nowrap">{c.docket_number}</dd>
+                  </>
+                ) : null}
+                {c.next_date ? (
+                  <>
+                    <dt className="text-muted">Next court date</dt>
+                    <dd className="font-semibold">{formatDate(c.next_date)}</dd>
+                  </>
+                ) : null}
+              </dl>
+              {c.courtlistener_url ? (
+                <p className="mt-3 text-[14.5px]">
+                  <a href={c.courtlistener_url} rel="noopener noreferrer nofollow" className="arrow-link">
+                    Docket on CourtListener <ExternalLink aria-hidden="true" size={14} />
+                  </a>
+                </p>
+              ) : null}
+            </div>
+          ))}
         </section>
       ) : null}
 
       {statementsByType.length ? (
         <section aria-labelledby={`${idPrefix}-statements`} className="mb-12">
           <SectionTitle id={`${idPrefix}-statements`}>Statements</SectionTitle>
-          {statementsByType.map((g) => (
-            <div key={g.type} className="mb-8 last:mb-0">
-              <h3 className="mb-3 text-[15px] font-semibold text-muted">{STATEMENT_TYPE_META[g.type].label}</h3>
-              <ul className="space-y-6">
+          <div className="space-y-8">
+            {statementsByType.map((g) => (
+              <div key={g.type}>
+                <h3 className="mb-1 text-[15px] font-semibold text-muted">{STATEMENT_TYPE_META[g.type].label}</h3>
                 {g.items.map((s, i) => (
-                  <li key={i} className="card relative overflow-hidden px-5 py-4 ps-6">
-                    <span aria-hidden="true" className="absolute inset-y-0 start-0 w-1 bg-accent" />
+                  <figure key={i} className="border-t border-rule pt-4 pb-1">
                     {s.quote ? (
-                      <blockquote className="text-[20px] leading-[1.5] font-medium tracking-[-0.01em]">“{s.quote}”</blockquote>
+                      <div className="flex gap-3">
+                        <span className="icon-chip mt-0.5 h-8 w-8 rounded-[10px]" aria-hidden="true">
+                          <Quote />
+                        </span>
+                        <blockquote className="text-[19px] leading-[1.5] font-medium tracking-[-0.01em]">“{s.quote}”</blockquote>
+                      </div>
                     ) : (
-                      <p className="text-[17.5px] leading-[1.6]">{s.paraphrase}</p>
+                      <p className="text-[17px] leading-[1.6]">
+                        <span className="me-2 text-[13px] font-semibold text-muted">Paraphrase</span>
+                        {s.paraphrase}
+                      </p>
                     )}
-                    <p className="mono mt-2 text-muted">
-                      {s.quote ? '— ' : 'Paraphrased: '}
-                      {[s.speaker, s.speaker_role, s.organization].filter(Boolean).join(', ')}
-                      {s.date ? `, ${formatDate(s.date)}` : ''}
+                    <figcaption className="mt-2 text-[14px] text-muted">
+                      <span className="font-semibold text-text">{s.speaker}</span>
+                      {[s.speaker_role, s.organization].filter(Boolean).length ? `, ${[s.speaker_role, s.organization].filter(Boolean).join(', ')}` : ''}
+                      {s.date ? ` · ${formatDate(s.date)}` : ''}
                       {s.source_n ? (
                         <>
                           {' '}
-                          <a href={`#${idPrefix}-source-${s.source_n}`}>[{s.source_n}]</a>
+                          <SourceRef n={s.source_n} href={`#${idPrefix}-source-${s.source_n}`} />
                         </>
                       ) : null}
-                    </p>
-                  </li>
+                    </figcaption>
+                  </figure>
                 ))}
-              </ul>
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </section>
       ) : null}
 
@@ -257,16 +334,26 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
         {data.sources.length ? (
           <ol className="space-y-3">
             {data.sources.map((s) => (
-              <li
-                key={s.n}
-                id={`${idPrefix}-source-${s.n}`}
-                className="card flex scroll-mt-24 gap-4 px-4 py-4 transition-shadow hover:shadow-[var(--shadow-md)] target:border-accent target:bg-accent-tint md:px-5"
-              >
-                <span className="tabular inline-grid h-7 min-w-7 shrink-0 place-items-center rounded-full bg-accent-tint text-[13px] font-semibold text-accent">{s.n}</span>
-                <div className="min-w-0">
-                  <SourceChip source={s} idPrefix={idPrefix} />
-                  <p className="mt-1 text-[16.5px] leading-snug font-medium break-words">{s.title}</p>
-                  <p className="mono mt-1 text-muted">
+              <li key={s.n} id={`${idPrefix}-source-${s.n}`} className="source-card card lift relative flex scroll-mt-24 gap-4 px-4 py-4 md:px-5">
+                <span className="src-num tabular inline-grid h-7 min-w-7 shrink-0 place-items-center rounded-full bg-accent-tint text-[13px] font-semibold text-accent">
+                  {s.n}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="flex flex-wrap gap-x-2 text-[14px]">
+                    <span className="font-semibold">{s.outlet}</span>
+                    {s.published_date ? <span className="whitespace-nowrap text-muted">{formatDate(s.published_date)}</span> : null}
+                  </p>
+                  <a
+                    href={s.url}
+                    rel="noopener noreferrer nofollow"
+                    target="_blank"
+                    className="source-link mt-1 block text-[16.5px] leading-snug font-medium break-words text-text no-underline hover:underline"
+                  >
+                    {s.title}
+                    <ExternalLink aria-hidden="true" size={14} className="ms-1.5 inline align-[-1px] text-muted" />
+                    <span className="sr-only"> ({s.outlet}, opens in a new tab)</span>
+                  </a>
+                  <p className="mono mt-1.5 text-muted">
                     {SOURCE_TYPE_META[s.source_type].label}
                     {s.author ? ` · ${s.author}` : ''}
                     {s.claim_attribution ? ` · ${s.claim_attribution}` : ''}
@@ -274,6 +361,17 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
                     {s.archived_url ? null : ' · archived copy pending'}
                   </p>
                 </div>
+                {s.archived_url ? (
+                  <a
+                    href={s.archived_url}
+                    rel="noopener noreferrer nofollow"
+                    target="_blank"
+                    className="relative z-10 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-accent transition-colors hover:bg-accent-tint"
+                    aria-label={`Archived copy of “${s.title}” (opens in a new tab)`}
+                  >
+                    <Archive aria-hidden="true" size={17} />
+                  </a>
+                ) : null}
               </li>
             ))}
           </ol>
@@ -285,10 +383,10 @@ export function IncidentView({ data, preview = false }: { data: IncidentViewData
       <section aria-labelledby={`${idPrefix}-changes`} className="mb-12">
         <SectionTitle id={`${idPrefix}-changes`}>Change log</SectionTitle>
         {data.changeLog.length ? (
-          <ol className="card space-y-2 px-5 py-4 text-[15.5px]">
+          <ol className="space-y-2 text-[15.5px]">
             {data.changeLog.map((c, i) => (
               <li key={i}>
-                <time dateTime={c.date} className="mono text-muted">
+                <time dateTime={c.date} className="tabular text-muted">
                   {formatTimestamp(c.date)}
                 </time>
                 {' — '}

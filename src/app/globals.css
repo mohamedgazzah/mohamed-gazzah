@@ -192,7 +192,21 @@
   .reading {
     font-size: var(--reading);
     line-height: 1.7;
-    max-width: 68ch;
+  }
+  /* Prose keeps about 70 characters a line; cards, tables and grids use the full column. */
+  .reading > :is(p, ul, ol, h3, dl.terms) {
+    max-width: 40rem;
+  }
+  .reading li::marker {
+    color: var(--text-muted);
+  }
+  .reading li + li {
+    margin-top: 0.4rem;
+  }
+  .reading-section + .reading-section {
+    margin-top: 3.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--rule);
   }
   .reading p + p {
     margin-top: 1em;
@@ -217,11 +231,29 @@
   }
   /* A boxed note for content still to be supplied, or a caution. */
   .note {
-    border: 1px dashed var(--control-border);
-    border-radius: var(--radius-sm);
-    padding: 0.85rem 1rem;
-    font-size: var(--step-0);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 1rem 1.15rem;
+    border: 1px dashed color-mix(in srgb, var(--text) 28%, var(--bg));
+    border-radius: var(--radius-md);
+    background: color-mix(in srgb, var(--text) 4%, var(--bg));
+    font-size: 15.5px;
+    line-height: 1.55;
     color: var(--text-muted);
+  }
+  .note > svg {
+    flex: none;
+    inline-size: 20px;
+    block-size: 20px;
+    margin-top: 1px;
+  }
+  .note-label {
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
   }
   .notice {
     border: 1px solid var(--rule);
@@ -255,13 +287,27 @@
   .glass-strong {
     position: relative;
     isolation: isolate;
-    background: var(--glass);
-    -webkit-backdrop-filter: blur(20px) saturate(1.7);
-    backdrop-filter: blur(20px) saturate(1.7);
     border: 1px solid var(--glass-edge);
     box-shadow: inset 0 1px 0 var(--glass-sheen), var(--shadow-md);
   }
-  .glass-strong {
+  /*
+   * The frosted fill lives on a pseudo-element, not the panel itself: a
+   * backdrop-filter on an ancestor would stop glass inside it (the phone menu
+   * in the header, the date popover in the toolbar) from blurring the page.
+   */
+  .glass::after,
+  .glass-strong::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    border-radius: inherit;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(20px) saturate(1.7);
+    backdrop-filter: blur(20px) saturate(1.7);
+    pointer-events: none;
+  }
+  .glass-strong::after {
     background: var(--glass-strong);
   }
   .glass::before,
@@ -279,8 +325,8 @@
     pointer-events: none;
   }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .glass,
-    .glass-strong {
+    .glass::after,
+    .glass-strong::after {
       background: var(--surface);
     }
   }
@@ -291,15 +337,24 @@
     inset-inline: 0;
     inset-block-start: 0;
     z-index: -1;
-    block-size: 760px;
+    block-size: 1000px;
     overflow: hidden;
     pointer-events: none;
     background:
-      radial-gradient(42% 60% at 12% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%),
-      radial-gradient(38% 52% at 88% 6%, color-mix(in srgb, var(--ambient-2) 15%, transparent), transparent 70%),
-      radial-gradient(30% 40% at 55% 40%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%);
-    -webkit-mask: linear-gradient(var(--mask), transparent);
-    mask: linear-gradient(var(--mask), transparent);
+      radial-gradient(42% 44% at 12% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 72%),
+      radial-gradient(38% 40% at 88% 4%, color-mix(in srgb, var(--ambient-2) 15%, transparent), transparent 70%),
+      radial-gradient(34% 24% at 20% 64%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 70%),
+      radial-gradient(30% 22% at 78% 68%, color-mix(in srgb, var(--ambient-2) 12%, transparent), transparent 70%);
+    -webkit-mask: linear-gradient(var(--mask) 74%, transparent);
+    mask: linear-gradient(var(--mask) 74%, transparent);
+  }
+  .ambient::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--text) 16%, transparent) 1px, transparent 1.5px) 0 0 / 22px 22px;
+    -webkit-mask: radial-gradient(62% 42% at 50% 62%, var(--mask), transparent);
+    mask: radial-gradient(62% 42% at 50% 62%, var(--mask), transparent);
   }
 
   /* ---------- Surfaces ---------- */
@@ -345,7 +400,7 @@
     background:
       linear-gradient(160deg, color-mix(in srgb, var(--accent) 14%, var(--surface)), color-mix(in srgb, var(--accent) 6%, var(--surface)));
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent), inset 0 1px 0 var(--glass-sheen);
-    transition: transform 420ms var(--ease-spring), box-shadow 280ms var(--ease-out);
+    transition: transform 360ms var(--ease-out), box-shadow 280ms var(--ease-out);
   }
   .icon-chip svg {
     inline-size: 1.25rem;
@@ -362,7 +417,7 @@
     block-size: 1.4rem;
   }
   :is(.lift, .hover-icon):is(:hover, :focus-visible, :focus-within) .icon-chip {
-    transform: translateY(-3px) rotate(-6deg) scale(1.06);
+    transform: translateY(-3px) rotate(-5deg);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 8px 18px -6px color-mix(in srgb, var(--accent) 45%, transparent);
   }
   /* Icons that point somewhere move that way on hover. */
@@ -374,6 +429,39 @@
   }
   :is(a, button):is(:hover, :focus-visible) .nudge-down {
     transform: translateY(2px);
+  }
+  .nudge-back {
+    transition: transform 240ms var(--ease-out);
+  }
+  :is(a, button):is(:hover, :focus-visible) .nudge-back {
+    transform: translateX(-3px);
+  }
+
+  /* Links inside running text are underlined, not told apart by color alone (WCAG 1.4.1). */
+  main :is(p, li, dd, td, figcaption, blockquote) a:not([class]) {
+    text-decoration-line: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  }
+  main :is(p, li, dd, td, figcaption, blockquote) a:not([class]):hover {
+    text-decoration-color: currentColor;
+    text-decoration-thickness: 2px;
+  }
+
+  /* A small icon above a headline number; it lifts with its tile. */
+  .stat-icon {
+    display: inline-grid;
+    place-items: center;
+    transition: transform 360ms var(--ease-out);
+  }
+  .stat-icon svg {
+    inline-size: 20px;
+    block-size: 20px;
+    stroke-width: 1.75;
+  }
+  .hover-icon:is(:hover, :focus-visible) .stat-icon {
+    transform: translateY(-2px) rotate(-6deg);
   }
 
   /* A small glass pill above a headline. */
@@ -435,9 +523,91 @@
     border-color: var(--text);
   }
   .control:focus-visible {
-    outline: none;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
     border-color: var(--accent);
     box-shadow: var(--focus-glow);
+  }
+  .control::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  .control[aria-invalid='true'] {
+    border-color: var(--status-severe);
+    box-shadow: inset 0 0 0 1px var(--status-severe);
+  }
+  .control[aria-invalid='true']:focus-visible {
+    outline-color: var(--status-severe);
+  }
+  /* A select drawn with its own chevron (the icon sits in a .relative wrapper). */
+  .relative > select.control {
+    appearance: none;
+    -webkit-appearance: none;
+    padding-inline-end: 2.5rem;
+  }
+  input[type='date'].control::-webkit-datetime-edit-month-field:focus,
+  input[type='date'].control::-webkit-datetime-edit-day-field:focus,
+  input[type='date'].control::-webkit-datetime-edit-year-field:focus {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-radius: 4px;
+  }
+  /* A file field that looks like a drop zone, with a real button. */
+  input[type='file'].control {
+    min-height: 64px;
+    padding: 0.7rem;
+    border-style: dashed;
+    border-width: 1.5px;
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  input[type='file'].control:hover {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+  }
+  input[type='file'].control::file-selector-button {
+    margin-inline-end: 0.75rem;
+    min-height: 38px;
+    padding: 0.35rem 1rem;
+    border: 1px solid var(--control-border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  /* A radio or checkbox in a tile the whole of which is the target. */
+  .choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    min-height: 52px;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--control-border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    cursor: pointer;
+    line-height: 1.45;
+    transition: border-color 140ms ease, background-color 140ms ease, box-shadow 140ms ease;
+  }
+  .choice:hover {
+    border-color: var(--text);
+  }
+  .choice:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--accent-tint);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .choice:has(input:focus-visible) {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+  .choice input {
+    inline-size: 1.2rem;
+    block-size: 1.2rem;
+    margin: 0.05rem 0 0;
+    flex: none;
   }
   textarea.control {
     min-height: 7rem;
@@ -486,6 +656,12 @@
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+  }
+  .btn[aria-current='page'] {
+    background: var(--surface);
+    color: var(--text);
+    border-color: var(--rule);
+    box-shadow: var(--shadow-sm);
   }
   .btn-lg {
     min-height: 52px;
@@ -543,9 +719,18 @@
     font-size: var(--step-0);
   }
   .field-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.375rem;
     color: var(--status-severe);
     font-size: var(--step-0);
     font-weight: 600;
+  }
+  .field-error svg {
+    inline-size: 1rem;
+    block-size: 1rem;
+    flex: none;
+    margin-top: 0.15rem;
   }
 
   /* Badges: a mark and a word, never color alone. Colored text on the surface, never on a tint. */
@@ -586,6 +771,7 @@
     gap: 0.75rem;
   }
   .ledger > li {
+    position: relative;
     background: var(--surface);
     border: 1px solid var(--rule);
     border-radius: var(--radius-md);
@@ -597,6 +783,19 @@
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
     border-color: color-mix(in srgb, var(--accent) 26%, var(--rule));
+  }
+  .ledger :is(h2, h3) a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  .ledger .badge {
+    position: relative;
+    z-index: 1;
+  }
+  .ledger > li:is(:hover, :focus-within) {
+    z-index: 2;
   }
   .ledger-flat > li {
     border-radius: 0;
@@ -658,7 +857,7 @@
   }
   .segmented > [aria-current],
   .segmented > :has(input:checked) {
-    background: var(--surface);
+    background: var(--segment-thumb);
     color: var(--text);
     font-weight: 600;
     box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 14%, transparent), 0 2px 8px -2px color-mix(in srgb, var(--text) 14%, transparent);
@@ -728,6 +927,19 @@
   .filter-group > fieldset {
     padding-bottom: 1rem;
   }
+  /* In the phone sheet the rail fills the sheet: no card inside a card. */
+  @media (max-width: 47.99rem) {
+    .filter-panel[data-open='true'] .filter-card {
+      flex: 1;
+      min-height: 0;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    .filter-panel[data-open='true'] .filter-card > p:first-of-type {
+      display: none;
+    }
+  }
 
   .sr-only-focusable:not(:focus):not(:focus-within) {
     position: absolute;
@@ -761,9 +973,21 @@
     line-height: 1.45;
     text-transform: none;
     letter-spacing: normal;
+    border: 1px solid var(--band-rule);
     box-shadow: var(--shadow-lg);
     /* display:none, not visibility:hidden, so hidden tooltips never widen the page */
     display: none;
+  }
+  /* On phones a tooltip spans its row (the nearest positioned box) instead of running off the screen. */
+  @media (max-width: 40rem) {
+    .tip {
+      position: static;
+    }
+    .tip-body {
+      inset-inline: 0;
+      width: auto;
+      max-width: none;
+    }
   }
   .tip:hover .tip-body,
   .tip:focus-within .tip-body {
@@ -825,6 +1049,35 @@
   .data-table .num {
     text-align: end;
     font-variant-numeric: tabular-nums;
+  }
+  /* The whole row opens the record (the title link is stretched over it). */
+  tr.row-link {
+    position: relative;
+    cursor: pointer;
+  }
+  tr.row-link td:nth-child(2) a::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .data-table-static tbody tr:hover {
+    background: transparent;
+  }
+  .data-table tr:target {
+    background: var(--accent-tint);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  /* Long tables keep their column names in view on wide screens (clip, unlike auto, does not stop sticky). */
+  @media (min-width: 64rem) {
+    .table-scroll.sticky-head {
+      overflow: clip;
+    }
+    .sticky-head .data-table thead th {
+      top: 79px;
+    }
+    .sticky-head .data-table tbody tr {
+      scroll-margin-top: 8rem;
+    }
   }
   /* A table that is not in a scroll box (small tables inside cards). */
   .data-table-plain thead th {
@@ -889,17 +1142,15 @@
   .state-map .map-states a {
     cursor: pointer;
   }
-  .state-map .map-states {
-    filter: drop-shadow(0 8px 18px color-mix(in srgb, var(--text) 10%, transparent));
+  .map-fill-0 {
+    fill: color-mix(in srgb, var(--text) 9%, var(--surface));
+    background-color: color-mix(in srgb, var(--text) 9%, var(--surface));
   }
-  .map-fill-0,
+  /* Zoomed in: the chosen state is tinted and lifted; its neighbors are outlines you can still select. */
   .map-fill-focus {
-    fill: color-mix(in srgb, var(--text) 7%, var(--surface));
-    background-color: color-mix(in srgb, var(--text) 7%, var(--surface));
-  }
-  .map-fill-focus {
-    fill: var(--surface);
-    background-color: var(--surface);
+    fill: var(--accent-tint);
+    background-color: var(--accent-tint);
+    filter: drop-shadow(0 4px 10px var(--map-shadow));
   }
   .map-fill-1 {
     fill: var(--chart-seq-1);
@@ -921,8 +1172,12 @@
     fill: var(--chart-seq-5);
     background-color: var(--chart-seq-5);
   }
-  .map-fill-context {
-    fill: color-mix(in srgb, var(--text) 5%, var(--surface));
+  .state-map .map-states use.map-fill-context {
+    fill: transparent;
+    stroke: color-mix(in srgb, var(--text) 20%, var(--surface));
+  }
+  .state-map .map-states a:hover use.map-fill-context {
+    fill: var(--row-hover);
   }
   .map-counties {
     fill: none;
@@ -947,6 +1202,55 @@
   }
   .map-hit {
     fill: transparent;
+  }
+  .map-pin {
+    transform: scale(var(--u, 1));
+  }
+  .map-pin text {
+    font-family: var(--typeface-sans);
+    font-size: 12.5px;
+    font-weight: 600;
+    fill: var(--text);
+    stroke: var(--surface);
+    stroke-width: 3.5px;
+    paint-order: stroke;
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  .map-pin text tspan {
+    font-weight: 500;
+    fill: var(--text-muted);
+  }
+  .map-bubbles,
+  .map-pin text {
+    animation: map-in 260ms 200ms var(--ease-out) both;
+  }
+  @keyframes map-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @container (max-width: 520px) {
+    .map-pin {
+      transform: scale(calc(var(--u, 1) * 0.8));
+    }
+    .map-pin .map-label-rank-4,
+    .map-pin .map-label-rank-5,
+    .map-pin .map-label-rank-6 {
+      display: none;
+    }
+  }
+  @media (pointer: coarse) {
+    .map-hit {
+      transform: scale(1.6);
+    }
+  }
+  .state-map {
+    container-type: inline-size;
+  }
+  .state-map svg[data-pending] {
+    opacity: 0.6;
+    transition: opacity 150ms ease;
   }
   .map-bubble {
     fill: var(--accent);
@@ -978,7 +1282,8 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.35rem 0.85rem;
-    padding: 0.55rem 0.9rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--rule);
     border-radius: var(--radius-sm);
     font-size: 13px;
   }
@@ -1005,7 +1310,7 @@
     background: var(--glass-strong);
     -webkit-backdrop-filter: blur(16px) saturate(1.6);
     backdrop-filter: blur(16px) saturate(1.6);
-    border: 1px solid var(--glass-edge);
+    border: 1px solid var(--tip-edge);
     color: var(--text);
     font-size: 13px;
     line-height: 1.35;
@@ -1067,6 +1372,11 @@
     text-align: end;
     font-weight: 600;
   }
+  @media (max-width: 30rem) {
+    .bar-row {
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 2rem;
+    }
+  }
 
   .cols {
     --plot: 10rem;
@@ -1082,7 +1392,7 @@
   .cols-grid {
     position: absolute;
     inset-inline: 2.25rem 0;
-    border-block-start: 1px dashed var(--rule);
+    border-block-start: 1px solid var(--rule);
   }
   .cols-grid:first-child {
     border-block-start: 1px solid var(--control-border);
@@ -1127,6 +1437,19 @@
   .col:hover .col-bar {
     filter: brightness(1.15);
   }
+  /* The current month is still running: drawn lighter, with an outline. */
+  .col-bar-partial {
+    background: color-mix(in srgb, var(--accent) 30%, var(--surface));
+    box-shadow: inset 0 0 0 1.5px var(--accent);
+  }
+  @media (max-width: 30rem) {
+    .cols-bars {
+      padding-inline-start: 1.5rem;
+    }
+    .cols-grid {
+      inset-inline-start: 1.5rem;
+    }
+  }
   .col-value {
     position: absolute;
     inset-block-end: calc(100% + 4px);
@@ -1149,12 +1472,20 @@
 
   /* The date and type filters above the map: a glass bar. */
   .toolbar {
+    z-index: 30;
     display: grid;
     /* minmax(0, …): the scrolling row of types must not widen the page. */
     grid-template-columns: minmax(0, 1fr);
     gap: 0.9rem;
     padding: 1rem 1.1rem;
     border-radius: var(--radius-lg);
+  }
+  @media (min-width: 64rem) {
+    .toolbar .toolbar-row {
+      display: grid;
+      grid-template-columns: 9rem minmax(0, 1fr);
+      align-items: center;
+    }
   }
   @media (min-width: 48rem) {
     .toolbar {
@@ -1184,22 +1515,55 @@
     flex-wrap: wrap;
     gap: 0.4rem;
   }
-  /* On phones the types scroll sideways in one row instead of filling the screen. */
+  .toolbar-controls {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    min-inline-size: 0;
+  }
+  /* On phones the types scroll sideways in one row (chosen ones first) instead of filling the screen. */
   @media (max-width: 47.99rem) {
     .toolbar-row {
       flex-wrap: wrap;
     }
     .type-toggles {
       flex-wrap: nowrap;
-      inline-size: 100%;
+      inline-size: calc(100% + 1.1rem);
+      margin-inline-end: -1.1rem;
+      padding-inline-end: 2rem;
       /* A flex item is otherwise as wide as its longest row. */
       min-inline-size: 0;
       overflow-x: auto;
       padding-block: 3px;
-      scrollbar-width: thin;
+      scrollbar-width: none;
+      -webkit-mask: linear-gradient(90deg, var(--mask) calc(100% - 2.5rem), transparent);
+      mask: linear-gradient(90deg, var(--mask) calc(100% - 2.5rem), transparent);
     }
     .type-toggles > li {
       flex: none;
+    }
+    .type-toggles > li:first-child {
+      order: -2;
+    }
+    .type-toggles > li:has(> .toggle[aria-current]) {
+      order: -1;
+    }
+    .toolbar .segmented {
+      flex-wrap: nowrap;
+    }
+    .toolbar .segmented > * {
+      padding-inline: 0.7rem;
+    }
+    /* The custom range opens in the page, not over the controls below it. */
+    .custom-range {
+      flex-basis: 100%;
+    }
+    .custom-range-form {
+      position: static;
+      inline-size: 100%;
+      margin-block-start: 0.5rem;
     }
   }
   .toggle {
@@ -1215,7 +1579,6 @@
     font-size: var(--step-0);
     font-weight: 500;
     text-decoration: none;
-    box-shadow: var(--shadow-sm);
     transition: background-color 160ms ease, border-color 160ms ease, transform 200ms var(--ease-out);
   }
   .toggle:hover {
@@ -1230,6 +1593,18 @@
   }
   .toggle[data-empty] {
     color: var(--text-muted);
+    background: transparent;
+  }
+  .toggle.toggle-all[aria-current] {
+    background: var(--segment-thumb);
+    color: var(--text);
+    border-color: var(--control-border);
+    font-weight: 600;
+  }
+  /* In the toolbar a chosen date range is an active filter, like a chosen type. */
+  .toolbar .segmented > [aria-current]:not(:first-child) {
+    background: var(--accent);
+    color: var(--on-accent);
   }
   .toggle-count {
     font-size: 12.5px;
@@ -1266,7 +1641,6 @@
     list-style: none;
     font-size: var(--step-0);
     font-weight: 500;
-    box-shadow: var(--shadow-sm);
   }
   .custom-range > summary svg {
     inline-size: 15px;
@@ -1303,6 +1677,42 @@
     grid-column: 1 / -1;
   }
 
+  /* The count and the downloads above the map. On wide screens the bar stays in view while the map and list scroll under it. */
+  .results-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.25rem;
+    padding: 0.85rem 1rem 0.85rem 1.25rem;
+    border-radius: var(--radius-md);
+  }
+  @media (min-width: 64rem) {
+    .results-bar {
+      position: sticky;
+      inset-block-start: 84px;
+      z-index: 20;
+    }
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-block-size: 44px;
+    padding: 0 0.75rem;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .menu-item:hover {
+    background: color-mix(in srgb, var(--text) 7%, transparent);
+    text-decoration: none;
+  }
+  details > summary.btn::-webkit-details-marker {
+    display: none;
+  }
+
   /* ---------- Masthead ---------- */
 
   .site-header {
@@ -1311,18 +1721,45 @@
     z-index: 40;
     padding-block: 0.6rem;
   }
+  /* Content fades out above the floating bar instead of being sliced by its top edge. */
+  .site-header::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 -14px;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(var(--bg), color-mix(in srgb, var(--bg) 70%, transparent) 55%, transparent);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    -webkit-mask: linear-gradient(var(--mask) 60%, transparent);
+    mask: linear-gradient(var(--mask) 60%, transparent);
+    animation: edge-in linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 64px;
+  }
+  @keyframes edge-in {
+    from {
+      opacity: 0;
+    }
+  }
   .site-nav {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     min-block-size: 60px;
     padding: 0.45rem 0.5rem 0.45rem 0.9rem;
-    border-radius: 20px;
+    /* Corners concentric with the 40px pill inside, inset by 8px. */
+    border-radius: 30px;
+  }
+  /* The bar is always on screen: a denser fill keeps it legible however well a browser blurs. */
+  .site-nav::after {
+    background: color-mix(in srgb, var(--surface) 80%, transparent);
   }
   .brand {
     display: inline-flex;
     align-items: center;
     gap: 0.65rem;
+    border-radius: 12px;
     color: var(--text);
     text-decoration: none;
     margin-inline-end: auto;
@@ -1361,15 +1798,23 @@
     text-decoration: none;
   }
   .nav-link[aria-current] {
-    background: color-mix(in srgb, var(--text) 8%, transparent);
+    color: var(--accent);
+    background: var(--accent-tint);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
     font-weight: 600;
   }
   .menu-sheet {
     position: absolute;
     inset-inline: 0;
     inset-block-start: calc(100% + 0.5rem);
-    padding: 0.5rem;
-    border-radius: var(--radius-md);
+    padding: 8px;
+    border-radius: 24px;
+  }
+  @media (min-width: 40rem) {
+    .menu-sheet {
+      inset-inline: auto 0;
+      inline-size: 20rem;
+    }
   }
   .menu-sheet a {
     display: flex;
@@ -1377,13 +1822,327 @@
     justify-content: space-between;
     min-block-size: 48px;
     padding: 0 0.9rem;
-    border-radius: var(--radius-sm);
+    border-radius: 16px;
     color: var(--text);
     font-weight: 500;
     text-decoration: none;
   }
   .menu-sheet a:hover {
     background: color-mix(in srgb, var(--text) 7%, transparent);
+  }
+  .menu-sheet a[aria-current] {
+    position: relative;
+    background: color-mix(in srgb, var(--text) 8%, transparent);
+    font-weight: 600;
+  }
+  .menu-sheet a[aria-current]::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0.35rem;
+    inline-size: 3px;
+    block-size: 18px;
+    border-radius: 2px;
+    background: var(--accent);
+  }
+
+  /* "On this page": the section being read is marked. */
+  .contents-list a {
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.32rem 0.5rem;
+    border-radius: 10px;
+    color: var(--text);
+    text-decoration: none;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+  .contents-list a:hover {
+    background: var(--row-hover);
+    text-decoration: none;
+  }
+  .contents-list a:hover span:first-child {
+    color: var(--accent);
+  }
+  .contents-list a[aria-current] {
+    background: var(--accent-tint);
+    color: var(--accent);
+    font-weight: 600;
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+  .contents-card {
+    max-block-size: calc(100dvh - 7.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 0.75rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+  }
+  .contents-mobile[open] .contents-chevron {
+    rotate: 180deg;
+  }
+  .contents-chevron {
+    transition: rotate 220ms var(--ease-out);
+  }
+
+  /* Reference definitions (severity, verification, legal status): term beside definition, rows linkable. */
+  .defs {
+    border-top: 1px solid var(--rule);
+  }
+  .defs > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.25rem 1.5rem;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid var(--rule);
+    scroll-margin-top: 6.5rem;
+    transition: background-color 600ms ease, box-shadow 600ms ease;
+  }
+  @media (min-width: 40rem) {
+    .defs > div {
+      grid-template-columns: 12.5rem minmax(0, 1fr);
+    }
+  }
+  .defs dt {
+    font-size: 16px;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+  .defs dd {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .defs > div:target {
+    background: var(--accent-tint);
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+  .defs-group {
+    margin-top: 1.75rem;
+    margin-bottom: 0.5rem;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  /* Plain-language terms (the privacy policy): label beside text on wide screens. */
+  dl.terms {
+    border-bottom: 1px solid var(--rule);
+  }
+  .terms > div {
+    display: grid;
+    gap: 0.2rem 1.5rem;
+    padding-block: 0.9rem;
+    border-top: 1px solid var(--rule);
+  }
+  @media (min-width: 48rem) {
+    .terms > div {
+      grid-template-columns: 10.5rem minmax(0, 1fr);
+    }
+  }
+  .terms dt {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.45;
+    padding-top: 0.2rem;
+  }
+  .terms dd {
+    margin: 0;
+  }
+
+  /* An ordered chain (lifecycle, source precedence) read as a list, drawn with arrows. */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 0.5rem;
+    padding: 0;
+    list-style: none;
+  }
+  .flow > li {
+    margin: 0 !important;
+  }
+  .flow > li + li::before {
+    content: '→';
+    content: '→' / '';
+    margin-inline-end: 0.5rem;
+    color: var(--text-muted);
+  }
+
+  /* Numbered steps joined by a line. */
+  .steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+  }
+  .steps > li {
+    position: relative;
+    counter-increment: step;
+    padding-inline-start: 3rem;
+    padding-bottom: 1.1rem;
+  }
+  .steps > li + li {
+    margin-top: 0 !important;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0;
+    display: grid;
+    place-items: center;
+    inline-size: 2rem;
+    block-size: 2rem;
+    border-radius: 999px;
+    background: var(--surface);
+    box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent);
+    color: var(--accent);
+    font-size: 14px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .steps > li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    inset-inline-start: calc(1rem - 0.5px);
+    top: 2.25rem;
+    bottom: 0.25rem;
+    border-inline-start: 1px solid var(--rule);
+  }
+
+  /* Codes, field names and checksums in the reader's monospace font. */
+  .code-id {
+    font-family: var(--typeface-mono);
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .token {
+    display: inline-block;
+    font-family: var(--typeface-mono);
+    font-size: 12.5px;
+    line-height: 1.5;
+    padding: 0.05em 0.45em;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--row-alt);
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  /* The data dictionary: on phones each field is a stacked card, so nothing scrolls sideways. */
+  @media (max-width: 39.99rem) {
+    .dict-scroll {
+      overflow: visible;
+    }
+    .dict thead {
+      position: absolute;
+      inline-size: 1px;
+      block-size: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    .dict,
+    .dict tbody {
+      display: block;
+    }
+    .dict tbody tr {
+      display: grid;
+      gap: 0.35rem;
+      padding: 0.95rem 1rem;
+      border-block-end: 1px solid var(--rule);
+    }
+    .dict :is(th, td) {
+      display: block;
+      padding: 0;
+      border: 0;
+      min-inline-size: 0;
+    }
+    .dict .dict-allowed[data-empty] {
+      display: none;
+    }
+  }
+
+  /* A download as one big target. */
+  .dl-tile {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-block-size: 5.25rem;
+    padding: 1.05rem 1.2rem;
+    border: 1px solid var(--rule);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    color: var(--text);
+    text-decoration: none;
+  }
+  .dl-tile:hover {
+    text-decoration: none;
+  }
+
+  /* A source number in text: a small pill that fills on hover. */
+  .src-ref {
+    display: inline-grid;
+    place-items: center;
+    min-inline-size: 1.3rem;
+    block-size: 1.3rem;
+    padding-inline: 0.3rem;
+    border-radius: 999px;
+    background: var(--accent-tint);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+    vertical-align: 0.15em;
+    transition: background-color 140ms ease, color 140ms ease;
+  }
+  .src-ref:is(:hover, :focus-visible) {
+    background: var(--accent);
+    color: var(--on-accent);
+    text-decoration: none;
+  }
+  /* A source card opens its article; the archive button stays its own link. */
+  .source-card .source-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  .source-card:hover .src-num {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .src-num {
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+  li:target .src-num {
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  li.source-card:target {
+    box-shadow: 0 0 0 2px var(--accent), var(--shadow-md);
+    animation: target-flash 1.4s var(--ease-out);
+  }
+  @keyframes target-flash {
+    from {
+      background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+    }
+  }
+
+  .pop-in {
+    animation: pop-in 180ms var(--ease-out);
+  }
+  @keyframes pop-in {
+    from {
+      scale: 0.6;
+      opacity: 0;
+    }
+  }
+
+  /* The report form's notice and switch give way to the confirmation once it is sent. */
+  main:has([data-done]) .report-intro {
+    display: none;
   }
 
   /* Feature cards: an icon, a short heading and a sentence. */
@@ -1397,6 +2156,23 @@
     border: 1px solid var(--rule);
     box-shadow: var(--shadow-sm);
   }
+  /* On phones a feature card is a compact row: icon beside the text. */
+  @media (max-width: 47.99rem) {
+    .feature {
+      display: grid;
+      grid-template-columns: 2.75rem minmax(0, 1fr);
+      gap: 0.2rem 0.9rem;
+      padding: 1rem 1.1rem;
+    }
+    .feature > .icon-chip {
+      grid-row: span 3;
+      inline-size: 2.5rem;
+      block-size: 2.5rem;
+    }
+    .feature > :last-child {
+      margin-top: 0.35rem;
+    }
+  }
 }
 
 /*
@@ -1409,6 +2185,7 @@
 .band {
   background: var(--band-bg);
   color: var(--band-text);
+  box-shadow: inset 0 1px 0 var(--band-rule);
 }
 .band a {
   color: var(--band-text);
@@ -1418,7 +2195,22 @@
 }
 .band a.btn,
 .band a.btn:hover {
-  color: var(--on-accent);
+  color: var(--band-bg);
+}
+.band a.btn {
+  background: var(--band-accent);
+  box-shadow: none;
+}
+.band a.btn:hover {
+  background: color-mix(in srgb, var(--band-accent) 85%, var(--band-text));
+}
+.band p a:not(.btn) {
+  text-decoration-line: underline;
+  text-decoration-color: color-mix(in srgb, var(--band-text) 45%, transparent);
+  text-underline-offset: 0.22em;
+}
+.band .segmented > :has(input:focus-visible) {
+  outline-color: var(--band-accent);
 }
 .band .text-muted,
 .band .kicker {
@@ -1460,12 +2252,63 @@
   }
 }
 
+.print-only {
+  display: none;
+}
+
 @media print {
   header[role='banner'] nav, .site-header, footer, .no-print, .ambient {
     display: none !important;
   }
   @page {
-    margin: 14mm 12mm;
+    margin: 14mm 12mm 16mm;
+    @bottom-left {
+      content: 'The Record — printable report';
+      font-size: 8pt;
+    }
+    @bottom-right {
+      content: 'Page ' counter(page) ' of ' counter(pages);
+      font-size: 8pt;
+    }
+  }
+  html,
+  body {
+    background: var(--surface) !important;
+  }
+  /* The printed report: a smaller map with the totals beside it, so the summary fits on page one. */
+  .print-summary {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .print-totals {
+    display: block !important;
+    margin-top: 0 !important;
+  }
+  .print-totals > * + * {
+    margin-top: 1rem;
+  }
+  .print-report h1 {
+    font-size: 20pt;
+  }
+  .print-report h2 {
+    break-after: avoid;
+  }
+  .print-report .mono,
+  .print-report .text-sm {
+    font-size: 8pt;
+  }
+  .print-table {
+    font-size: 9pt !important;
+  }
+  .print-table thead th {
+    font-size: 7.5pt;
+    color: var(--text);
+  }
+  .state-map .map-states,
+  .map-fill-focus {
+    filter: none !important;
   }
   .glass,
   .glass-strong,
@@ -1494,12 +2337,24 @@
   .data-table thead th {
     position: static;
   }
+  /* Explore printed directly (Ctrl+P): one column, no controls. */
+  .explore-grid {
+    display: block !important;
+  }
+  .explore-grid > * + * {
+    margin-top: 1rem;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .toggle[aria-current],
+  .custom-range > summary[data-active] {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
   .data-table tr,
   .break-inside-avoid {
     break-inside: avoid;
-  }
-  .print-table {
-    font-size: 11px;
   }
   .print-table td,
   .print-table th {

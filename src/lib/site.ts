@@ -10,7 +10,7 @@ const mail = mailDomain(siteUrl)
 /** Project-wide settings. The name is a placeholder; change it here only. */
 export const SITE = {
   name: 'The Record',
-  fullName: 'The Record: Anti-Muslim Incidents in America',
+  fullName: 'The Record: Anti-Muslim Incidents in the United States',
   description:
     'A public, sourced record of anti-Muslim incidents in the United States, each linked to its sources and tracked through its legal outcome.',
   url: siteUrl,

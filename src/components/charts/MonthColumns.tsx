@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { formatNumber, plural } from '@/lib/format'
+import { formatDate, formatNumber, plural } from '@/lib/format'
 import { ChartTips } from './ChartTips'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec']
@@ -26,11 +26,11 @@ const monthName = (m: string) => `${MONTH_NAMES[Number(m.slice(5, 7)) - 1]} ${m.
  * or focus, and in the table that goes with the chart. Each column opens
  * Explore for its month.
  */
-export function MonthColumns({ bars, noun = 'incident' }: { bars: MonthBar[]; noun?: string }) {
+export function MonthColumns({ bars, noun = 'incident', asOf }: { bars: MonthBar[]; noun?: string; asOf?: string }) {
   const max = Math.max(0, ...bars.map((b) => b.count))
   const ticks = columnTicks(max)
   const top = ticks[ticks.length - 1]!
-  const peak = bars.findIndex((b) => b.count === max && max > 0)
+  const last = bars[bars.length - 1]
   return (
     <ChartTips>
       <div className="cols" style={{ ['--cols' as string]: bars.length }}>
@@ -45,8 +45,9 @@ export function MonthColumns({ bars, noun = 'incident' }: { bars: MonthBar[]; no
           {bars.map((b, i) => (
             <li key={b.month}>
               <Link href={b.href} className="col" data-tip={`${monthName(b.month)}${b.partial ? ' (to date)' : ''}`} data-tip-value={plural(b.count, noun)}>
-                <span className="col-bar" style={{ blockSize: `${(b.count / top) * 100}%` }}>
-                  {b.count > 0 && (i === peak || i === bars.length - 1) ? <span className="col-value tabular">{formatNumber(b.count)}</span> : null}
+                <span className={b.partial ? 'col-bar col-bar-partial' : 'col-bar'} style={{ blockSize: `${(b.count / top) * 100}%` }}>
+                  {/* Every peak and the latest month carry their value; the rest are in the tooltip and the table. */}
+                  {b.count > 0 && (b.count === max || i === bars.length - 1) ? <span className="col-value tabular">{formatNumber(b.count)}</span> : null}
                 </span>
                 <span className="sr-only">
                   {monthName(b.month)}
@@ -54,13 +55,20 @@ export function MonthColumns({ bars, noun = 'incident' }: { bars: MonthBar[]; no
                 </span>
               </Link>
               <span className="col-axis" aria-hidden="true">
-                {MONTHS[Number(b.month.slice(5, 7)) - 1]}
+                <span className="hidden min-[30rem]:inline">{MONTHS[Number(b.month.slice(5, 7)) - 1]}</span>
+                <span className="min-[30rem]:hidden">{MONTHS[Number(b.month.slice(5, 7)) - 1]![0]}</span>
+                {b.partial ? '*' : ''}
                 {b.month.endsWith('-01') || i === 0 ? <span className="block text-muted">{b.month.slice(0, 4)}</span> : null}
               </span>
             </li>
           ))}
         </ol>
       </div>
+      {last?.partial && asOf ? (
+        <p className="mt-2 text-[13px] text-muted">
+          * {MONTH_NAMES[Number(last.month.slice(5, 7)) - 1]} to date: counts run to {formatDate(asOf)}.
+        </p>
+      ) : null}
     </ChartTips>
   )
 }

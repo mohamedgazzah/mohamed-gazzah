@@ -1,4 +1,4 @@
-import { Search } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
@@ -55,37 +55,33 @@ function Checks<T extends string | number>({ name, values, checked, label }: { n
 export function FilterRail({ filters, view }: { filters: Filters; view: ViewState }) {
   const extraStates = filters.state.slice(1)
   return (
-    <form method="get" action="/incidents" aria-label="Filter incidents" className="card px-4 pt-4 md:px-5">
+    <form method="get" action="/incidents" aria-label="Filter incidents" className="filter-card card flex flex-col md:max-h-[calc(100dvh-7rem)]">
       {view.sort !== 'newest' ? <input type="hidden" name="sort" value={view.sort} /> : null}
       {view.view !== 'table' ? <input type="hidden" name="view" value={view.view} /> : null}
       {/* Dates and types are set in the bar above the map; keep them when applying these. */}
       {filters.from ? <input type="hidden" name="from" value={filters.from} /> : null}
       {filters.to ? <input type="hidden" name="to" value={filters.to} /> : null}
       {filters.type.length ? <input type="hidden" name="type" value={filters.type.join(',')} /> : null}
+      {filters.q ? <input type="hidden" name="q" value={filters.q} /> : null}
 
-      <div className="pb-4">
-        <label htmlFor="f-q" className="label">
-          Search
-        </label>
-        <div className="relative">
-          <Search aria-hidden="true" size={17} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-muted" />
-          <input id="f-q" name="q" type="search" defaultValue={filters.q ?? ''} className="control ps-10" placeholder="Places, case names, words" />
-        </div>
-        <p className="hint mt-1">Searches titles, summaries, places and case names. Small typos are tolerated.</p>
-      </div>
+      <p className="px-4 pt-4 text-[15px] font-semibold md:px-5">More filters</p>
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 md:px-5">
 
       <Group legend="State and city" open={!!(filters.state.length || filters.city)}>
         <label htmlFor="f-state" className="label">
           State or territory
         </label>
-        <select id="f-state" name="state" defaultValue={filters.state[0] ?? ''} className="control">
-          <option value="">All states and territories</option>
-          {US_STATES.map((s) => (
-            <option key={s.code} value={s.code}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select id="f-state" name="state" defaultValue={filters.state[0] ?? ''} className="control">
+            <option value="">All states and territories</option>
+            {US_STATES.map((s) => (
+              <option key={s.code} value={s.code}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown aria-hidden="true" size={16} className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-muted" />
+        </div>
         {extraStates.length ? (
           <div className="mt-2">
             <p className="hint">Also included:</p>
@@ -135,7 +131,8 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
         <Checks name="src" values={SOURCE_TYPES} checked={filters.source} label={(s) => SOURCE_TYPE_META[s].label} />
       </Group>
 
-      <div className="sticky bottom-0 -mx-4 grid grid-cols-[1fr_auto] gap-2 rounded-b-[var(--radius-md)] border-t border-rule bg-surface px-4 py-3 md:-mx-5 md:px-5">
+      </div>
+      <div className="grid grid-cols-[1fr_auto] gap-2 rounded-b-[var(--radius-md)] border-t border-rule bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-5">
         <button type="submit" className="btn btn-sm">
           Apply filters
         </button>
