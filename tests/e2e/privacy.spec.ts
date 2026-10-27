@@ -26,7 +26,9 @@ test('no public page, feed or download contains private data', async ({ page, re
     '/incidents',
     '/incidents?v=1,2,3',
     '/incidents?v=1,2,3&view=cards',
-    '/incidents?v=1,2,3&view=map',
+    '/incidents?v=1,2,3&state=CA',
+    '/incidents/print?v=1,2,3',
+    '/incidents/download/states?v=1,2,3',
     '/incidents?q=CANARY&v=1,2,3',
     '/incidents?q=Dearborn&v=1,2,3',
     '/incidents/download?v=1,2,3',
@@ -49,7 +51,7 @@ test('no public page, feed or download contains private data', async ({ page, re
     for (const f of forbidden) expect(body, `${url} contains ${f}`).not.toContain(f)
   }
   // Rendered pages too (client-side content included).
-  for (const url of ['/', '/incidents?v=1,2,3&view=map', recordUrls[0]!]) {
+  for (const url of ['/', '/incidents?v=1,2,3', '/incidents?v=1,2,3&state=CA', '/incidents/print?v=1,2,3', recordUrls[0]!]) {
     await page.goto(url)
     const html = await page.content()
     for (const f of forbidden) expect(html, `${url} contains ${f}`).not.toContain(f)
@@ -62,7 +64,7 @@ test('the unpublished V0 record has no public page', async ({ request }) => {
 })
 
 test('scheduled jobs refuse requests without the secret', async ({ request }) => {
-  for (const job of ['export', 'archive', 'retention', 'nightly']) {
+  for (const job of ['export', 'archive', 'retention', 'nightly', 'news-scan']) {
     expect((await request.get(`/api/jobs/${job}`)).status()).toBe(401)
     expect((await request.get(`/api/jobs/${job}`, { headers: { Authorization: 'Bearer wrong' } })).status()).toBe(401)
   }

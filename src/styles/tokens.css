@@ -82,6 +82,36 @@
   --band-rule: #2c3036;
 }
 
+/* Print on paper in the light theme's colors, whatever the screen shows. */
+@media print {
+  :root,
+  :root:not([data-theme='light']),
+  :root[data-theme='dark'] {
+    color-scheme: light;
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --text: #1a1d21;
+    --text-muted: #5b6169;
+    --rule: #e3e1da;
+    --accent: #1f5c4e;
+    --status-confirmed: #2f6b3a;
+    --status-reported: #8a6d1f;
+    --status-severe: #7a2e2e;
+    --chart-seq-1: #e4efec;
+    --chart-seq-2: #b3d3ca;
+    --chart-seq-3: #7cb2a3;
+    --chart-seq-4: #3f8372;
+    --chart-seq-5: #1f5c4e;
+    --band-bg: #1a1d21;
+    --band-text: #f2f1ec;
+    --band-muted: #a3a9b0;
+    --band-accent: #6fb8a4;
+    --band-rule: #3a3f46;
+    --qr-dark: #000000;
+    --qr-light: #ffffff;
+  }
+}
+
 /* Derived tokens: computed from the base tokens, so they follow the theme. */
 :root {
   --row-alt: color-mix(in srgb, var(--text) 3%, var(--surface));

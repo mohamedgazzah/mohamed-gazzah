@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_FILTERS, chips, explorePath, normalizeIncomingQuery, parseFilters, parseViewState, serializeFilters } from '@/lib/filters'
+import { EMPTY_FILTERS, activePreset, chips, datePresets, describeDates, explorePath, normalizeIncomingQuery, parseFilters, parseViewState, serializeFilters } from '@/lib/filters'
 
 const parse = (qs: string) => parseFilters(new URLSearchParams(qs))
 
@@ -42,8 +42,25 @@ describe('URL filters', () => {
 
   it('omits view defaults and keeps others', () => {
     expect(serializeFilters(EMPTY_FILTERS, { sort: 'newest', page: 1, view: 'table' })).toBe('')
-    expect(serializeFilters(EMPTY_FILTERS, { sort: 'oldest', page: 3, view: 'map' })).toBe('sort=oldest&view=map&page=3')
+    expect(serializeFilters(EMPTY_FILTERS, { sort: 'oldest', page: 3, view: 'cards' })).toBe('sort=oldest&view=cards&page=3')
     expect(parseViewState(new URLSearchParams('page=-2&sort=bogus&view=cards'))).toEqual({ sort: 'newest', page: 1, view: 'cards' })
+    // The map is always shown now; old view=map links fall back to the default list.
+    expect(parseViewState(new URLSearchParams('view=map')).view).toBe('table')
+  })
+
+  it('offers date presets that end today and recognizes them', () => {
+    const presets = datePresets('2026-10-26')
+    expect(presets.map((p) => [p.key, p.from, p.to])).toEqual([
+      ['all', null, null],
+      ['year', '2026-01-01', '2026-10-26'],
+      ['12m', '2025-10-27', '2026-10-26'],
+      ['30d', '2026-09-27', '2026-10-26'],
+    ])
+    expect(activePreset({ from: '2026-09-27', to: '2026-10-26' }, '2026-10-26')?.key).toBe('30d')
+    expect(activePreset({ from: null, to: null }, '2026-10-26')?.key).toBe('all')
+    expect(activePreset({ from: '2026-02-01', to: null }, '2026-10-26')).toBeNull()
+    expect(describeDates({ from: '2026-09-27', to: '2026-10-26' }, '2026-10-26')).toBe('the last 30 days')
+    expect(describeDates({ from: '2026-02-01', to: null }, '2026-10-26')).toBe('Feb. 1, 2026 to today')
   })
 
   it('detects non-canonical incoming queries', () => {

@@ -10,14 +10,6 @@ function origin(url: string | undefined): string | null {
   }
 }
 
-// Map styles and tiles (OpenFreeMap by default; configurable).
-const mapOrigins = Array.from(
-  new Set(
-    [process.env.NEXT_PUBLIC_MAP_STYLE_LIGHT, process.env.NEXT_PUBLIC_MAP_STYLE_DARK]
-      .map(origin)
-      .filter((o): o is string => !!o),
-  ),
-)
 const analyticsOrigin = origin(process.env.NEXT_PUBLIC_ANALYTICS_SCRIPT)
 const turnstile = 'https://challenges.cloudflare.com'
 
@@ -28,9 +20,9 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' ${turnstile}${analyticsOrigin ? ` ${analyticsOrigin}` : ''}${isDev ? " 'unsafe-eval'" : ''}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${mapOrigins.join(' ')}`,
+  "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  `connect-src 'self' ${mapOrigins.join(' ')} ${turnstile}${analyticsOrigin ? ` ${analyticsOrigin}` : ''}${isDev ? ' ws: wss:' : ''}`,
+  `connect-src 'self' ${turnstile}${analyticsOrigin ? ` ${analyticsOrigin}` : ''}${isDev ? ' ws: wss:' : ''}`,
   "worker-src 'self' blob:",
   `frame-src ${turnstile}`,
   "frame-ancestors 'none'",
@@ -66,6 +58,11 @@ const nextConfig: NextConfig = {
           { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
           ...(isDev ? [] : [{ key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' }]),
         ],
+      },
+      {
+        // Map shapes live in a folder named by their content (scripts/build-geo.mjs).
+        source: '/geo/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
       },
       {
         source: '/admin/:path*',

@@ -1,12 +1,13 @@
 /**
  * Submitter data retention: contact details, addresses and files are deleted
  * 12 months after the matter is resolved, unless the submitter agreed to
- * keep them. Also clears expired sessions.
+ * keep them. Also clears expired sessions, and articles the news scan
+ * skipped or failed over a year ago (ones that became leads stay with them).
  */
 import 'server-only'
 import { and, eq, inArray, isNull, lt, sql } from 'drizzle-orm'
 import { adminDb } from '@/db/admin'
-import { submissionFiles, submissionPrivate, submissions } from '@/db/schema'
+import { newsCandidates, submissionFiles, submissionPrivate, submissions } from '@/db/schema'
 import { SLA } from '@/db/enums'
 import { audit } from '../admin/audit'
 import { purgeExpiredSessions } from '../admin/session'
@@ -42,5 +43,11 @@ export async function runRetention(now = new Date()) {
   }
   if (due.length) await audit(null, null, 'retention.purge', 'submission', null, { submissions: due.length, files })
   await purgeExpiredSessions()
-  return { purged: due.length, files }
+  const yearAgo = new Date(now)
+  yearAgo.setFullYear(yearAgo.getFullYear() - 1)
+  const oldArticles = await db
+    .delete(newsCandidates)
+    .where(and(inArray(newsCandidates.status, ['skipped', 'failed']), lt(newsCandidates.createdAt, yearAgo)))
+    .returning({ id: newsCandidates.id })
+  return { purged: due.length, files, scanArticles: oldArticles.length }
 }

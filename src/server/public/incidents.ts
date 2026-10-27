@@ -96,49 +96,6 @@ export async function countIncidents(f: Filters): Promise<{ incidents: number; s
   return { incidents: row?.incidents ?? 0, states: row?.states ?? 0 }
 }
 
-export type MapPoint = {
-  id: string
-  slug: string
-  title: string
-  dateStart: string
-  datePrecision: PublicIncident['datePrecision']
-  city: string | null
-  stateCode: string
-  severity: PublicIncident['severity']
-  verificationLevel: PublicIncident['verificationLevel']
-  legalStatus: PublicIncident['legalStatus']
-  hateCrimeCharged: PublicIncident['hateCrimeCharged']
-  sourceTypes: PublicIncident['sourceTypes']
-  lat: number
-  lng: number
-}
-
-/** Every matching record with a map position (not paginated). */
-export async function mapPoints(f: Filters, limit = 10_000): Promise<MapPoint[]> {
-  const rows = await publicDb()
-    .select({
-      id: pi.id,
-      slug: pi.slug,
-      title: pi.title,
-      dateStart: pi.dateStart,
-      datePrecision: pi.datePrecision,
-      city: pi.city,
-      stateCode: pi.stateCode,
-      severity: pi.severity,
-      verificationLevel: pi.verificationLevel,
-      legalStatus: pi.legalStatus,
-      hateCrimeCharged: pi.hateCrimeCharged,
-      sourceTypes: pi.sourceTypes,
-      lat: pi.mapLat,
-      lng: pi.mapLng,
-    })
-    .from(pi)
-    .where(and(whereClause(f), sql`${pi.mapLat} IS NOT NULL AND ${pi.mapLng} IS NOT NULL`))
-    .orderBy(desc(pi.dateStart), desc(pi.id))
-    .limit(limit)
-  return rows as MapPoint[]
-}
-
 export type PublicIncidentDetail = Omit<PublicIncident, 'searchText' | 'searchDocument'>
 
 const { searchText: _searchText, searchDocument: _searchDocument, ...detailColumns } = getViewSelectedFields(pi)
@@ -183,18 +140,6 @@ export async function getRelated(inc: PublicIncidentDetail): Promise<RelatedGrou
         .limit(10)
     : []
   return { sameCity, samePerpetrator, sameCase }
-}
-
-export type TimelinePoint = Pick<PublicIncident, 'id' | 'slug' | 'title' | 'dateStart' | 'city' | 'stateCode' | 'severity'>
-
-/** Every record matching the filters, oldest first, for the home page's year strip. */
-export async function timelinePoints(f: Filters, limit = 5_000): Promise<TimelinePoint[]> {
-  return publicDb()
-    .select({ id: pi.id, slug: pi.slug, title: pi.title, dateStart: pi.dateStart, city: pi.city, stateCode: pi.stateCode, severity: pi.severity })
-    .from(pi)
-    .where(whereClause(f))
-    .orderBy(asc(pi.dateStart), asc(pi.id))
-    .limit(limit)
 }
 
 export async function latestIncidents(f: Filters, n = 10): Promise<IncidentListItem[]> {

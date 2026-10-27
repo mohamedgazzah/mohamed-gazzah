@@ -39,7 +39,7 @@ import {
   type YesNoUnknown,
 } from '@/db/enums'
 import { US_STATES, stateByCode } from './states'
-import { formatDate } from './format'
+import { addDays, formatDate } from './format'
 
 export const SORTS = ['newest', 'oldest', 'severity'] as const
 export type Sort = (typeof SORTS)[number]
@@ -49,7 +49,9 @@ export const SORT_LABELS: Record<Sort, string> = {
   severity: 'Most severe first',
 }
 
-export const VIEWS = ['table', 'cards', 'map'] as const
+// The list under the map. (A former "map" view is now always shown; old
+// view=map links redirect to the canonical URL without it.)
+export const VIEWS = ['table', 'cards'] as const
 export type View = (typeof VIEWS)[number]
 
 export const PAGE_SIZE = 50
@@ -255,3 +257,33 @@ export function chips(f: Filters, view: Partial<ViewState> = {}): Chip[] {
     list.push({ key: `hc-${h}`, label: `Hate-crime charge: ${h}`, removeHref: without({ hc: f.hc.filter((x) => x !== h) }) })
   return list
 }
+
+export type DatePreset = { key: 'all' | 'year' | '12m' | '30d'; label: string; from: string | null; to: string | null }
+
+/**
+ * Date ranges offered above the map, ending today (US Eastern). They match
+ * the home page's stat tiles, so a tile opens Explore with its preset selected.
+ */
+export function datePresets(today: string): DatePreset[] {
+  const year = today.slice(0, 4)
+  return [
+    { key: 'all', label: 'All dates', from: null, to: null },
+    { key: 'year', label: year, from: `${year}-01-01`, to: today },
+    { key: '12m', label: 'Last 12 months', from: addDays(today, -364), to: today },
+    { key: '30d', label: 'Last 30 days', from: addDays(today, -29), to: today },
+  ]
+}
+
+/** The preset matching the filters' dates, or null for a custom range. */
+export function activePreset(f: Pick<Filters, 'from' | 'to'>, today: string): DatePreset | null {
+  return datePresets(today).find((p) => p.from === f.from && p.to === f.to) ?? null
+}
+
+/** The filters' date range in words: "all dates", "2026", "the last 30 days", "Jan. 1, 2026 to today". */
+export function describeDates(f: Pick<Filters, 'from' | 'to'>, today: string): string {
+  const preset = activePreset(f, today)
+  if (preset?.key === 'all') return 'all dates'
+  if (preset) return preset.label.replace(/^Last/, 'the last')
+  return `${f.from ? formatDate(f.from) : 'the start'} to ${f.to ? formatDate(f.to) : 'today'}`
+}
+

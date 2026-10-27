@@ -178,12 +178,13 @@
     line-height: 0.98;
     text-wrap: balance;
   }
+  /* Big standalone numbers: the interface sans, proportional figures. */
   .figure {
-    font-family: var(--typeface-serif);
-    font-weight: 500;
+    font-family: var(--typeface-sans);
+    font-weight: 600;
     letter-spacing: -0.035em;
-    line-height: 0.9;
-    font-variant-numeric: tabular-nums lining-nums;
+    line-height: 0.95;
+    font-variant-numeric: lining-nums proportional-nums;
   }
   .reading {
     font-family: var(--typeface-serif);
@@ -615,6 +616,361 @@
   .prose-record p + p {
     margin-top: 1em;
   }
+
+  /* Charts. Marks use the accent or the --chart-seq ramp; text keeps text colors. */
+  /* The shapes are <use> references to a sprite: they take these styles by inheritance. */
+  .state-map .map-states use {
+    stroke: var(--rule);
+    stroke-width: 0.75px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    transition: fill 200ms ease;
+  }
+  .state-map .map-states a {
+    cursor: pointer;
+  }
+  .map-fill-0,
+  .map-fill-focus {
+    fill: var(--surface);
+    background-color: var(--surface);
+  }
+  .map-fill-1 {
+    fill: var(--chart-seq-1);
+    background-color: var(--chart-seq-1);
+  }
+  .map-fill-2 {
+    fill: var(--chart-seq-2);
+    background-color: var(--chart-seq-2);
+  }
+  .map-fill-3 {
+    fill: var(--chart-seq-3);
+    background-color: var(--chart-seq-3);
+  }
+  .map-fill-4 {
+    fill: var(--chart-seq-4);
+    background-color: var(--chart-seq-4);
+  }
+  .map-fill-5 {
+    fill: var(--chart-seq-5);
+    background-color: var(--chart-seq-5);
+  }
+  .map-fill-context {
+    fill: var(--row-alt);
+  }
+  .map-counties {
+    fill: none;
+    stroke: var(--rule);
+    stroke-width: 0.75px;
+    vector-effect: non-scaling-stroke;
+  }
+  .map-outline {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 1.25px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+  }
+  .map-hover {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+    vector-effect: non-scaling-stroke;
+    pointer-events: none;
+  }
+  .map-hit {
+    fill: transparent;
+  }
+  .map-bubble {
+    fill: var(--accent);
+    fill-opacity: 0.82;
+    stroke: var(--surface);
+    stroke-width: 1.5px;
+    vector-effect: non-scaling-stroke;
+  }
+  .map-bubbles a:hover .map-bubble,
+  .map-bubble-selected {
+    fill-opacity: 1;
+  }
+  .map-bubble-selected {
+    stroke: var(--text);
+    stroke-width: 2px;
+  }
+  .map-label {
+    fill: var(--text);
+    stroke: var(--bg);
+    paint-order: stroke;
+    stroke-linejoin: round;
+    font-family: var(--typeface-sans);
+    font-weight: 600;
+    pointer-events: none;
+  }
+  .legend-key {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .swatch {
+    display: inline-block;
+    inline-size: 0.9rem;
+    block-size: 0.9rem;
+    border: 1px solid var(--rule);
+  }
+  .chart-tip {
+    position: absolute;
+    z-index: 20;
+    transform: translate(-50%, calc(-100% - 12px));
+    pointer-events: none;
+    white-space: nowrap;
+    padding: 0.45rem 0.65rem;
+    background: var(--band-bg);
+    color: var(--band-text);
+    font-size: 13px;
+    line-height: 1.35;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--text) 18%, transparent);
+  }
+  .chart-tip strong {
+    display: block;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .bar-list {
+    display: grid;
+    gap: 1px;
+  }
+  .bar-row {
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 34%) minmax(0, 1fr) 2.75rem;
+    align-items: center;
+    gap: 0.75rem;
+    min-block-size: 2.1rem;
+    padding: 0.15rem 0.35rem;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 15px;
+  }
+  a.bar-row:hover,
+  a.bar-row:focus-visible {
+    background: var(--row-hover);
+  }
+  a.bar-row:hover .bar-label {
+    text-decoration: underline;
+  }
+  .bar-track {
+    display: block;
+    block-size: 14px;
+    border-inline-start: 1px solid var(--text-muted);
+  }
+  .bar {
+    display: block;
+    block-size: 100%;
+    min-inline-size: 2px;
+    background: var(--accent);
+    border-start-end-radius: 4px;
+    border-end-end-radius: 4px;
+  }
+  .bar-value {
+    text-align: end;
+  }
+
+  .cols {
+    --plot: 9.5rem;
+    position: relative;
+    padding-block-start: 1.25rem;
+  }
+  .cols-plot {
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: 1.25rem;
+    block-size: var(--plot);
+  }
+  .cols-grid {
+    position: absolute;
+    inset-inline: 2.25rem 0;
+    border-block-start: 1px solid var(--rule);
+  }
+  .cols-grid:first-child {
+    border-color: var(--text-muted);
+  }
+  .cols-grid > span {
+    position: absolute;
+    inset-inline-end: calc(100% + 0.45rem);
+    inset-block-start: -0.55rem;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .cols-bars {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+    padding-inline-start: 2.25rem;
+  }
+  .cols-bars > li {
+    min-inline-size: 0;
+  }
+  .col {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    block-size: var(--plot);
+    text-decoration: none;
+  }
+  .col:hover,
+  .col:focus-visible {
+    background: var(--row-hover);
+  }
+  .col-bar {
+    position: relative;
+    inline-size: min(24px, 64%);
+    background: var(--accent);
+    border-start-start-radius: 4px;
+    border-start-end-radius: 4px;
+  }
+  .col-value {
+    position: absolute;
+    inset-block-end: calc(100% + 3px);
+    inset-inline-start: 50%;
+    transform: translateX(-50%);
+    font-size: 12.5px;
+    color: var(--text);
+  }
+  .col-axis {
+    display: block;
+    padding-block-start: 0.4rem;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.25;
+    color: var(--text-muted);
+  }
+
+  /* Explore: the date and type filters above the map. */
+  .toolbar {
+    display: grid;
+    /* minmax(0, …): the scrolling row of types must not widen the page. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
+    padding-block: 1rem 1.1rem;
+    border-block-start: 1px solid var(--rule-strong);
+    border-block-end: 1px solid var(--rule);
+  }
+  .toolbar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem 0.9rem;
+  }
+  .toolbar-label {
+    min-inline-size: 7.5rem;
+  }
+  .type-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  /* On phones the types scroll sideways in one row instead of filling the screen. */
+  @media (max-width: 47.99rem) {
+    .toolbar-row {
+      flex-wrap: wrap;
+    }
+    .type-toggles {
+      flex-wrap: nowrap;
+      inline-size: 100%;
+      /* A flex item is otherwise as wide as its longest row. */
+      min-inline-size: 0;
+      overflow-x: auto;
+      padding-block: 3px;
+      scrollbar-width: thin;
+    }
+    .type-toggles > li {
+      flex: none;
+    }
+  }
+  .toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 36px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--control-border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: var(--step-0);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .toggle:hover {
+    background: var(--row-hover);
+  }
+  .toggle[aria-current] {
+    border-color: var(--text);
+    background: var(--text);
+    color: var(--bg);
+  }
+  .toggle[data-empty] {
+    color: var(--text-muted);
+  }
+  .toggle-count {
+    font-size: 12.5px;
+    color: var(--text-muted);
+  }
+  .toggle[aria-current] .toggle-count {
+    color: inherit;
+  }
+  .toggle-check {
+    display: none;
+    inline-size: 12px;
+    block-size: 12px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+  }
+  .toggle[aria-current] .toggle-check {
+    display: block;
+  }
+  .custom-range {
+    position: relative;
+  }
+  .custom-range > summary {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--control-border);
+    border-radius: 2px;
+    cursor: pointer;
+    list-style: none;
+    font-size: var(--step-0);
+    font-weight: 500;
+  }
+  .custom-range > summary::-webkit-details-marker {
+    display: none;
+  }
+  .custom-range > summary:hover {
+    background: var(--row-hover);
+  }
+  .custom-range > summary[data-active] {
+    background: var(--text);
+    color: var(--bg);
+  }
+  .custom-range-form {
+    position: absolute;
+    z-index: 30;
+    inset-block-start: calc(100% + 6px);
+    inset-inline-start: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    inline-size: min(22rem, calc(100vw - 2rem));
+    padding: 0.9rem;
+    border: 1px solid var(--rule-strong);
+    background: var(--surface);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 14%, transparent);
+  }
+  .custom-range-form .btn {
+    grid-column: 1 / -1;
+  }
 }
 
 /*
@@ -658,22 +1014,6 @@
   color: var(--band-bg);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .draw-up {
-    transform-box: fill-box;
-    transform-origin: bottom;
-    animation: draw-up 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  }
-  @keyframes draw-up {
-    from {
-      transform: scaleY(0);
-    }
-    to {
-      transform: scaleY(1);
-    }
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -686,5 +1026,32 @@
 @media print {
   header[role='banner'] nav, footer, .no-print {
     display: none !important;
+  }
+  @page {
+    margin: 14mm 12mm;
+  }
+  /* Chart fills are backgrounds; print them even when background graphics are off. */
+  .bar,
+  .col-bar,
+  .swatch {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .data-table thead th {
+    position: static;
+  }
+  .data-table tr,
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
+  .print-table {
+    font-size: 11px;
+  }
+  .print-table td,
+  .print-table th {
+    padding: 0.35rem 0.5rem;
+  }
+  .table-scroll {
+    overflow: visible;
   }
 }

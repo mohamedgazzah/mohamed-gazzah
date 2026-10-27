@@ -1,8 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
-  INCIDENT_TYPES,
-  INCIDENT_TYPE_META,
   LEGAL_STATUSES,
   LEGAL_STATUS_META,
   PERPETRATOR_TYPES,
@@ -59,6 +57,10 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
     <form method="get" action="/incidents" aria-label="Filter incidents" className="space-y-1">
       {view.sort !== 'newest' ? <input type="hidden" name="sort" value={view.sort} /> : null}
       {view.view !== 'table' ? <input type="hidden" name="view" value={view.view} /> : null}
+      {/* Dates and types are set in the bar above the map; keep them when applying these. */}
+      {filters.from ? <input type="hidden" name="from" value={filters.from} /> : null}
+      {filters.to ? <input type="hidden" name="to" value={filters.to} /> : null}
+      {filters.type.length ? <input type="hidden" name="type" value={filters.type.join(',')} /> : null}
 
       <div className="pb-4">
         <label htmlFor="f-q" className="label caps">
@@ -67,23 +69,6 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
         <input id="f-q" name="q" type="search" defaultValue={filters.q ?? ''} className="control" placeholder="Places, case names, words" />
         <p className="hint mt-1">Searches titles, summaries, places and case names. Small typos are tolerated.</p>
       </div>
-
-      <Group legend="Date range" open={!!(filters.from || filters.to)}>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label htmlFor="f-from" className="label">
-              From
-            </label>
-            <input id="f-from" name="from" type="date" min="2020-01-01" defaultValue={filters.from ?? ''} className="control" />
-          </div>
-          <div>
-            <label htmlFor="f-to" className="label">
-              To
-            </label>
-            <input id="f-to" name="to" type="date" min="2020-01-01" defaultValue={filters.to ?? ''} className="control" />
-          </div>
-        </div>
-      </Group>
 
       <Group legend="State and city" open={!!(filters.state.length || filters.city)}>
         <label htmlFor="f-state" className="label">
@@ -107,10 +92,6 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
           City
         </label>
         <input id="f-city" name="city" type="text" defaultValue={filters.city ?? ''} className="control" autoComplete="address-level2" />
-      </Group>
-
-      <Group legend="Incident type" open={filters.type.length > 0}>
-        <Checks name="type" values={INCIDENT_TYPES} checked={filters.type} label={(t) => INCIDENT_TYPE_META[t].label} />
       </Group>
 
       <Group legend="Target" open={filters.target.length > 0}>

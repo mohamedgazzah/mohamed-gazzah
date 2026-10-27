@@ -26,6 +26,3 @@ reports/
 # misc
 .DS_Store
 *.log
-
-# copied from node_modules by scripts/copy-vendor.mjs
-public/vendor/

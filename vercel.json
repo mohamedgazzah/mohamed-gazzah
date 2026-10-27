@@ -2,5 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run build:vercel",
   "ignoreCommand": "node scripts/vercel-ignore.mjs",
-  "crons": [{ "path": "/api/jobs/nightly", "schedule": "15 5 * * *" }]
+  "crons": [
+    { "path": "/api/jobs/nightly", "schedule": "15 5 * * *" },
+    { "path": "/api/jobs/news-scan", "schedule": "10 10 * * *" }
+  ]
 }

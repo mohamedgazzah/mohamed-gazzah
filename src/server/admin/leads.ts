@@ -6,7 +6,7 @@
 import 'server-only'
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { adminDb } from '@/db/admin'
-import { incidents, leads, submissionFiles, submissionPrivate, submissions } from '@/db/schema'
+import { incidents, leads, newsCandidates, submissionFiles, submissionPrivate, submissions } from '@/db/schema'
 import { INCIDENT_TYPES, type IncidentType, type LeadSource, type LeadStatus } from '@/db/enums'
 import { stateByFips } from '@/lib/states'
 import { decryptText } from '@/lib/crypto'
@@ -32,9 +32,12 @@ export async function listLeads(status: LeadStatus | 'all' = 'new') {
       createdAt: leads.createdAt,
       city: submissions.city,
       stateFips: submissions.stateFips,
+      scan: newsCandidates.assessment,
+      scanNote: newsCandidates.note,
     })
     .from(leads)
     .leftJoin(submissions, eq(submissions.id, leads.submissionId))
+    .leftJoin(newsCandidates, eq(newsCandidates.leadId, leads.id))
     .where(status === 'all' ? undefined : eq(leads.status, status))
     .orderBy(desc(leads.createdAt))
     .limit(200)
@@ -96,19 +99,24 @@ export async function triageLead(
 
   if (decision === 'new_incident') {
     const sub = lead.submissionId ? (await db.select().from(submissions).where(eq(submissions.id, lead.submissionId)))[0] : undefined
+    // From the morning scan: its reading of the article, unverified.
+    const scan = (await db.select({ a: newsCandidates.assessment, model: newsCandidates.model }).from(newsCandidates).where(eq(newsCandidates.leadId, lead.id)).limit(1))[0]
+    const a = scan?.a ?? null
+    const scanDate = a?.incident_date && /^\d{4}-\d{2}-\d{2}$/.test(a.incident_date) && a.incident_date >= '2020-01-01' && a.incident_date <= todayIso() ? a.incident_date : null
     const draft = emptyDraft()
     draft.title = `Untriaged lead: ${lead.headline}`.slice(0, 110)
-    draft.dateStart = sub?.incidentDate ?? lead.publishedDate ?? todayIso()
+    draft.dateStart = sub?.incidentDate ?? scanDate ?? lead.publishedDate ?? todayIso()
     const stateFips = opts.stateFips || sub?.stateFips || ''
     if (!stateByFips(stateFips)) throw new WorkflowError('Choose the state for the new draft.')
     if (!opts.incidentType || !INCIDENT_TYPES.includes(opts.incidentType)) throw new WorkflowError('Choose an incident type for the new draft.')
     draft.stateFips = stateFips
-    draft.city = sub?.city ?? null
+    draft.city = sub?.city ?? a?.city ?? null
     draft.incidentTypes = [opts.incidentType]
     draft.editorNotes = [
       `Created from lead ${lead.id} (${lead.source}).`,
       sub ? `Submission says: ${sub.whatHappened}` : null,
       lead.url ? `Lead link: ${lead.url}` : null,
+      a ? `Morning scan (${scan?.model ?? 'model'}), unverified: ${a.summary} Why: ${a.reason}` : null,
       sub?.links.length ? `Links given: ${sub.links.join(' ')}` : null,
     ]
       .filter(Boolean)

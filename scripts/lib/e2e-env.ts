@@ -21,8 +21,6 @@ export function e2eEnv(): NodeJS.ProcessEnv {
     NEXT_PUBLIC_SITE_URL: `http://localhost:${E2E_PORT}`,
     // Test the launched site: robots, sitemap and Lighthouse SEO.
     SITE_INDEXING: 'on',
-    NEXT_PUBLIC_MAP_STYLE_LIGHT: `http://localhost:${E2E_PORT}/map/empty-style.json`,
-    NEXT_PUBLIC_MAP_STYLE_DARK: `http://localhost:${E2E_PORT}/map/empty-style.json`,
     TURNSTILE_DISABLED: 'true',
     STORAGE_DRIVER: 'local',
     STORAGE_LOCAL_DIR: '.data/e2e-uploads',
@@ -30,6 +28,9 @@ export function e2eEnv(): NodeJS.ProcessEnv {
     WAYBACK_BASE_URL: 'http://127.0.0.1:9',
     REPORT_RATE_LIMIT: '1000',
     CRON_SECRET: 'e2e-cron-secret',
+    // Never call the real model from tests, whatever the developer's shell has set.
+    ANTHROPIC_API_KEY: '',
+    ANTHROPIC_AUTH_TOKEN: '',
     NEXT_TELEMETRY_DISABLED: '1',
   }
 }

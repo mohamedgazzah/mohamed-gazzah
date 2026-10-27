@@ -12,12 +12,13 @@ on:
   schedule:
     - cron: '*/5 * * * *'   # archive new sources
     - cron: '20 5 * * *'    # nightly export + retention
+    - cron: '45 10 * * *'   # morning news scan: read what Vercel's 10:10 pass left
   workflow_dispatch:
     inputs:
       job:
         description: 'Job to run'
         type: choice
-        options: [archive, export, retention, nightly]
+        options: [archive, export, retention, nightly, news-scan]
         default: archive
 
 permissions: {}
@@ -26,7 +27,7 @@ jobs:
   run:
     if: vars.ENABLE_SCHEDULED_JOBS == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
     steps:
       - name: Choose the job
         id: pick
@@ -40,11 +41,13 @@ jobs:
             job="$INPUT_JOB"
           elif [ "$SCHEDULE" = "*/5 * * * *" ]; then
             job=archive
+          elif [ "$SCHEDULE" = "45 10 * * *" ]; then
+            job=news-scan-rest
           else
             job=nightly
           fi
           case "$job" in
-            archive|export|retention|nightly) echo "job=$job" >> "$GITHUB_OUTPUT" ;;
+            archive|export|retention|nightly|news-scan|news-scan-rest) echo "job=$job" >> "$GITHUB_OUTPUT" ;;
             *) echo "Unknown job: $job"; exit 1 ;;
           esac
       - name: Call the job endpoint
@@ -58,6 +61,21 @@ jobs:
             exit 0
           fi
           echo "Running $JOB"
-          curl --fail-with-body --silent --show-error --max-time 90 \
-            -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/$JOB"
+          if [ "$JOB" = "news-scan" ] || [ "$JOB" = "news-scan-rest" ]; then
+            # One pass reads for up to five minutes; repeat (reading only) while articles wait.
+            query=""
+            [ "$JOB" = "news-scan-rest" ] && query="?collect=0"
+            for pass in 1 2 3 4 5 6; do
+              out=$(curl --fail-with-body --silent --show-error --max-time 320 \
+                -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/news-scan$query")
+              echo "$out"
+              remaining=$(echo "$out" | jq -r '.remaining // 0')
+              stopped=$(echo "$out" | jq -r '.stoppedAt // "done"')
+              if [ "$remaining" = "0" ] || [ "$stopped" = "daily_limit" ]; then break; fi
+              query="?collect=0"
+            done
+          else
+            curl --fail-with-body --silent --show-error --max-time 90 \
+              -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/$JOB"
+          fi
           echo

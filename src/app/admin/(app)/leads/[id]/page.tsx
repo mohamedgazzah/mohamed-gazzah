@@ -2,10 +2,13 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { ActionForm } from '@/components/admin/ActionForm'
 import { SubmissionDetails } from '@/components/admin/SubmissionDetails'
-import { INCIDENT_TYPES, INCIDENT_TYPE_META, LEAD_SOURCE_META, LEAD_STATUS_META } from '@/db/enums'
-import { US_STATES } from '@/lib/states'
+import { INCIDENT_TYPES, INCIDENT_TYPE_META, LEAD_SOURCE_META, LEAD_STATUS_META, LEGAL_STATUS_META, TARGET_TYPE_META } from '@/db/enums'
+import { formatDate } from '@/lib/format'
+import { RELEVANCE_LABELS } from '@/lib/news-assessment'
+import { US_STATES, stateByCode } from '@/lib/states'
 import { findDuplicates } from '@/server/admin/incidents'
 import { getLead } from '@/server/admin/leads'
+import { scanReadingForLead } from '@/server/admin/news'
 import { requireUser } from '@/server/admin/session'
 import { triageAction } from '../../../_actions/manage'
 
@@ -18,6 +21,9 @@ export default async function LeadPage(props: PageProps<'/admin/leads/[id]'>) {
   if (!data) notFound()
   const { lead, sub } = data
   const s = sub?.submission
+  const scan = lead.source !== 'submission' ? await scanReadingForLead(lead.id) : null
+  const a = scan?.assessment ?? null
+  const suggestedFips = a?.state_code ? stateByCode(a.state_code)?.fips : undefined
   const dupes =
     s?.incidentDate && s.stateFips
       ? await findDuplicates({ id: null, dateStart: s.incidentDate, stateFips: s.stateFips, city: s.city, lat: null, lng: null, text: s.whatHappened })
@@ -42,6 +48,53 @@ export default async function LeadPage(props: PageProps<'/admin/leads/[id]'>) {
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-4">
           {sub ? <SubmissionDetails data={sub} /> : null}
+          {scan ? (
+            <section aria-labelledby="scan-h" className="card p-4">
+              <h2 id="scan-h" className="text-lg">
+                The morning scan’s reading
+              </h2>
+              <p className="hint mt-1">
+                Suggestions from {scan.model ?? 'the keyword rule'}, from the article as published. Check each against the article before using it.
+              </p>
+              {a ? (
+                <dl className="mt-3 grid gap-x-4 gap-y-2 text-base sm:grid-cols-[11rem_minmax(0,1fr)]">
+                  <dt className="font-semibold">Judgment</dt>
+                  <dd>
+                    {RELEVANCE_LABELS[a.relevance]} · {a.confidence} confidence
+                  </dd>
+                  <dt className="font-semibold">Why</dt>
+                  <dd>{a.reason}</dd>
+                  <dt className="font-semibold">Summary</dt>
+                  <dd>{a.summary}</dd>
+                  <dt className="font-semibold">When</dt>
+                  <dd>{a.incident_date ? formatDate(a.incident_date, a.date_precision ?? 'day') : 'Not stated'}</dd>
+                  <dt className="font-semibold">Where</dt>
+                  <dd>{[a.city, a.state_code ? (stateByCode(a.state_code)?.name ?? a.state_code) : null].filter(Boolean).join(', ') || 'Not stated'}</dd>
+                  <dt className="font-semibold">Type</dt>
+                  <dd>{a.incident_types.length ? a.incident_types.map((t) => INCIDENT_TYPE_META[t].label).join(', ') : 'None given'}</dd>
+                  <dt className="font-semibold">Target</dt>
+                  <dd>{a.target_type ? TARGET_TYPE_META[a.target_type].label : 'Not stated'}</dd>
+                  <dt className="font-semibold">Legal status</dt>
+                  <dd>
+                    {a.legal_status ? LEGAL_STATUS_META[a.legal_status].label : 'Not stated'} · hate-crime charge: {a.hate_crime_charged}
+                  </dd>
+                  <dt className="font-semibold">Possible duplicates</dt>
+                  <dd>
+                    {a.possible_duplicates.length
+                      ? a.possible_duplicates.map((d, i) => (
+                          <span key={d}>
+                            {i ? ', ' : ''}
+                            <Link href={`/admin/incidents/${d}`}>{d}</Link>
+                          </span>
+                        ))
+                      : 'None in the same place within a week'}
+                  </dd>
+                </dl>
+              ) : (
+                <p className="mt-2">{scan.note ?? 'No reading stored.'}</p>
+              )}
+            </section>
+          ) : null}
           {lead.url ? (
             <p>
               Link:{' '}
@@ -90,7 +143,7 @@ export default async function LeadPage(props: PageProps<'/admin/leads/[id]'>) {
                 <label htmlFor="stateFips" className="label">
                   State (for a new incident)
                 </label>
-                <select id="stateFips" name="stateFips" className="control" defaultValue={s?.stateFips ?? ''}>
+                <select id="stateFips" name="stateFips" className="control" defaultValue={s?.stateFips ?? suggestedFips ?? ''}>
                   <option value="">Choose</option>
                   {US_STATES.map((st) => (
                     <option key={st.fips} value={st.fips}>
@@ -103,7 +156,7 @@ export default async function LeadPage(props: PageProps<'/admin/leads/[id]'>) {
                 <label htmlFor="incidentType" className="label">
                   Incident type (for a new incident)
                 </label>
-                <select id="incidentType" name="incidentType" className="control" defaultValue="">
+                <select id="incidentType" name="incidentType" className="control" defaultValue={a?.incident_types[0] ?? ''}>
                   <option value="">Choose</option>
                   {INCIDENT_TYPES.map((t) => (
                     <option key={t} value={t}>

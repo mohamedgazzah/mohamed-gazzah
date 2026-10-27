@@ -11,6 +11,7 @@ to generate secrets (step 1) and, later, to make backup keys (step 8).
 | Supabase | PostgreSQL database | Free |
 | Vercel | runs the app and the nightly job | Hobby (free) |
 | GitHub | the code; archive retries every 5 minutes; daily encrypted backups | Free (public repository) |
+| Anthropic (optional) | the morning news scan reads each article with Claude (step 8.5); without it the scan uses a keyword rule | **Paid** per use, about $0.02 an article |
 
 Free-plan limits worth knowing:
 
@@ -154,8 +155,7 @@ local and test databases use it.
    Then add `DATABASE_CA_CERT` on its own: the whole certificate, `BEGIN` and `END` lines
    included. Leave `SITE_INDEXING` unset until launch (step 9). Optional:
    `WAYBACK_ACCESS_KEY`/`WAYBACK_SECRET_KEY` from archive.org/account/s3.php (higher archiving
-   limits), `NEXT_PUBLIC_MAP_STYLE_LIGHT`/`_DARK` for another basemap, and
-   `NEXT_PUBLIC_ANALYTICS_SCRIPT`/`NEXT_PUBLIC_ANALYTICS_SITE_ID` for Plausible or Umami.
+   limits), and `NEXT_PUBLIC_ANALYTICS_SCRIPT`/`NEXT_PUBLIC_ANALYTICS_SITE_ID` for Plausible or Umami.
 4. **Deploy.** The first build creates the schemas, the database rules and the two roles,
    checks there is no demo data, and builds the site. If it fails, the build log says why
    (see [Troubleshooting](#troubleshooting)). Open the project's `.vercel.app` address to look
@@ -223,6 +223,30 @@ after each save.
       `pg_restore --no-owner --dbname "<the new project's session pooler URL>" record.dump`.
    4. Point the three Vercel URLs at the new project and redeploy (or run `npm run db:migrate`
       with them): it restores the roles' settings and passwords.
+
+5. **Morning news scan** (`src/server/jobs/news/`). Every morning, about 6 a.m. Eastern,
+   Vercel's cron calls `/api/jobs/news-scan`; with step 8.2 done, this workflow runs a second
+   pass at 10:45 UTC for anything left. Each pass reads new articles from Google News
+   searches, GDELT's news index and CAIR's press releases, and sends possible incidents to
+   **Admin → Leads**. It never drafts, edits or publishes a record.
+   1. With no setup it uses a keyword rule (a Muslim target and an incident word in the
+      headline). To have Claude read each article against the inclusion criteria instead,
+      create an API key at [console.anthropic.com](https://console.anthropic.com) and set a
+      monthly spend limit there. In Vercel → Settings → Environment Variables (Production), add
+      `ANTHROPIC_API_KEY` and redeploy.
+   2. Cost (**paid**, billed by Anthropic per use): about $0.02 an article with the default model,
+      Claude Opus 5.5 at low effort with its instructions cached. At 30 new articles a day that is
+      roughly $15–20 a month. `NEWS_SCAN_MODEL=claude-haiku-5-5` costs about a twentieth as
+      much, with less careful judgments; editors still read everything it passes on. The scan
+      log shows the tokens used and their cost over the last 7 days.
+   3. Options: `NEWS_SCAN_MAX_LEADS_PER_DAY` (default 40), `NEWS_SCAN_EXTRA_FEEDS`
+      (comma-separated RSS or Atom addresses, for example a state civil rights office's press
+      releases), `NEWS_SCAN_AI=off` (keyword rule even with a key).
+   4. After the first morning, open **Admin → Leads → Morning news scan**: what it found, the
+      leads it made, and what it skipped, with the model's reason. If nothing was found and the
+      job answered 502 (Vercel → Logs, or the workflow run), no source could be reached.
+   5. To run a pass by hand: Actions → Scheduled jobs → Run workflow → `news-scan`, or
+      `npm run news:scan` locally against the database in `.env`.
 
 ## 9. Launch
 

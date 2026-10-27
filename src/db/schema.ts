@@ -41,6 +41,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core'
 import * as E from './enums'
+import type { NewsUsage, StoredAssessment } from '@/lib/news-assessment'
 
 export const recordSchema = pgSchema('record')
 export const recordPublicSchema = pgSchema('record_public')
@@ -310,6 +311,40 @@ export const leads = recordSchema.table(
       sql`${t.status} <> 'out_of_scope' OR coalesce(trim(${t.triageReason}), '') <> ''`,
     ),
   ],
+)
+
+export const newsCandidateStatusEnum = recordSchema.enum('news_candidate_status', E.NEWS_CANDIDATE_STATUSES)
+
+/**
+ * Articles the morning news scan found (src/server/jobs/news). Private, like
+ * leads. One row per article address, so each is read once; skipped articles
+ * stay, with the model's reason, for editors to check its judgment.
+ */
+export const newsCandidates = recordSchema.table(
+  'news_candidates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    url: text('url').notNull(),
+    headline: text('headline').notNull(),
+    outlet: text('outlet'),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    feed: text('feed').notNull(),
+    leadSource: leadSourceEnum('lead_source').notNull(),
+    matchedTerms: text('matched_terms').array().notNull().default(emptyArray),
+    snippet: text('snippet'),
+    status: newsCandidateStatusEnum('status').notNull().default('pending'),
+    assessment: jsonb('assessment').$type<StoredAssessment>(),
+    model: text('model'),
+    usage: jsonb('usage').$type<NewsUsage>(),
+    attempts: integer('attempts').notNull().default(0),
+    /** Why it was skipped without a model, or why reading it failed. */
+    note: text('note'),
+    leadId: uuid('lead_id').references(() => leads.id, { onDelete: 'set null' }),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    assessedAt: timestamp('assessed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('news_candidates_url_key').on(t.url), index('news_candidates_status_idx').on(t.status, t.createdAt)],
 )
 
 // ---------------------------------------------------------------------------

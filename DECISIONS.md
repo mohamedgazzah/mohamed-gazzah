@@ -99,12 +99,9 @@ it surfaced a trade-off. Each says what was decided and why. Items marked
 23. **Search**: Postgres full-text (English) over title, summary, city, state and case names,
     plus trigram word similarity ≥ 0.5 for typos. Highlighting is done in the page with the
     same tolerance. Searches are not logged.
-24. **Map**: MapLibre with OpenFreeMap's styles by default (free, no key, no per-view fees);
-    set `NEXT_PUBLIC_MAP_STYLE_LIGHT/DARK` for Protomaps or another style. MapLibre 6 loads
-    its web worker from a separate file, copied to `public/vendor/` at install and build.
-    Fill shows severity in the muted palette; outline width and opacity show verification.
-25. **Home page** includes the four stat tiles and the latest verified incidents (cheap, and
-    a site needs a front page). The home map and the FBI/CAIR comparison figures are left
+24. **Map**: superseded by item 53. (Phase 1 used MapLibre points on an OpenFreeMap basemap.)
+25. **Home page** includes the four stat tiles, the state map, records per month and by type
+    (item 55), and the latest verified incidents. The FBI/CAIR comparison figures are left
     for Phase 2: the comparison sentence links to Methodology, and **no external figures
     were invented**.
 26. **"Today"** (stat tiles, as-of dates, release versions) is the US Eastern calendar date,
@@ -213,11 +210,80 @@ request the look was redone; the colors, tone rules and components of Section 5 
     grids, numbered sections with ink rules, contents rails on long pages, square corners, and
     an ink band for the footer and tooltips (new `--band-*` tokens, contrast-tested in both
     themes like every other pair).
-51. **A year strip on the home page**: one line per verified record on a date axis, taller for
-    more severe incidents, with a "today" marker. Each month links to Explore filtered to that
-    month, each line opens its record, and the month links, a text summary and the list below
-    are the accessible version. The Phase 2 charts are still to come.
+51. **The home page's year strip was removed** (October 27, 2026): one line per record, taller
+    for severity, was hard to read. Item 55 replaces it.
 52. **Date ranges in newsroom style**: "Aug. 1–2, 2026", "Aug. 30 – Sept. 2, 2026".
+
+## Data presentation (October 27, 2026)
+
+Modeled on how established trackers present this kind of data (SPLC's Hate Map, ADL's
+H.E.A.T. Map): a state map, filters for type and date above it, a click-through into each
+state, a table beside every chart, and downloads.
+
+53. **State map** (`src/components/charts/StateMap.tsx`): a choropleth of records per state on
+    the Albers USA projection, Alaska and Hawaii inset, from US Census Bureau boundaries via
+    us-atlas (`scripts/build-geo.mjs`). Five classes on the Section 5 `--chart-seq` ramp, on a
+    rough log scale with round bounds (1–3, 4–9, 10–39…) so a few large states do not wash out
+    the rest; zero is drawn empty. Selecting a state zooms the map into it (an animated
+    viewBox, off with reduced motion): county lines for orientation, and a circle per city,
+    sized by area. Territories, outside the projection, are listed under the map. Totals, not
+    per-capita rates: no reliable Muslim population figures exist by state (open question
+    below). The map is an SVG drawn on the server, so it works without JavaScript, prints,
+    and needs no tile service; shapes are SVG sprites in `public/geo/<content hash>/`,
+    referenced with `<use>`, so pages carry 51 references instead of the path data and the
+    files cache for good. MapLibre and OpenFreeMap were removed.
+54. **Explore** puts the two filters people reach for first in one row above the map and the
+    list: date presets (all dates, this year, last 12 months, last 30 days — the same ranges as
+    the home tiles) with a custom range, and incident-type toggles that show how many records
+    each would give. The rest stay in the rail. The map's state and city are ordinary filters
+    (`state`, `city`), so a zoomed view has a URL, a CSV and a printout like any other. Every
+    filter form is keyed by the filters, so it never shows values a link has since changed.
+55. **Charts** are drawn on the server in plain HTML and SVG (bars with values printed at
+    their ends, monthly columns with round ticks), with a tooltip on hover and focus, a table
+    or list as the accessible version, and a link from every mark to Explore with the same
+    count (tested). Built by hand rather than with Observable Plot (the specification's
+    suggestion): no client-side chart code, and they print and theme like the rest of the
+    page. A record counts in every month its dates touch, as Explore's date filter selects it,
+    and under each of its types; both are stated under the charts. Big numbers are set in the
+    interface sans with proportional figures.
+56. **Print and download**: "Print or save as PDF" opens `/incidents/print`, the current filters
+    as a report (the map, totals by state and by type, and every matching record up to 2,000,
+    with a source line). It prints in the light theme's colors whatever the screen shows.
+    Downloads: the matching records (CSV, as before) and totals by state (CSV).
+
+## Morning news scan (October 27, 2026)
+
+57. **What it does** (`src/server/jobs/news/`): each morning it reads new articles from Google
+    News searches, GDELT's news index (direct article links) and CAIR's press releases (extra
+    feeds by setting), skipping any already seen, already a lead or already a record's source,
+    and the same story under another address. Claude reads each article (its text, or the
+    headline when the page cannot be read) against the inclusion criteria — the published
+    text, word for word, from `src/lib/inclusion.ts` — and returns a structured reading:
+    relevance, confidence, reason, and the date, place, types, target, legal status and a
+    neutral summary as stated. Relevant or unclear articles become leads; clearly irrelevant
+    ones are kept with the reason in the scan log, for editors to check its judgment.
+58. **It never publishes.** It only adds leads (source "news monitor" or "organization feed");
+    an editor triages each, a draft is written and reviewed, and publishing takes two people,
+    as the database enforces. The reading pre-fills triage (state, type, date, city) and is
+    copied into the draft's private notes, marked unverified. The methodology page says an AI
+    model screens articles. Lead creation is in the audit log, with no human actor.
+59. **Model and cost**: Claude Opus 5.5 by default (`NEWS_SCAN_MODEL` to change), at low effort,
+    with the instructions cached across the run and a structured-output format so every reply
+    parses; refusals fall back server-side to another model. About $0.02 an article; see
+    `docs/DEPLOY.md`, step 8.5. Claude Haiku 5.5 is about a twentieth of the cost. Without an
+    API key the scan still runs, with a keyword rule. At most 40 leads a day by default.
+    The Batch API would halve the cost, but results can take hours; not used, so leads are
+    in the inbox the same morning.
+60. **Runs** as a 5-minute job from Vercel's daily cron, plus a follow-up pass from the GitHub
+    workflow. Articles are claimed with `FOR UPDATE SKIP LOCKED`, so overlapping passes never
+    read one twice; each article gets three tries over separate passes, then is marked failed.
+    A pass that reaches no source at all answers 502, so the run shows as failed. Article pages
+    are fetched only from public web addresses, each redirect checked, since feed items are
+    third-party content. Articles are private (row-level security like every internal table);
+    skipped and failed ones are deleted after a year by the retention job.
+61. **Untested against the live sources from the build environment**, whose network blocks
+    them: the feed formats are tested with samples, and the first live mornings should be
+    checked in the scan log (`docs/DEPLOY.md`, step 8.5).
 
 ## Open questions (**Ask**)
 

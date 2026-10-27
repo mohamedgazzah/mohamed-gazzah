@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { INCLUSION_CRITERIA, INCLUSION_EXCLUSIONS, INCLUSION_POLICY_NOTE } from '@/lib/inclusion'
 import type { ReactNode } from 'react'
 import {
   INCIDENT_TYPES,
@@ -71,30 +72,17 @@ export default function MethodologyPage() {
             </p>
             <p>An incident is included when all three of these are true (inclusion criteria, version {METHODOLOGY_VERSION}):</p>
             <ol className="list-decimal space-y-2 ps-6">
-              <li>It happened in the United States or its territories, on or after January 1, 2020. Earlier records may be added only as a separate, labelled backfill.</li>
-              <li>
-                At least one public source describes an anti-Muslim element: a slur, a stated motive, a target that is a Muslim institution, a
-                hate-crime charge, or an official statement calling it bias-motivated.
-              </li>
-              <li>
-                It is either a crime (assault, threat, vandalism, arson, homicide and others) or a non-criminal act that is concrete and targeted,
-                such as harassment of named people, threats to a mosque, or slurs by a public official acting in office.
-              </li>
+              {INCLUSION_CRITERIA.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
             </ol>
             <p>Excluded:</p>
             <ul className="list-disc space-y-1 ps-6">
-              <li>General online speech not aimed at a specific target.</li>
-              <li>Opinion pieces.</li>
-              <li>Policy disputes.</li>
-              <li>
-                Incidents where the investigating agency clearly ruled out an anti-Muslim element. These are kept internally as “excluded”, with
-                the reason.
-              </li>
+              {INCLUSION_EXCLUSIONS.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
             </ul>
-            <p>
-              Government actions such as detentions, designations of organizations and travel restrictions are tracked separately as policy and
-              litigation, not counted as incidents. This keeps incident counts comparable from year to year.
-            </p>
+            <p>{INCLUSION_POLICY_NOTE}</p>
             <p>The anti-Muslim elements a source can state are recorded as bias indicators:</p>
             <ul className="list-disc space-y-1 ps-6">
               {BIAS_INDICATORS.map((b) => (
@@ -215,7 +203,12 @@ export default function MethodologyPage() {
           <Section id="process" title="How a record is made">
             <p>Nothing goes public without two people: one editor drafts the record, and a second editor, who did not write or edit that version, approves it. The database itself refuses to publish a record without that approval. Automation finds leads and keeps cases current; it never publishes.</p>
             <ol className="list-decimal space-y-2 ps-6">
-              <li>Leads come from public submissions, news monitoring, organization and agency press releases, and court dockets.</li>
+              <li>
+                Leads come from public submissions, news monitoring, organization and agency press releases, and court dockets. Every morning an
+                automated scan reads news searches and press releases, and an AI model (Claude, by Anthropic) checks each article against the
+                inclusion criteria above. It only suggests leads: an editor reads every article it passes on, and its judgment never decides
+                what is included.
+              </li>
               <li>An editor triages each lead: new incident, update to an existing record, duplicate, or out of scope (with a reason). Possible duplicates are suggested by date (within three days), city and similar text.</li>
               <li>The editor drafts the record, attaches every source and writes the summary, then sets the verification level. For single-source reports the editor tries to reach a second source.</li>
               <li>

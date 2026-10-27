@@ -94,6 +94,9 @@ describe('token file', () => {
   it('the system dark theme and the manual dark theme are identical', () => {
     expect(darkMedia).toEqual(dark)
   })
+  it('prints in the light theme whatever the screen theme', () => {
+    expect(block('@media print')).toEqual(light)
+  })
 })
 
 function files(dir: string): string[] {

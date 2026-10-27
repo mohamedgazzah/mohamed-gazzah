@@ -10,16 +10,18 @@ npm run typecheck && npm test && npm run test:e2e && npm run test:db-down && npm
 | Suite | Result |
 | --- | --- |
 | Type check (`tsc --noEmit`, app + tests) | clean |
-| Unit tests (Vitest, `tests/unit`) | 88 passed |
-| Database integration tests (Vitest, `tests/db`, real Postgres) | 56 passed |
-| End-to-end tests (Playwright, `tests/e2e`, production build) | 69 passed (67 desktop, 2 mobile) |
+| Unit tests (Vitest, `tests/unit`) | 116 passed |
+| Database integration tests (Vitest, `tests/db`, real Postgres) | 73 passed |
+| End-to-end tests (Playwright, `tests/e2e`, production build) | 80 passed (78 desktop, 2 mobile) |
 | Database-down check (`scripts/test-db-down.ts`) | 9 of 9 pages served |
 | Lighthouse, mobile (`scripts/lighthouse.ts`) | see item 6 |
 
 External services could not be reached from the build environment (the
-Internet Archive, Cloudflare Turnstile, OpenFreeMap tiles), so tests use a
-local stand-in for Save Page Now, Turnstile's test mode, and a basemap-free
-map style. Check those three by hand after the first deploy.
+Internet Archive, Cloudflare Turnstile, the news sources and the Anthropic API),
+so tests use a local stand-in for Save Page Now, Turnstile's test mode, sample
+feeds and a stand-in model. Check those by hand after the first deploy; for the
+morning news scan, read the scan log after the first mornings (`docs/DEPLOY.md`,
+step 8.5).
 
 ## The list from the specification
 
@@ -54,16 +56,21 @@ ordered record list; non-canonical URLs redirect to one canonical form.
 `tests/unit/filters.test.ts` covers parsing, canonical order and round trips.
 
 **4. Clicking any chart element or map region opens Explore with matching
-filters, and the counts match.** **Partly applicable.** Charts and the state
-choropleth are Phase 2. The home stat tiles do this today and are tested
-(`explore.spec.ts`, "home stat tiles"): each opens Explore filtered to exactly the
-records it counts. Map points open their record.
+filters, and the counts match.** **Pass.** `explore.spec.ts`: the home stat
+tiles, a state bar, a type bar and a month column each open Explore showing the
+same number ("home charts", "home stat tiles"); a state on the home map opens
+Explore zoomed into it; on Explore, a state opens its view with as many records
+as its bar shows, a city narrows to that city, and a click on the map navigates
+without reloading the page. The State and Trends pages are still Phase 2.
 
 **5. Stat tiles, charts, API /stats, and the CSV all give the same totals for the
-same filters.** **Pass** for what exists (stat counts, Explore, CSV):
-`tests/db/exports.test.ts` checks 9 filter sets; all three come from one SQL
-WHERE clause (`src/server/public/incidents.ts`). Charts and `/stats` are Phase 2
-and should reuse `whereClause()`.
+same filters.** **Pass** for what exists (stat counts, charts, the map, Explore,
+both CSVs, the printable report): `tests/db/exports.test.ts` checks 9 filter
+sets, including that the state, city, type and month totals each equal Explore's
+count for the same narrowed filters; `explore.spec.ts` checks that the printout
+and the state-totals CSV cover exactly the listed records. Everything comes from
+one SQL WHERE clause (`src/server/public/incidents.ts`). `/stats` is Phase 2 and
+should reuse `whereClause()`.
 
 **6. Lighthouse scores of at least 90 for performance and accessibility on Home,
 Explore, and an Incident page, on mobile.** **Pass** (Lighthouse 13, default
@@ -71,16 +78,17 @@ mobile emulation, production build on localhost):
 
 | Page | Performance | Accessibility | Best practices | SEO |
 | --- | --- | --- | --- | --- |
-| Home `/` | 92, 92 | 100 | 100 | 100 |
-| Explore `/incidents` | 92, 97 | 100 | 100 | 100 |
-| Incident `/incidents/DEMO-2026-0002…` | 93, 92 | 100 | 100 | 66* |
+| Home `/` (map and charts) | 92, 94, 95 | 100 | 100 | 100 |
+| Explore `/incidents` (map and list) | 94, 94, 94 | 100 | 100 | 100 |
+| Incident `/incidents/DEMO-2026-0002…` | 95, 92, 92 | 100 | 100 | 66* |
 
 \* Demo records are deliberately `noindex`; real records are indexable.
 
-Two runs on the final build. Performance moves by a few points from run to run on
-this machine, so rerun before reading a dip as a regression: in one earlier run the
-incident page scored 85 because a one-second script with no source URL, which none
-of the site's scripts are, ran during the trace and counted as blocking time.
+Three runs on the final build. Each page is measured in a fresh browser, as the
+Lighthouse CLI does: when one browser measured all three in turn, a one-second task
+left over from the previous page (a script with no source URL, which none of the
+site's scripts are) sometimes landed in the incident page's trace and cost it up to
+20 points. Performance still moves by a few points from run to run on this machine.
 
 These are the scores after the redesign (new typefaces). Keeping them above 90 took
 trimmed font files: Newsreader limited to the weights used (90 KB instead of 132 KB),
@@ -91,8 +99,9 @@ lack: asking for them fetched a second copy of a font (see `src/fonts/README.md`
 **7. axe-core reports zero serious accessibility violations. Full keyboard
 navigation works on Explore and the Report form.** **Pass.**
 `tests/e2e/a11y.spec.ts` runs axe (WCAG 2.0/2.1/2.2 A and AA plus best practices)
-on 13 pages in light and dark themes: zero serious or critical violations. It
-also checks reflow at 200% zoom and reduced motion. Keyboard: filters set and
+on 15 pages in light and dark themes, the map views and the printable report
+included: zero serious or critical violations. It also checks reflow at 200% zoom
+and reduced motion. Keyboard: filters set and
 applied with Tab/Space/Enter, arrow-key row navigation, skip link
 (`explore.spec.ts`); a full report sent with the keyboard alone, with focus moved
 to the confirmation (`report.spec.ts`).
