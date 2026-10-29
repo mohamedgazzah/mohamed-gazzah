@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { citations } from '@/lib/citations'
 import { csvCell, toCsv } from '@/lib/csv'
-import { formatDate, formatDateRange, isoTimestamp } from '@/lib/format'
+import { formatDate, formatDateRange, formatTimestamp, isoTimestamp } from '@/lib/format'
 import { highlight, queryTerms } from '@/lib/highlight'
 import { parseRecordParam, slugify } from '@/lib/slug'
 import { firstSentence, lintSummary, parseSummary, splitSentences, stripMarkers } from '@/lib/summary'
@@ -31,10 +31,22 @@ describe('formatting', () => {
     expect(formatDate('2026-01-01')).toBe('Jan. 1, 2026')
     expect(formatDate('2026-03-15', 'month')).toBe('March 2026')
     expect(formatDate('2026-03-15', 'year')).toBe('2026')
-    expect(formatDateRange('2026-08-01', '2026-08-02')).toBe('Aug. 1, 2026 – Aug. 2, 2026')
+    expect(formatDateRange('2026-08-01', '2026-08-02')).toBe('Aug. 1–2, 2026')
+    expect(formatDateRange('2026-08-30', '2026-09-02')).toBe('Aug. 30 – Sept. 2, 2026')
+    expect(formatDateRange('2025-12-30', '2026-01-02')).toBe('Dec. 30, 2025 – Jan. 2, 2026')
+    expect(formatDateRange('2026-06-01', '2026-07-31', 'month')).toBe('June–July 2026')
+    expect(formatDateRange('2026-06-01', '2026-06-30', 'month')).toBe('June 2026')
+    expect(formatDateRange('2025-01-01', '2026-12-31', 'year')).toBe('2025–2026')
   })
   it('normalizes Postgres timestamps', () => {
     expect(isoTimestamp('2026-10-26 03:36:38.766+00')).toBe('2026-10-26T03:36:38.766Z')
+  })
+  it('dates timestamps on the US Eastern calendar, like "today"', () => {
+    // 01:30 UTC on Oct. 27 is still the evening of Oct. 26 in New York.
+    expect(formatTimestamp('2026-10-27 01:30:00+00')).toBe('Oct. 26, 2026')
+    expect(formatTimestamp('2026-10-27T15:00:00Z')).toBe('Oct. 27, 2026')
+    expect(formatTimestamp(new Date('2027-01-01T04:59:00Z'))).toBe('Dec. 31, 2026')
+    expect(formatTimestamp(null)).toBe('')
   })
 })
 

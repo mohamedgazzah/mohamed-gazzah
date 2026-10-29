@@ -23,7 +23,7 @@ export default async function EnrollPage() {
     <>
       <h1 className="text-2xl">Set up two-factor authentication</h1>
       <p className="mt-2 reading">Every editor account needs a second factor. Scan this code with an authenticator app, then enter the 6-digit code it shows.</p>
-      <div className="mt-6 w-56 rounded-lg border border-rule bg-[var(--qr-light)] p-3" role="img" aria-label="QR code for your authenticator app" dangerouslySetInnerHTML={{ __html: svg }} />
+      <div className="mt-6 w-56 border border-rule bg-[var(--qr-light)] p-3" role="img" aria-label="QR code for your authenticator app" dangerouslySetInnerHTML={{ __html: svg }} />
       <details className="mt-4">
         <summary className="cursor-pointer font-semibold">Can’t scan? Enter this key instead</summary>
         <p className="mt-2 break-all font-mono text-base tabular" aria-label="Setup key">

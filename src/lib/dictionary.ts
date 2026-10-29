@@ -26,9 +26,13 @@ export function dictionaryMarkdown(): string {
     '| Column | Type | Allowed values | Description |',
     '| --- | --- | --- | --- |',
   ]
+  const codes = (values: readonly (string | number)[]) => values.map((a) => `\`${a}\``).join(', ')
   for (const f of EXPORT_FIELDS) {
-    const allowed = f.allowed ? f.allowed.map((a) => `\`${a}\``).join(', ') : ''
-    lines.push(`| \`${f.column}\` | ${f.type}${f.nullable ? ' (nullable)' : ''} | ${allowed} | ${f.description.replace(/\|/g, '\\|')} |`)
+    // A JSON array lists its entries' keys after the description, and the values of its coded keys.
+    const keyValues = Object.entries(f.keyValues ?? {}).map(([key, values]) => `\`${key}\`: ${codes(values)}`)
+    const allowed = f.allowed ? codes(f.allowed) : keyValues.join('; ')
+    const description = f.keys ? `${f.description} Keys: ${codes(f.keys)}.` : f.description
+    lines.push(`| \`${f.column}\` | ${f.type}${f.nullable ? ' (nullable)' : ''} | ${allowed} | ${description.replace(/\|/g, '\\|')} |`)
   }
   return `${lines.join('\n')}\n`
 }

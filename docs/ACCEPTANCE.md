@@ -1,6 +1,6 @@
 # Acceptance tests (Phase 1)
 
-Results from the build environment on 2026-10-26: Node 22, PostgreSQL 16.15 with
+Results from the build environment on 2026-10-27: Node 22, PostgreSQL 16.15 with
 PostGIS, Chromium 147 (Playwright 1.63). Re-run everything with:
 
 ```bash
@@ -10,16 +10,18 @@ npm run typecheck && npm test && npm run test:e2e && npm run test:db-down && npm
 | Suite | Result |
 | --- | --- |
 | Type check (`tsc --noEmit`, app + tests) | clean |
-| Unit tests (Vitest, `tests/unit`) | 77 passed |
-| Database integration tests (Vitest, `tests/db`, real Postgres) | 50 passed |
-| End-to-end tests (Playwright, `tests/e2e`, production build) | 69 passed (67 desktop, 2 mobile) |
+| Unit tests (Vitest, `tests/unit`) | 147 passed |
+| Database integration tests (Vitest, `tests/db`, real Postgres) | 73 passed |
+| End-to-end tests (Playwright, `tests/e2e`, production build) | 83 passed (81 desktop, 2 mobile) |
 | Database-down check (`scripts/test-db-down.ts`) | 9 of 9 pages served |
 | Lighthouse, mobile (`scripts/lighthouse.ts`) | see item 6 |
 
 External services could not be reached from the build environment (the
-Internet Archive, Cloudflare Turnstile, OpenFreeMap tiles), so tests use a
-local stand-in for Save Page Now, Turnstile's test mode, and a basemap-free
-map style. Check those three by hand after the first deploy.
+Internet Archive, Cloudflare Turnstile, the news sources and the Anthropic API),
+so tests use a local stand-in for Save Page Now, Turnstile's test mode, sample
+feeds and a stand-in model. Check those by hand after the first deploy; for the
+morning news scan, read the scan log after the first mornings (`docs/DEPLOY.md`,
+step 8.5).
 
 ## The list from the specification
 
@@ -54,16 +56,21 @@ ordered record list; non-canonical URLs redirect to one canonical form.
 `tests/unit/filters.test.ts` covers parsing, canonical order and round trips.
 
 **4. Clicking any chart element or map region opens Explore with matching
-filters, and the counts match.** **Partly applicable.** Charts and the state
-choropleth are Phase 2. The home stat tiles do this today and are tested
-(`explore.spec.ts`, "home stat tiles"): each opens Explore filtered to exactly the
-records it counts. Map points open their record.
+filters, and the counts match.** **Pass.** `explore.spec.ts`: the home stat
+tiles, a state bar, a type bar and a month column each open Explore showing the
+same number ("home charts", "home stat tiles"); a state on the home map opens
+Explore zoomed into it; on Explore, a state opens its view with as many records
+as its bar shows, a city narrows to that city, and a click on the map navigates
+without reloading the page. The State and Trends pages are still Phase 2.
 
 **5. Stat tiles, charts, API /stats, and the CSV all give the same totals for the
-same filters.** **Pass** for what exists (stat counts, Explore, CSV):
-`tests/db/exports.test.ts` checks 9 filter sets; all three come from one SQL
-WHERE clause (`src/server/public/incidents.ts`). Charts and `/stats` are Phase 2
-and should reuse `whereClause()`.
+same filters.** **Pass** for what exists (stat counts, charts, the map, Explore,
+both CSVs, the printable report): `tests/db/exports.test.ts` checks 9 filter
+sets, including that the state, city, type and month totals each equal Explore's
+count for the same narrowed filters; `explore.spec.ts` checks that the printout
+and the state-totals CSV cover exactly the listed records. Everything comes from
+one SQL WHERE clause (`src/server/public/incidents.ts`). `/stats` is Phase 2 and
+should reuse `whereClause()`.
 
 **6. Lighthouse scores of at least 90 for performance and accessibility on Home,
 Explore, and an Incident page, on mobile.** **Pass** (Lighthouse 13, default
@@ -71,17 +78,31 @@ mobile emulation, production build on localhost):
 
 | Page | Performance | Accessibility | Best practices | SEO |
 | --- | --- | --- | --- | --- |
-| Home `/` | 97 | 100 | 100 | 100 |
-| Explore `/incidents` | 96 | 100 | 100 | 100 |
-| Incident `/incidents/DEMO-2026-0002…` | 97 | 100 | 100 | 66* |
+| Home `/` (map and charts) | 96 | 100 | 100 | 100 |
+| Explore `/incidents` (map and list) | 96 | 100 | 100 | 100 |
+| Incident `/incidents/DEMO-2026-0002…` | 96 | 100 | 100 | 66* |
 
 \* Demo records are deliberately `noindex`; real records are indexable.
+
+Measured on the final build of the third design-critique round (`npm run test:lighthouse`,
+which serves the e2e build on port 3400; nothing else may listen there, or Lighthouse
+measures that server instead). Each page is measured in a fresh browser, as the
+Lighthouse CLI does: when one browser measured all three in turn, a one-second task
+left over from the previous page sometimes landed in the incident page's trace and cost
+it up to 20 points. Performance still moves by a few points from run to run.
+
+The site is set in one variable family, Instrument Sans (30 KB for the Latin file, weights
+400–700, preloaded with a metric-matched fallback so text does not jump); the italic is
+fetched only by pages that show italics. Icons are lucide-react SVGs drawn on the server,
+so they add no client JavaScript, and arrows are drawn rather than typed, since the Latin
+file lacks ↑ and ↓ (see `src/fonts/README.md`).
 
 **7. axe-core reports zero serious accessibility violations. Full keyboard
 navigation works on Explore and the Report form.** **Pass.**
 `tests/e2e/a11y.spec.ts` runs axe (WCAG 2.0/2.1/2.2 A and AA plus best practices)
-on 13 pages in light and dark themes: zero serious or critical violations. It
-also checks reflow at 200% zoom and reduced motion. Keyboard: filters set and
+on 15 pages in light and dark themes, the map views and the printable report
+included: zero serious or critical violations. It also checks reflow at 200% zoom
+and reduced motion. Keyboard: filters set and
 applied with Tab/Space/Enter, arrow-key row navigation, skip link
 (`explore.spec.ts`); a full report sent with the keyboard alone, with focus moved
 to the confirmation (`report.spec.ts`).
@@ -90,9 +111,9 @@ to the confirmation (`report.spec.ts`).
 **Pass for the mechanism; the live archive was not reachable here.** Each save
 archives its new sources right away (normally within a minute), and the archive
 job retries pending ones: nightly on Vercel's free plan, every 5 minutes once the
-included GitHub Actions schedule is switched on (see `docs/DEPLOY.md`, step 4.4;
-choose that or Vercel Pro so a failed first attempt is retried within 10
-minutes). `tests/db/archive.test.ts` runs
+included GitHub Actions schedule is switched on (free here, since the repository is
+public; see `docs/DEPLOY.md`, step 8.2), so a failed first attempt is retried within
+10 minutes. `tests/db/archive.test.ts` runs
 the job against a local stand-in for Save Page Now: archived URL stored, the live
 page updated without a new review, failures retried and marked failed after six
 attempts. Confirm against web.archive.org after deploying.
@@ -112,11 +133,38 @@ text/background pair, derived tints (zebra rows, hover, search highlight), butto
 text and control borders in both themes, confirms the exact Section 5 values, and
 scans the source for any color literal outside `src/styles/tokens.css`. axe's
 color-contrast rule passes in both themes. Note: the spec's light
-`--status-reported` on a 10% tint is 4.30:1, so badges use the surface color with
-a status border instead (4.90:1). See `DECISIONS.md` item 27.
+`--status-reported` on a 10% tint is 4.30:1, so badges are colored text on the page or
+surface color, never on a tint. The ink band used by the footer and tooltips is checked the
+same way. See `DECISIONS.md` items 27 and 50.
 
 **11. Incident pages are statically generated and still load if the database is
 down.** **Pass.** The build prerenders every published record. `npm run test:db-down`
 starts the production build with both database URLs pointing at a closed port:
 all 5 incident pages and the static pages return 200 with their content. Explore
 search needs the database and shows the error page (expected).
+
+## Deployment safeguards (added for going live)
+
+Not on the specification's list, but they protect the production setup in
+`docs/DEPLOY.md`:
+
+- **First admin from the browser.** `tests/db/setup.test.ts`, on its own empty
+  database: `/admin/setup` stays closed without a setup token of 32+ characters,
+  rejects a wrong token, lets exactly one of two simultaneous attempts create an
+  admin (who must still enroll two-factor authentication), and then closes for
+  good. `tests/e2e/privacy.spec.ts`: it is a 404 on a site that has accounts.
+- **Runtime role passwords.** `tests/db/logins.test.ts`: the sign-in step of
+  `db:migrate` sets a role's password from its connection string as a SCRAM
+  verifier that Postgres accepts, leaves a working password alone, follows a
+  changed one, and refuses a connection string for another role or a short
+  password.
+- **Client IP for rate limits.** `tests/unit/security.test.ts`:
+  `CF-Connecting-IP` counts only when the connection came from a Cloudflare range.
+- **Pre-launch mode.** `tests/unit/indexing.test.ts`: `X-Robots-Tag: noindex` on
+  every page and no sitemap in robots.txt until `SITE_INDEXING=on`.
+- **Backups.** Checked by hand: `scripts/backup.sh` against the development
+  database, decrypted with the age key and restored into an empty database.
+  Incident, audit-log and migration-journal counts matched, all 23 triggers and
+  23 row-level security policies came back, and the audit log still refused
+  deletes. The GitHub Actions run and the upload to R2 could not be tried from
+  the build environment.

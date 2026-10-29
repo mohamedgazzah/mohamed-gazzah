@@ -3,6 +3,7 @@ import { decryptBytes, decryptText, encryptBytes, encryptText } from '@/lib/cryp
 import { hashPassword, passwordProblems, verifyPassword } from '@/lib/passwords'
 import { base32Decode, base32Encode, totpAt, verifyTotp } from '@/lib/totp'
 import { isPrivateAddress, parseMetadata } from '@/server/admin/source-metadata'
+import { clientIpFrom, isCloudflareIp } from '@/server/shared/request'
 
 process.env.APP_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64')
 process.env.SUBMISSIONS_ENCRYPTION_KEY = Buffer.alloc(32, 8).toString('base64')
@@ -79,5 +80,26 @@ describe('source metadata fetcher', () => {
       publishedDate: '2026-08-04',
     })
     expect(parseMetadata('<title>Only</title>', new URL('https://www.example.com/a'))).toEqual({ title: 'Only', outlet: 'example.com', author: null, publishedDate: null })
+  })
+})
+
+describe('client IP for rate limits', () => {
+  const from = (h: Record<string, string>) => clientIpFrom(new Headers(h))
+  it('recognises Cloudflare edge addresses', () => {
+    for (const ip of ['173.245.48.1', '104.16.0.1', '172.71.255.254', '2606:4700::6810:84e5', '2a06:98c0:3600::103']) expect(isCloudflareIp(ip), ip).toBe(true)
+    for (const ip of ['93.184.216.34', '76.76.21.21', '2001:db8::1', 'not-an-ip', '']) expect(isCloudflareIp(ip), ip).toBe(false)
+  })
+  it('uses CF-Connecting-IP only when the connection came from Cloudflare', () => {
+    expect(from({ 'x-real-ip': '162.158.1.2', 'cf-connecting-ip': '203.0.113.7' })).toBe('203.0.113.7')
+    expect(from({ 'x-forwarded-for': '2606:4700::1', 'cf-connecting-ip': '2001:db8::7' })).toBe('2001:db8::7')
+  })
+  it('ignores a CF-Connecting-IP sent straight to the origin', () => {
+    expect(from({ 'x-real-ip': '198.51.100.9', 'cf-connecting-ip': '203.0.113.7' })).toBe('198.51.100.9')
+    expect(from({ 'cf-connecting-ip': '203.0.113.7' })).toBe('unknown')
+    expect(from({ 'x-real-ip': '162.158.1.2', 'cf-connecting-ip': 'garbage' })).toBe('162.158.1.2')
+  })
+  it('falls back to the first X-Forwarded-For hop', () => {
+    expect(from({ 'x-forwarded-for': '198.51.100.9, 10.0.0.1' })).toBe('198.51.100.9')
+    expect(from({})).toBe('unknown')
   })
 })

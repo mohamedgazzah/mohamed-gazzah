@@ -39,7 +39,7 @@ import {
   type YesNoUnknown,
 } from '@/db/enums'
 import { US_STATES, stateByCode } from './states'
-import { formatDate } from './format'
+import { addDays, formatDate, formatDateRange } from './format'
 
 export const SORTS = ['newest', 'oldest', 'severity'] as const
 export type Sort = (typeof SORTS)[number]
@@ -49,7 +49,9 @@ export const SORT_LABELS: Record<Sort, string> = {
   severity: 'Most severe first',
 }
 
-export const VIEWS = ['table', 'cards', 'map'] as const
+// The list under the map. (A former "map" view is now always shown; old
+// view=map links redirect to the canonical URL without it.)
+export const VIEWS = ['table', 'cards'] as const
 export type View = (typeof VIEWS)[number]
 
 export const PAGE_SIZE = 50
@@ -221,13 +223,17 @@ export function hasActiveFilters(f: Filters): boolean {
 export type Chip = { key: string; label: string; removeHref: string }
 
 /** Active-filter chips, each with a link that removes just that value. */
-export function chips(f: Filters, view: Partial<ViewState> = {}): Chip[] {
+export function chips(f: Filters, view: Partial<ViewState> = {}, today?: string): Chip[] {
   const base = { ...view, page: 1 }
   const without = (patch: Partial<Filters>) => explorePath({ ...f, ...patch }, base)
   const list: Chip[] = []
   if (f.q) list.push({ key: 'q', label: `Search: “${f.q}”`, removeHref: without({ q: null }) })
-  if (f.from) list.push({ key: 'from', label: `From ${formatDate(f.from)}`, removeHref: without({ from: null }) })
-  if (f.to) list.push({ key: 'to', label: `To ${formatDate(f.to)}`, removeHref: without({ to: null }) })
+  // One chip for the date range: removing half a range is never what anyone means.
+  if (f.from || f.to) {
+    const preset = today ? activePreset(f, today) : null
+    const label = preset ? preset.label : rangeLabel(f.from, f.to)
+    list.push({ key: 'dates', label, removeHref: without({ from: null, to: null }) })
+  }
   for (const s of f.state)
     list.push({ key: `state-${s}`, label: stateByCode(s)?.name ?? s, removeHref: without({ state: f.state.filter((x) => x !== s) }) })
   if (f.city) list.push({ key: 'city', label: `City: ${f.city}`, removeHref: without({ city: null }) })
@@ -255,3 +261,62 @@ export function chips(f: Filters, view: Partial<ViewState> = {}): Chip[] {
     list.push({ key: `hc-${h}`, label: `Hate-crime charge: ${h}`, removeHref: without({ hc: f.hc.filter((x) => x !== h) }) })
   return list
 }
+
+export type DatePreset = { key: 'all' | 'year' | '12m' | '30d'; label: string; from: string | null; to: string | null }
+
+/**
+ * Date ranges offered above the map, ending today (US Eastern). They match
+ * the home page's stat tiles, so a tile opens Explore with its preset selected.
+ */
+export function datePresets(today: string): DatePreset[] {
+  const year = today.slice(0, 4)
+  return [
+    { key: 'all', label: 'All dates', from: null, to: null },
+    { key: 'year', label: year, from: `${year}-01-01`, to: today },
+    { key: '12m', label: 'Last 12 months', from: addDays(today, -364), to: today },
+    { key: '30d', label: 'Last 30 days', from: addDays(today, -29), to: today },
+  ]
+}
+
+/** The preset matching the filters' dates, or null for a custom range. */
+export function activePreset(f: Pick<Filters, 'from' | 'to'>, today: string): DatePreset | null {
+  return datePresets(today).find((p) => p.from === f.from && p.to === f.to) ?? null
+}
+
+/** A custom range in the site's date style: "June 1 – Aug. 31, 2026", "Feb. 1, 2026 to today", "Up to Aug. 31, 2026". */
+export function rangeLabel(from: string | null, to: string | null): string {
+  if (from && to) return formatDateRange(from, to, 'day')
+  if (from) return `${formatDate(from)} to today`
+  return to ? `Up to ${formatDate(to)}` : 'All dates'
+}
+
+/** The filters' date range in words: "all dates", "2026", "the last 30 days", "Jan. 1, 2026 to today". */
+export function describeDates(f: Pick<Filters, 'from' | 'to'>, today: string): string {
+  const preset = activePreset(f, today)
+  if (preset?.key === 'all') return 'all dates'
+  if (preset) return preset.label.replace(/^Last/, 'the last')
+  return rangeLabel(f.from, f.to)
+}
+
+/** "threat or vandalism", "physical assault, threat or vandalism": the chosen types, in words. */
+function typesInWords(types: readonly IncidentType[]): string {
+  const words = types.map((t) => INCIDENT_TYPE_META[t].label.toLowerCase())
+  if (words.length <= 2) return words.join(' or ')
+  return `${words.slice(0, -1).join(', ')} or ${words[words.length - 1]}`
+}
+
+/**
+ * The line under a result count: what it covers, in the order of the filters
+ * ("Matching “mosque” · Threat or vandalism · 2 states · all dates"). Three or
+ * more types are counted ("3 types"), so the line fits the one-line bar on
+ * wide screens; `full` names them all.
+ */
+export function describeScope(f: Filters, today: string, place: string | null): { short: string; full: string } {
+  const line = (types: string | null) => {
+    const text = [f.q ? `matching “${f.q}”` : null, types, place, describeDates(f, today)].filter(Boolean).join(' · ')
+    return text.charAt(0).toUpperCase() + text.slice(1)
+  }
+  const named = f.type.length ? typesInWords(f.type) : null
+  return { short: line(f.type.length > 2 ? `${f.type.length} types` : named), full: line(named) }
+}
+

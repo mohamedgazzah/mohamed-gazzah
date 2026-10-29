@@ -41,6 +41,7 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core'
 import * as E from './enums'
+import type { NewsUsage, StoredAssessment } from '@/lib/news-assessment'
 
 export const recordSchema = pgSchema('record')
 export const recordPublicSchema = pgSchema('record_public')
@@ -310,6 +311,40 @@ export const leads = recordSchema.table(
       sql`${t.status} <> 'out_of_scope' OR coalesce(trim(${t.triageReason}), '') <> ''`,
     ),
   ],
+)
+
+export const newsCandidateStatusEnum = recordSchema.enum('news_candidate_status', E.NEWS_CANDIDATE_STATUSES)
+
+/**
+ * Articles the morning news scan found (src/server/jobs/news). Private, like
+ * leads. One row per article address, so each is read once; skipped articles
+ * stay, with the model's reason, for editors to check its judgment.
+ */
+export const newsCandidates = recordSchema.table(
+  'news_candidates',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    url: text('url').notNull(),
+    headline: text('headline').notNull(),
+    outlet: text('outlet'),
+    publishedAt: timestamp('published_at', { withTimezone: true }),
+    feed: text('feed').notNull(),
+    leadSource: leadSourceEnum('lead_source').notNull(),
+    matchedTerms: text('matched_terms').array().notNull().default(emptyArray),
+    snippet: text('snippet'),
+    status: newsCandidateStatusEnum('status').notNull().default('pending'),
+    assessment: jsonb('assessment').$type<StoredAssessment>(),
+    model: text('model'),
+    usage: jsonb('usage').$type<NewsUsage>(),
+    attempts: integer('attempts').notNull().default(0),
+    /** Why it was skipped without a model, or why reading it failed. */
+    note: text('note'),
+    leadId: uuid('lead_id').references(() => leads.id, { onDelete: 'set null' }),
+    claimedAt: timestamp('claimed_at', { withTimezone: true }),
+    assessedAt: timestamp('assessed_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('news_candidates_url_key').on(t.url), index('news_candidates_status_idx').on(t.status, t.createdAt)],
 )
 
 // ---------------------------------------------------------------------------
@@ -794,15 +829,20 @@ export type FieldDoc = {
   description: string
   /** Allowed values, when the column is an enum. */
   allowed?: readonly (string | number)[]
+  /** JSON arrays: the keys of each entry, and the allowed values of the coded ones. */
+  keys?: readonly string[]
+  keyValues?: Readonly<Record<string, readonly string[]>>
   /** Included in CSV/JSON downloads and the API. Search columns are not. */
   exported: boolean
   nullable?: boolean
 }
 
 const allowed = <T extends readonly (string | number)[]>(values: T) => values
+/** The keys of a JSON entry, checked against its type. */
+const keysOf = <T>(keys: readonly (keyof T & string)[]) => keys
 
 export const PUBLIC_FIELD_DOCS: Record<keyof PublicIncident, FieldDoc> = {
-  id: { type: 'string', description: 'Stable, human-readable record id, e.g. US-2026-0412. Never reused.', exported: true },
+  id: { type: 'string', description: 'Stable, human-readable record id, e.g. `US-2026-0412`. Never reused.', exported: true },
   slug: { type: 'string', description: 'URL slug derived from the title. May change if the title changes; the id does not.', exported: true },
   title: { type: 'string (≤ 110 chars)', description: 'Factual headline.', exported: true },
   summary: {
@@ -835,7 +875,7 @@ export const PUBLIC_FIELD_DOCS: Record<keyof PublicIncident, FieldDoc> = {
     exported: true,
     nullable: true,
   },
-  mapLng: { type: 'number', description: 'Longitude used on the map (see map_lat).', exported: true, nullable: true },
+  mapLng: { type: 'number', description: 'Longitude used on the map (see `map_lat`).', exported: true, nullable: true },
   locationPrecision: {
     type: 'enum',
     description: 'How precisely the location is shown. Private homes are never shown more precisely than the neighborhood.',
@@ -891,34 +931,44 @@ export const PUBLIC_FIELD_DOCS: Record<keyof PublicIncident, FieldDoc> = {
     exported: true,
   },
   agenciesInvolved: { type: 'string[]', description: 'Police, prosecutors and other agencies named in sources.', exported: true },
-  caseIds: { type: 'string[]', description: 'Ids of court cases tied to this incident.', exported: true },
+  caseIds: { type: 'string[]', description: 'IDs of court cases tied to this incident.', exported: true },
   relatedIncidentIds: { type: 'string[]', description: 'Other records with the same perpetrator or in the same series.', exported: true },
   tags: { type: 'string[]', description: 'Free editorial tags, e.g. campus, election-related.', exported: true },
   sourceTypes: { type: 'enum[]', description: 'Distinct types of the sources cited.', allowed: allowed(E.SOURCE_TYPES), exported: true },
   sourceCount: { type: 'integer', description: 'Number of sources cited. Always at least 1.', exported: true },
   sources: {
     type: 'json array',
-    description: 'Sources: n, outlet, title, author, url, archived_url, published_date, accessed_date, source_type, claim_attribution.',
+    description: 'The sources cited. The [1] markers in `summary` refer to `n`.',
+    keys: keysOf<PublicSource>(['n', 'outlet', 'title', 'author', 'url', 'archived_url', 'published_date', 'accessed_date', 'source_type', 'claim_attribution']),
+    keyValues: { source_type: E.SOURCE_TYPES },
     exported: true,
   },
   legalEvents: {
     type: 'json array',
-    description: 'Dated legal events: date, event_type, description, case_id, source_n (the source that reports it).',
+    description: 'Dated legal events. `source_n` is the `n` of the source that reports the event; `case_id` matches an entry in `cases`.',
+    keys: keysOf<PublicLegalEvent>(['date', 'event_type', 'description', 'case_id', 'source_n']),
+    keyValues: { event_type: E.LEGAL_EVENT_TYPES },
     exported: true,
   },
   statements: {
     type: 'json array',
-    description: 'Attributed responses: speaker, speaker_role, organization, statement_type, date, quote (≤ 25 words), paraphrase, source_n.',
+    description: 'Attributed responses. A `quote` is at most 25 words; `source_n` is the source that reports it.',
+    keys: keysOf<PublicStatement>(['speaker', 'speaker_role', 'organization', 'statement_type', 'date', 'quote', 'paraphrase', 'source_n']),
+    keyValues: { statement_type: E.STATEMENT_TYPES },
     exported: true,
   },
   cases: {
     type: 'json array',
-    description: 'Court cases: id, name, court, jurisdiction, docket_number, case_type, parties, stage, next_date, courtlistener_url.',
+    description: 'Court cases tied to the incident, listed by id in `case_ids`. `stage` is free text.',
+    keys: keysOf<PublicCase>(['id', 'name', 'court', 'jurisdiction', 'docket_number', 'case_type', 'parties', 'stage', 'next_date', 'courtlistener_url']),
+    keyValues: { case_type: E.CASE_TYPES },
     exported: true,
   },
   changeLog: {
     type: 'json array',
-    description: 'Public change log: date, action (published, updated, unpublished), note, changed_fields, revision.',
+    description: 'The public change log, one entry per published change.',
+    keys: keysOf<PublicChange>(['date', 'action', 'note', 'changed_fields', 'revision']),
+    keyValues: { action: E.PUBLICATION_ACTIONS },
     exported: true,
   },
   methodologyVersion: { type: 'string', description: 'Inclusion-criteria version the record was published under.', exported: true },

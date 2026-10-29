@@ -65,9 +65,50 @@ describe.each([
   it('button text on the accent meets AA', () => {
     expect(contrast(t.surface!, t.accent!)).toBeGreaterThanOrEqual(4.5)
   })
+  it('text on the ink band (footer, tooltips) meets AA', () => {
+    for (const fg of ['band-text', 'band-muted', 'band-accent']) {
+      expect(contrast(t[fg]!, t['band-bg']!)).toBeGreaterThanOrEqual(4.5)
+    }
+    expect(contrast(t['band-bg']!, t['band-text']!)).toBeGreaterThanOrEqual(4.5)
+  })
+  it('the selected segment (ink on paper, reversed) meets AA', () => {
+    expect(contrast(t.bg!, t.text!)).toBeGreaterThanOrEqual(4.5)
+  })
   it('form control borders meet the 3:1 non-text contrast', () => {
     expect(contrast(t['text-muted']!, t.surface!)).toBeGreaterThanOrEqual(3)
     expect(contrast(t['text-muted']!, t.bg!)).toBeGreaterThanOrEqual(3)
+  })
+})
+
+/** `--name: rgb(r g b / a)` tokens of a block (the glass fills). */
+function glassBlock(selector: string): Record<string, [number, number, number, number]> {
+  const start = TOKENS.indexOf(selector)
+  const body = TOKENS.slice(TOKENS.indexOf('{', start) + 1, TOKENS.indexOf('}', start))
+  return Object.fromEntries(
+    Array.from(body.matchAll(/--([a-z0-9-]+):\s*rgb\((\d+) (\d+) (\d+) \/ ([\d.]+)\)/gi)).map((m) => [m[1]!, [Number(m[2]), Number(m[3]), Number(m[4]), Number(m[5])]]),
+  )
+}
+/** A translucent fill alpha-composited over an opaque backdrop. */
+const over = ([r, g, b, a]: [number, number, number, number], backdrop: string) =>
+  '#' + [r, g, b].map((v, i) => Math.round(v * a + rgb(backdrop)[i]! * (1 - a)).toString(16).padStart(2, '0')).join('')
+
+describe.each([
+  ['light', light, glassBlock(':root {'), '#1f5c4e'],
+  ['dark', dark, glassBlock(":root[data-theme='dark']"), '#a8dccd'],
+])('%s glass', (_name, t, g, extreme) => {
+  it('text on strong glass stays readable over the most contrasting map color', () => {
+    // Map overlays and tooltips use --glass-strong; the darkest (light theme) or lightest (dark theme) state fill can sit behind them.
+    const fill = over(g['glass-strong']!, extreme)
+    expect(contrast(t.text!, fill)).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(t['text-muted']!, fill)).toBeGreaterThanOrEqual(4.5)
+  })
+  it('text on glass stays readable over the page and the accent wash', () => {
+    for (const backdrop of [t.bg!, t.surface!, mix(t.accent!, t.bg!, 0.16), mix(t['ambient-2']!, t.bg!, 0.15)]) {
+      const fill = over(g.glass!, backdrop)
+      expect(contrast(t.text!, fill)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(t['text-muted']!, fill)).toBeGreaterThanOrEqual(4.5)
+      expect(contrast(t.accent!, fill)).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })
 
@@ -84,6 +125,9 @@ describe('token file', () => {
   })
   it('the system dark theme and the manual dark theme are identical', () => {
     expect(darkMedia).toEqual(dark)
+  })
+  it('prints in the light theme whatever the screen theme', () => {
+    expect(block('@media print')).toEqual(light)
   })
 })
 

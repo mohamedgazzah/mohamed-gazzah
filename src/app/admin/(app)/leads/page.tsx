@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { ActionForm } from '@/components/admin/ActionForm'
-import { LEAD_SOURCES, LEAD_SOURCE_META, LEAD_STATUSES, LEAD_STATUS_META, type LeadStatus } from '@/db/enums'
+import { INCIDENT_TYPE_META, LEAD_SOURCES, LEAD_SOURCE_META, LEAD_STATUSES, LEAD_STATUS_META, type LeadStatus } from '@/db/enums'
+import { RELEVANCE_LABELS } from '@/lib/news-assessment'
 import { formatDate, formatTimestamp } from '@/lib/format'
 import { stateByFips } from '@/lib/states'
 import { listLeads } from '@/server/admin/leads'
@@ -18,6 +19,9 @@ export default async function LeadsPage(props: PageProps<'/admin/leads'>) {
     <>
       <h1 className="text-2xl">Leads inbox</h1>
       <p className="mt-2 hint">Public submissions and monitor matches. Nothing here is public. Triage each lead: new incident, update, duplicate, or out of scope.</p>
+      <p className="mt-2 text-base">
+        <Link href="/admin/leads/scan">Morning news scan: every article read, including the ones it skipped</Link>
+      </p>
       <nav aria-label="Lead status" className="mt-4 flex flex-wrap gap-2">
         {(['new', ...LEAD_STATUSES.filter((s) => s !== 'new'), 'all'] as const).map((s) => (
           <Link key={s} href={`/admin/leads?status=${s}`} aria-current={status === s ? 'page' : undefined} className={status === s ? 'btn' : 'btn btn-secondary'}>
@@ -37,6 +41,16 @@ export default async function LeadsPage(props: PageProps<'/admin/leads'>) {
             <p className="mt-1 font-semibold">
               <Link href={`/admin/leads/${l.id}`}>{l.headline}</Link>
             </p>
+            {l.scan ? (
+              <p className="mt-1 text-sm">
+                Scan: {RELEVANCE_LABELS[l.scan.relevance]} ({l.scan.confidence} confidence)
+                {l.scan.city || l.scan.state_code ? ` · ${[l.scan.city, l.scan.state_code].filter(Boolean).join(', ')}` : ''}
+                {l.scan.incident_types.length ? ` · ${l.scan.incident_types.map((t) => INCIDENT_TYPE_META[t].label).join(', ')}` : ''}
+                {l.scan.possible_duplicates.length ? ` · possible duplicate of ${l.scan.possible_duplicates.join(', ')}` : ''}
+              </p>
+            ) : l.scanNote ? (
+              <p className="mt-1 text-sm text-muted">Scan: {l.scanNote}</p>
+            ) : null}
           </li>
         ))}
       </ul>

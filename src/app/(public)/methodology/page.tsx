@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
+import { BookOpenText } from 'lucide-react'
 import Link from 'next/link'
+import { INCLUSION_CRITERIA, INCLUSION_EXCLUSIONS, INCLUSION_POLICY_NOTE } from '@/lib/inclusion'
 import type { ReactNode } from 'react'
 import {
   INCIDENT_TYPES,
@@ -17,7 +19,10 @@ import {
   VERIFICATION_META,
   BIAS_INDICATORS,
   BIAS_INDICATOR_META,
+  type LegalStatus,
 } from '@/db/enums'
+import { PageHeader } from '@/components/PageHeader'
+import { ReadingLayout, ReadingSection } from '@/components/ReadingLayout'
 import { VerificationMark } from '@/components/VerificationMark'
 import { formatDate } from '@/lib/format'
 
@@ -37,104 +42,97 @@ const SECTIONS = [
   ['process', 'How a record is made'],
   ['corrections', 'Corrections and takedowns'],
   ['privacy-standards', 'Privacy'],
-  ['comparison', 'Comparison with other counts'],
+  ['comparison', 'Comparison with other counts', 'Other counts'],
   ['limits', 'Limits'],
   ['urls', 'Stable links'],
-  ['versions', 'Methodology versions'],
+  ['versions', 'Version history'],
 ] as const
 
+/** The lifecycle in stages, matching the definitions below; side states leave it early and are not drawn. */
+const LIFECYCLE: readonly { label: string; steps: readonly LegalStatus[]; choice?: boolean }[] = [
+  { label: 'Investigation', steps: ['reported', 'under_investigation', 'suspect_identified', 'arrested'] },
+  { label: 'Charges and court', steps: ['charged', 'in_court'] },
+  { label: 'Outcome, one of', steps: ['convicted', 'acquitted', 'dismissed', 'plea_deal', 'deferred'], choice: true },
+  { label: 'After a conviction or plea agreement', steps: ['sentenced'] },
+]
+
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  const n = SECTIONS.findIndex(([sid]) => sid === id) + 1
   return (
-    <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-6 border-t border-rule pt-8">
-      <h2 id={`${id}-h`} className="mb-4 text-2xl">
-        {title}
-      </h2>
-      <div className="reading space-y-4">{children}</div>
-    </section>
+    <ReadingSection id={id} n={n || undefined} title={title}>
+      {children}
+    </ReadingSection>
   )
 }
 
 export default function MethodologyPage() {
   return (
-    <main className="mx-auto max-w-content px-4 py-10 sm:px-6">
-      <div className="mx-auto max-w-reading">
-        <h1 className="text-3xl">Methodology</h1>
-        <p className="mt-3 reading text-muted">
-          Version {METHODOLOGY_VERSION}, effective {formatDate(METHODOLOGY_EFFECTIVE_DATE, 'day', 'long')}. Every dataset release and every
-          published record states the version it was produced under.
-        </p>
-
-        <nav aria-label="On this page" className="card my-8 p-4">
-          <p className="mb-2 font-semibold">On this page</p>
-          <ol className="grid list-decimal gap-x-6 gap-y-1 ps-5 text-base sm:grid-cols-2">
-            {SECTIONS.map(([id, title]) => (
-              <li key={id}>
-                <a href={`#${id}`}>{title}</a>
-              </li>
-            ))}
-          </ol>
-        </nav>
-
-        <div className="space-y-10">
+    <main className="wrap pt-6 md:pt-8">
+      <PageHeader
+        kicker={`Version ${METHODOLOGY_VERSION} · in effect since ${formatDate(METHODOLOGY_EFFECTIVE_DATE)}`}
+        icon={<BookOpenText aria-hidden="true" />}
+        title="Methodology"
+      >
+        The rules every record follows: what counts as an incident, how it is classified and verified, how legal outcomes are tracked, and how
+        mistakes are corrected. Every dataset release and every published record states the version it was produced under.
+      </PageHeader>
+      <ReadingLayout contents={SECTIONS}>
+        <div>
           <Section id="inclusion" title="What is included">
             <p>
               The unit of this record is one <strong>incident</strong>: a single event, at one time and place, that targets a person, a group or
               a property because the victim is, or is perceived to be, Muslim. One incident can have many sources, legal events and statements.
               Several incidents can belong to one court case or one perpetrator.
             </p>
+            <h3>Criteria</h3>
             <p>An incident is included when all three of these are true (inclusion criteria, version {METHODOLOGY_VERSION}):</p>
             <ol className="list-decimal space-y-2 ps-6">
-              <li>It happened in the United States or its territories, on or after January 1, 2020. Earlier records may be added only as a separate, labelled backfill.</li>
-              <li>
-                At least one public source describes an anti-Muslim element: a slur, a stated motive, a target that is a Muslim institution, a
-                hate-crime charge, or an official statement calling it bias-motivated.
-              </li>
-              <li>
-                It is either a crime (assault, threat, vandalism, arson, homicide and others) or a non-criminal act that is concrete and targeted,
-                such as harassment of named people, threats to a mosque, or slurs by a public official acting in office.
-              </li>
+              {INCLUSION_CRITERIA.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
             </ol>
-            <p>Excluded:</p>
+            <h3>Excluded</h3>
             <ul className="list-disc space-y-1 ps-6">
-              <li>General online speech not aimed at a specific target.</li>
-              <li>Opinion pieces.</li>
-              <li>Policy disputes.</li>
-              <li>
-                Incidents where the investigating agency clearly ruled out an anti-Muslim element. These are kept internally as “excluded”, with
-                the reason.
-              </li>
-            </ul>
-            <p>
-              Government actions such as detentions, designations of organizations and travel restrictions are tracked separately as policy and
-              litigation, not counted as incidents. This keeps incident counts comparable from year to year.
-            </p>
-            <p>The anti-Muslim elements a source can state are recorded as bias indicators:</p>
-            <ul className="list-disc space-y-1 ps-6">
-              {BIAS_INDICATORS.map((b) => (
-                <li key={b}>
-                  <strong>{BIAS_INDICATOR_META[b].label}.</strong> {BIAS_INDICATOR_META[b].description}
-                </li>
+              {INCLUSION_EXCLUSIONS.map((c) => (
+                <li key={c}>{c}</li>
               ))}
             </ul>
+            <p>{INCLUSION_POLICY_NOTE}</p>
+            <h3>Bias indicators</h3>
+            <p>
+              The <span className="whitespace-nowrap">anti-Muslim</span> elements a source can state are recorded as bias indicators:
+            </p>
+            <dl className="defs">
+              {BIAS_INDICATORS.map((b) => (
+                <div key={b}>
+                  <dt>{BIAS_INDICATOR_META[b].label}</dt>
+                  <dd>{BIAS_INDICATOR_META[b].description}</dd>
+                </div>
+              ))}
+            </dl>
           </Section>
 
           <Section id="taxonomy" title="Incident types">
             <p>Each record has one or more of these types.</p>
-            <div className="table-scroll card" role="region" aria-label="Incident type taxonomy" tabIndex={0}>
-              <table className="data-table">
-                <caption className="sr-only">Incident type codes, labels and examples</caption>
+            {/* Two columns that always fit, so no scroller and no extra tab stop. */}
+            <div className="table-scroll">
+              <table className="data-table data-table-static">
+                <caption className="sr-only">Incident types, their codes and what each covers</caption>
                 <thead>
                   <tr>
-                    <th scope="col">Code</th>
                     <th scope="col">Type</th>
-                    <th scope="col">Examples</th>
+                    <th scope="col">What it covers</th>
                   </tr>
                 </thead>
                 <tbody>
                   {INCIDENT_TYPES.map((t) => (
                     <tr key={t} id={`type-${t}`}>
-                      <td className="font-semibold tabular">{t}</td>
-                      <td>{INCIDENT_TYPE_META[t].label}</td>
+                      <th scope="row" className="min-w-40 text-start align-top font-semibold">
+                        {INCIDENT_TYPE_META[t].label}
+                        <span className="mt-1 block">
+                          <code className="token">{t}</code>
+                        </span>
+                      </th>
                       <td>{INCIDENT_TYPE_META[t].description}</td>
                     </tr>
                   ))}
@@ -145,11 +143,12 @@ export default function MethodologyPage() {
 
           <Section id="severity" title="Severity">
             <p>Severity records the most serious harm a source reports. Death and injury counts are shown as numbers, and are left empty when unknown rather than shown as zero.</p>
-            <dl className="space-y-2">
+            <dl className="defs">
               {SEVERITIES.map((s) => (
-                <div key={s} id={`severity-${s}`} className="scroll-mt-6">
-                  <dt className="font-semibold">
-                    {s} — {SEVERITY_META[s].label}
+                <div key={s} id={`severity-${s}`}>
+                  <dt className="flex items-baseline gap-2.5">
+                    <span className="tabular inline-grid h-7 min-w-7 place-items-center rounded-[8px] bg-accent-tint text-sm font-semibold text-accent">{s}</span>
+                    {SEVERITY_META[s].label}
                   </dt>
                   <dd>{SEVERITY_META[s].description}</dd>
                 </div>
@@ -159,11 +158,19 @@ export default function MethodologyPage() {
 
           <Section id="verification" title="Verification levels">
             <p>Every record shows how well it is confirmed. Public counts include V3 and V2 by default; V1 records appear only when you choose to include them.</p>
-            <dl className="space-y-3">
+            <dl className="defs">
               {(['V3', 'V2', 'V1', 'V0'] as const).map((v) => (
-                <div key={v} id={`verification-${v.toLowerCase()}`} className="scroll-mt-6">
-                  <dt className="font-semibold">
-                    {v} — {VERIFICATION_META[v].label}
+                <div key={v} id={`verification-${v.toLowerCase()}`}>
+                  <dt>
+                    {v === 'V0' ? (
+                      <span className="badge border-dashed text-muted">{VERIFICATION_META[v].label}</span>
+                    ) : (
+                      <span className={`badge ${v === 'V3' ? 'text-confirmed' : 'text-reported'}`}>
+                        <VerificationMark level={v} />
+                        {VERIFICATION_META[v].label}
+                      </span>
+                    )}
+                    <span className="mt-1 block text-xs font-normal text-muted">Level {v}</span>
                   </dt>
                   <dd>{VERIFICATION_META[v].rule}</dd>
                 </div>
@@ -177,20 +184,52 @@ export default function MethodologyPage() {
           </Section>
 
           <Section id="legal" title="Legal status">
+            <p>Each record follows a lifecycle, stage by stage:</p>
+            {/* Each step links to its definition below. The outcomes are alternatives, and a sentence follows only a conviction or a plea. */}
+            <ol className="lifecycle" aria-label="Legal lifecycle, in order">
+              {LIFECYCLE.map((stage, i) => {
+                const List = stage.choice ? 'ul' : 'ol'
+                return (
+                  <li key={stage.label}>
+                    <p id={`lifecycle-${i}`} className="lifecycle-label">
+                      {stage.label}
+                    </p>
+                    <List className={`flow ${stage.choice ? 'flow-choice' : ''}`} aria-labelledby={`lifecycle-${i}`}>
+                      {stage.steps.map((s) => (
+                        <li key={s}>
+                          <a href={`#legal-${s}`} className="flow-pill">
+                            {LEGAL_STATUS_META[s].label}
+                          </a>
+                        </li>
+                      ))}
+                    </List>
+                  </li>
+                )
+              })}
+            </ol>
             <p>
-              Each record follows a lifecycle: reported → under investigation → suspect identified → arrested → charged → in court → convicted,
-              acquitted, dismissed, plea agreement or deferred → sentenced. Side states are no arrest, suspect deceased, not prosecuted and unknown.
-              Whether a hate-crime or bias charge was filed is recorded separately.
+              Some cases leave this path early; they are listed below as side states. Whether a hate-crime or bias charge was filed is recorded
+              separately. Every status is supported by a dated legal event with a source, shown on the record’s legal timeline.
             </p>
-            <p>Every status is supported by a dated legal event with a source, shown on the record’s legal timeline.</p>
-            <dl className="space-y-2">
-              {LEGAL_STATUSES.map((s) => (
-                <div key={s} id={`legal-${s}`} className="scroll-mt-6">
-                  <dt className="font-semibold">{LEGAL_STATUS_META[s].label}</dt>
-                  <dd>{LEGAL_STATUS_META[s].description}</dd>
-                </div>
-              ))}
-            </dl>
+            {(
+              [
+                ['Investigation and charges', LEGAL_STATUSES.slice(0, 6)],
+                ['Outcomes', LEGAL_STATUSES.slice(6, 12)],
+                ['Side states', LEGAL_STATUSES.slice(12)],
+              ] as const
+            ).map(([group, statuses]) => (
+              <div key={group}>
+                <h3 className="defs-group">{group}</h3>
+                <dl className="defs">
+                  {statuses.map((s) => (
+                    <div key={s} id={`legal-${s}`}>
+                      <dt>{LEGAL_STATUS_META[s].label}</dt>
+                      <dd>{LEGAL_STATUS_META[s].description}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
           </Section>
 
           <Section id="language" title="Language and naming">
@@ -215,8 +254,12 @@ export default function MethodologyPage() {
             <ul className="list-disc space-y-2 ps-6">
               <li>No incident is published without at least one public, linkable source. Each claim states who made it.</li>
               <li>
-                The most authoritative source available is used for each fact, in this order:{' '}
-                {SOURCE_AUTHORITY_ORDER.map((t) => SOURCE_TYPE_META[t].label.toLowerCase()).join(' > ')}.
+                The most authoritative source available is used for each fact, ranked from most to least authoritative:
+                <ol className="tabular mt-2 list-decimal ps-6 sm:columns-2 sm:gap-x-12 [&>li]:break-inside-avoid" aria-label="Sources, most authoritative first">
+                  {SOURCE_AUTHORITY_ORDER.map((t) => (
+                    <li key={t}>{SOURCE_TYPE_META[t].label}</li>
+                  ))}
+                </ol>
               </li>
               <li>When sources conflict, the record shows both and says which source says what.</li>
               <li>Summaries are two to four neutral sentences; each ends with a marker pointing to its source.</li>
@@ -227,8 +270,13 @@ export default function MethodologyPage() {
 
           <Section id="process" title="How a record is made">
             <p>Nothing goes public without two people: one editor drafts the record, and a second editor, who did not write or edit that version, approves it. The database itself refuses to publish a record without that approval. Automation finds leads and keeps cases current; it never publishes.</p>
-            <ol className="list-decimal space-y-2 ps-6">
-              <li>Leads come from public submissions, news monitoring, organization and agency press releases, and court dockets.</li>
+            <ol className="steps" role="list">
+              <li>
+                Leads come from public submissions, news monitoring, organization and agency press releases, and court dockets. Every morning an
+                automated scan reads news searches and press releases, and an AI model (Claude, by Anthropic) checks each article against the
+                inclusion criteria above. It only suggests leads: an editor reads every article it passes on, and its judgment never decides
+                what is included.
+              </li>
               <li>An editor triages each lead: new incident, update to an existing record, duplicate, or out of scope (with a reason). Possible duplicates are suggested by date (within three days), city and similar text.</li>
               <li>The editor drafts the record, attaches every source and writes the summary, then sets the verification level. For single-source reports the editor tries to reach a second source.</li>
               <li>
@@ -247,11 +295,11 @@ export default function MethodologyPage() {
           <Section id="corrections" title="Corrections and takedowns">
             <ul className="list-disc space-y-2 ps-6">
               <li>
-                Anyone can request a correction from any record (<Link href="/report?mode=correction">correction form</Link>). We respond within{' '}
-                {SLA.correctionResponseHours} hours and fix material errors within {SLA.correctionFixDays} days, with a public note in the record’s
-                change log.
+                Anyone can request a correction from any record (<Link href="/report?mode=correction">correction form</Link>). Editors respond
+                within {SLA.correctionResponseHours} hours and fix material errors within {SLA.correctionFixDays} days, with a public note in the
+                record’s change log.
               </li>
-              <li>People described in a record can ask for identifying details to be removed at any time. We do this within {SLA.privacyRemovalHours} hours, no questions asked.</li>
+              <li>People described in a record can ask for identifying details to be removed at any time. They are removed within {SLA.privacyRemovalHours} hours, no questions asked.</li>
               <li>Legal demands go to counsel. Records are not removed because of pressure alone, only on a legal or factual basis.</li>
               <li>Every change to a published record is listed in its change log, with the date and a one-line reason.</li>
             </ul>
@@ -267,7 +315,10 @@ export default function MethodologyPage() {
           </Section>
 
           <Section id="comparison" title="Comparison with other counts">
-            <p>No single source counts every anti-Muslim incident, and each measures something different:</p>
+            <p>
+              No single source counts every <span className="whitespace-nowrap">anti-Muslim</span> incident, and each measures something
+              different:
+            </p>
             <ul className="list-disc space-y-2 ps-6">
               <li>
                 <strong>FBI hate crime statistics</strong> count crimes reported by participating police agencies. Participation is voluntary
@@ -303,7 +354,19 @@ export default function MethodologyPage() {
 
           <Section id="urls" title="Stable links">
             <p>
-              Every filtered view of the record has its own address, for example <code>/incidents?state=MI&amp;type=VAND,THRT&amp;from=2026-01-01</code>.
+              Every filtered view of the record has its own address. For example:
+            </p>
+            {/* Breaks only at its delimiters, so a phone shows all of it without a scroller. */}
+            <code className="block rounded-[var(--radius-sm)] px-3.5 py-2.5 [overflow-wrap:anywhere]">
+              /incidents?
+              <wbr />
+              state=MI&amp;
+              <wbr />
+              type=VAND,THRT&amp;
+              <wbr />
+              from=2026-01-01
+            </code>
+            <p>
               An address without a <code>v</code> parameter means verification levels V2 and V3; without <code>sort</code>, newest first. These
               defaults will not change, so a cited address keeps its meaning. Lists are paginated in a stable order rather than scrolled endlessly,
               so page numbers can be cited too.
@@ -311,8 +374,9 @@ export default function MethodologyPage() {
             <p>Record ids such as <code>US-2026-0412</code> are permanent. If a record’s title changes, its old address redirects to the new one.</p>
           </Section>
 
-          <Section id="versions" title="Methodology versions">
-            <table className="data-table">
+          <Section id="versions" title="Version history">
+            <div className="table-scroll">
+            <table className="data-table data-table-static">
               <caption className="sr-only">Methodology version history</caption>
               <thead>
                 <tr>
@@ -324,14 +388,15 @@ export default function MethodologyPage() {
               <tbody>
                 <tr>
                   <td className="tabular">1.0</td>
-                  <td className="tabular">{formatDate(METHODOLOGY_EFFECTIVE_DATE)}</td>
+                  <td className="tabular whitespace-nowrap">{formatDate(METHODOLOGY_EFFECTIVE_DATE)}</td>
                   <td>First published version.</td>
                 </tr>
               </tbody>
             </table>
+            </div>
           </Section>
         </div>
-      </div>
+      </ReadingLayout>
     </main>
   )
 }

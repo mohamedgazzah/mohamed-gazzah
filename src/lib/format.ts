@@ -19,9 +19,22 @@ export function formatDate(iso: string | null | undefined, precision: DatePrecis
   return `${month} ${d}, ${y}`
 }
 
+/**
+ * A date range in newsroom style: "Aug. 1–2, 2026", "Aug. 30 – Sept. 2, 2026",
+ * "Dec. 30, 2025 – Jan. 2, 2026", "June–July 2026", "2025–2026".
+ */
 export function formatDateRange(start: string, end: string | null | undefined, precision: DatePrecision = 'day'): string {
   if (!end || end === start) return formatDate(start, precision)
-  return `${formatDate(start, precision)} – ${formatDate(end, precision)}`
+  const a = parts(start)
+  const b = parts(end)
+  if (precision === 'year') return a.y === b.y ? String(a.y) : `${a.y}–${b.y}`
+  if (precision === 'month') {
+    if (a.y === b.y && a.m === b.m) return formatDate(start, 'month')
+    return a.y === b.y ? `${MONTHS[a.m - 1]}–${MONTHS[b.m - 1]} ${a.y}` : `${formatDate(start, 'month')} – ${formatDate(end, 'month')}`
+  }
+  if (a.y !== b.y) return `${formatDate(start)} – ${formatDate(end)}`
+  if (a.m !== b.m) return `${MONTHS_SHORT[a.m - 1]} ${a.d} – ${MONTHS_SHORT[b.m - 1]} ${b.d}, ${a.y}`
+  return `${MONTHS_SHORT[a.m - 1]} ${a.d}–${b.d}, ${a.y}`
 }
 
 /** Postgres or JS timestamp to ISO 8601 UTC ("2026-10-26T03:36:38.766Z"). */
@@ -32,10 +45,12 @@ export function isoTimestamp(ts: string | Date): string {
   return Number.isNaN(d.getTime()) ? ts : d.toISOString()
 }
 
-/** Timestamp to "Oct. 26, 2026" (UTC date). */
+/** Timestamp to "Oct. 26, 2026": its US Eastern calendar date, the same calendar as todayIso. */
 export function formatTimestamp(ts: string | Date | null | undefined): string {
   if (!ts) return ''
-  return formatDate(isoTimestamp(ts).slice(0, 10))
+  const iso = isoTimestamp(ts)
+  const d = new Date(iso)
+  return formatDate(Number.isNaN(d.getTime()) ? iso.slice(0, 10) : todayIso(d))
 }
 
 export function formatPlace(city: string | null | undefined, state: string | null | undefined): string {

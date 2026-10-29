@@ -2,10 +2,11 @@
 
 export default function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
-    <main className="mx-auto max-w-reading px-4 py-16 sm:px-6">
-      <h1 className="text-3xl">This page could not load</h1>
-      <p className="mt-3 reading">Something went wrong on our side. Please try again in a moment.</p>
-      <button type="button" className="btn mt-6" onClick={() => reset()}>
+    <main className="wrap py-20 md:py-28">
+      <p className="kicker">Error</p>
+      <h1 className="display mt-2 max-w-[18ch] text-5xl">This page could not load.</h1>
+      <p className="lede mt-6 max-w-[56ch]">Something went wrong on our side. Please try again in a moment.</p>
+      <button type="button" className="btn mt-8" onClick={() => reset()}>
         Try again
       </button>
     </main>

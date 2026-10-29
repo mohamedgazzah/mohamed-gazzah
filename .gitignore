@@ -3,7 +3,10 @@ node_modules/
 
 # next.js
 .next/
-.next-e2e/
+# other build folders (tests, previews, extra dev servers: NEXT_DIST_DIR=.next-<name>)
+.next-*/
+# written by `next dev`
+AGENTS.md
 out/
 next-env.d.ts
 *.tsbuildinfo
@@ -26,6 +29,3 @@ reports/
 # misc
 .DS_Store
 *.log
-
-# copied from node_modules by scripts/copy-vendor.mjs
-public/vendor/

@@ -11,7 +11,9 @@ import { EMPTY_FILTERS, type Filters } from '@/lib/filters'
 import * as wf from '@/server/admin/incidents'
 import { buildRelease, diffReleases } from '@/server/jobs/export'
 import { exportRows, rowsToCsv } from '@/server/public/export'
+import { INCIDENT_TYPES } from '@/db/enums'
 import { countIncidents, searchIncidents } from '@/server/public/incidents'
+import { countsByCity, countsByMonth, countsByState, countsByType, monthsBetween } from '@/server/public/stats'
 import { CANARY_NOTE, CHECKLIST_ALL, completeDraft, team } from './helpers'
 
 beforeAll(async () => {
@@ -57,6 +59,37 @@ describe('one set of filters, one total', () => {
       expect(new Set(csvRows.map((r) => r.id))).toEqual(new Set(explore.rows.map((r) => r.id)))
     })
   }
+})
+
+describe('charts and the map count what Explore lists', () => {
+  for (const combo of combos) {
+    it(`state, city, type and month totals match Explore for ${JSON.stringify(combo)}`, async () => {
+      const f = { ...EMPTY_FILTERS, ...combo }
+      const total = (await countIncidents(f)).incidents
+      // Each record has one state: the map's totals add up to the list.
+      const byState = await countsByState(f)
+      expect(Object.values(byState).reduce((a, b) => a + b, 0)).toBe(total)
+      for (const [state, n] of Object.entries(byState)) expect((await countIncidents({ ...f, state: [state] })).incidents).toBe(n)
+      // City circles plus state-level-only records add up to the state.
+      const cities = await countsByCity(f)
+      expect(cities.cities.reduce((a, c) => a + c.count, 0) + cities.stateOnly).toBe(total)
+      for (const c of cities.cities) expect((await countIncidents({ ...f, state: [c.stateCode], city: c.city })).incidents).toBe(c.count)
+      // A type bar or toggle shows what Explore lists for that type with the other filters kept.
+      const byType = await countsByType({ ...f, type: [] })
+      for (const t of INCIDENT_TYPES) expect((await countIncidents({ ...f, type: [t] })).incidents, t).toBe(byType[t])
+      // A month column opens Explore for that month, with the same number.
+      for (const m of await countsByMonth(f, '2026-01-01', '2026-06-30')) expect((await countIncidents({ ...f, from: m.from, to: m.to })).incidents, m.month).toBe(m.count)
+    })
+  }
+
+  it('lists calendar months and clips the first and last to the window', async () => {
+    expect(monthsBetween('2025-11-15', '2026-02-03').map((m) => m.month)).toEqual(['2025-11', '2025-12', '2026-01', '2026-02'])
+    const months = await countsByMonth({ ...EMPTY_FILTERS, from: '2026-02-10' }, '2026-01-01', '2026-03-20')
+    expect(months.map((m) => [m.month, m.from, m.to])).toEqual([
+      ['2026-02', '2026-02-10', '2026-02-28'],
+      ['2026-03', '2026-03-01', '2026-03-20'],
+    ])
+  })
 })
 
 describe('nightly release', () => {

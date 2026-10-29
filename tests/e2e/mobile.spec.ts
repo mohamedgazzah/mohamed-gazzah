@@ -21,7 +21,9 @@ test('no page scrolls horizontally; tables scroll inside their container', async
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     expect(overflow, url).toBeLessThanOrEqual(0)
   }
+  // The records table folds its status columns into each row, so it fits the screen without scrolling the page.
   await page.goto('/incidents?v=1,2,3')
   const scroller = page.locator('.table-scroll').first()
-  expect(await scroller.evaluate((el) => el.scrollWidth > el.clientWidth)).toBe(true)
+  expect(await scroller.evaluate((el) => el.getBoundingClientRect().right <= window.innerWidth)).toBe(true)
+  await expect(page.locator('table.data-table tbody tr').first()).toContainText(/Confirmed|reported/)
 })

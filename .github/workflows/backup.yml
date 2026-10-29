@@ -1,0 +1,44 @@
+# Daily encrypted database backup (scripts/backup.sh). Supabase's free plan
+# asks you to keep your own off-site copies; this keeps them in a private
+# Cloudflare R2 bucket, encrypted to a key the team holds offline.
+#
+# Off until you opt in: set the repository variable ENABLE_BACKUPS=true and
+# the secrets and variables listed in docs/DEPLOY.md ("Backups").
+# Free on public repositories (about a minute a day on private ones).
+name: Database backup
+
+on:
+  schedule:
+    - cron: '40 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    if: vars.ENABLE_BACKUPS == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install pg_dump and age
+        env:
+          # pg_dump must be at least the server's major version; a newer one is fine.
+          PG_CLIENT_VERSION: '18'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common age
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq "postgresql-client-$PG_CLIENT_VERSION"
+          echo "PG_DUMP=/usr/lib/postgresql/$PG_CLIENT_VERSION/bin/pg_dump" >> "$GITHUB_ENV"
+      - name: Back up
+        env:
+          BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          DATABASE_CA_CERT: ${{ secrets.DATABASE_CA_CERT }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_S3_SECRET_ACCESS_KEY }}
+          BACKUP_AGE_RECIPIENT: ${{ vars.BACKUP_AGE_RECIPIENT }}
+          BACKUP_S3_ENDPOINT: ${{ vars.BACKUP_S3_ENDPOINT }}
+          BACKUP_S3_BUCKET: ${{ vars.BACKUP_S3_BUCKET }}
+        run: bash scripts/backup.sh

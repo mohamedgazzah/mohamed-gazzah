@@ -257,8 +257,8 @@ export const VERIFICATION_META: Record<VerificationLevel, Meta & { rule: string 
   },
   V0: {
     label: 'Unverified submission',
-    description: 'Admin only. Never public.',
-    rule: 'Admin only. Never public.',
+    description: 'Seen only by editors; never published.',
+    rule: 'Seen only by editors; never published.',
   },
 }
 
@@ -578,6 +578,17 @@ export const LEAD_STATUS_META: Record<LeadStatus, Meta> = {
   update: { label: 'Update', description: 'Adds information to an existing record.' },
   duplicate: { label: 'Duplicate', description: 'Already covered by another lead or record.' },
   out_of_scope: { label: 'Out of scope', description: 'Does not meet the inclusion criteria.' },
+}
+
+/** Articles found by the morning news scan (src/server/jobs/news). */
+export const NEWS_CANDIDATE_STATUSES = ['pending', 'working', 'lead', 'skipped', 'failed'] as const
+export type NewsCandidateStatus = (typeof NEWS_CANDIDATE_STATUSES)[number]
+export const NEWS_CANDIDATE_STATUS_META: Record<NewsCandidateStatus, Meta> = {
+  pending: { label: 'Waiting', description: 'Found, not read yet.' },
+  working: { label: 'Being read', description: 'A scan pass is reading it now.' },
+  lead: { label: 'Lead created', description: 'Sent to the leads inbox for an editor.' },
+  skipped: { label: 'Skipped', description: 'Judged outside the inclusion criteria; kept here so editors can check.' },
+  failed: { label: 'Failed', description: 'Could not be read after several tries.' },
 }
 
 export const SUBMISSION_KINDS = ['report', 'correction'] as const

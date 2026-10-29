@@ -1,8 +1,9 @@
 import Link from 'next/link'
 import { INCIDENT_TYPE_META, SEVERITY_META } from '@/db/enums'
-import { formatDateRange, formatPlace } from '@/lib/format'
+import { formatDateRange, formatPlace, plural } from '@/lib/format'
 import { incidentPath } from '@/lib/slug'
 import type { IncidentListItem } from '@/server/public/incidents'
+import { Arrow } from './Arrow'
 import { legalLabel, verificationLabel } from './Badges'
 import { VerificationMark } from './VerificationMark'
 import { Highlight } from './Highlight'
@@ -10,71 +11,84 @@ import { TableKeyboardNav } from './TableKeyboardNav'
 
 type SortLink = { label: string; href: string; active: boolean; direction: 'ascending' | 'descending' | 'none' }
 
+// The arrow is drawn: the text face has no ↑ or ↓, and asking for one fetches
+// a second copy of the font to look (src/fonts/README.md). aria-sort carries the state.
+function SortHeader({ sort }: { sort: SortLink }) {
+  return (
+    <Link href={sort.href} className="inline-flex items-center gap-1">
+      {sort.label}
+      {sort.active && sort.direction !== 'none' ? <Arrow direction={sort.direction === 'ascending' ? 'up' : 'down'} size={10} /> : null}
+    </Link>
+  )
+}
+
+/**
+ * The records as a table: the date and place, then the incident with its
+ * status on a line under the title, so verification and legal status are
+ * never scrolled out of sight. (The column is never wide enough for status
+ * columns of their own.) On phones the date and place sit on a line above
+ * the title instead of in a column. The whole row opens the record.
+ */
 export function IncidentTable({
   rows,
   query,
   caption,
   dateSort,
-  severitySort,
+  sticky = false,
 }: {
   rows: IncidentListItem[]
   query?: string | null
   caption: string
   dateSort?: SortLink
-  severitySort?: SortLink
+  /** Keep the column names in view while scrolling a long table (wide screens). */
+  sticky?: boolean
 }) {
   return (
     <TableKeyboardNav>
-      <div className="table-scroll card" role="region" aria-label={caption} tabIndex={0}>
-        <table className="data-table">
+      <div className={sticky ? 'table-scroll sticky-head' : 'table-scroll'} role="region" aria-label={caption} tabIndex={0}>
+        {/* Explicit roles: below 30rem the rows are laid out as blocks, and WebKit drops a table's semantics when its display changes. */}
+        <table className="data-table records-table" role="table">
           <caption className="sr-only">{caption}</caption>
-          <thead>
-            <tr>
-              <th scope="col" aria-sort={dateSort?.active ? dateSort.direction : undefined}>
-                {dateSort ? <Link href={dateSort.href}>{dateSort.label}</Link> : 'Date'}
-                <span className="font-normal text-muted"> · place</span>
+          <thead role="rowgroup">
+            <tr role="row">
+              <th scope="col" role="columnheader" className="records-when" aria-sort={dateSort?.active ? dateSort.direction : undefined}>
+                {dateSort ? <SortHeader sort={dateSort} /> : 'Date'}
+                <span className="text-muted"> · place</span>
               </th>
-              <th scope="col">Incident</th>
-              <th scope="col">Type</th>
-              <th scope="col" className="num" aria-sort={severitySort?.active ? severitySort.direction : undefined}>
-                {severitySort ? <Link href={severitySort.href}>{severitySort.label}</Link> : 'Severity'}
-              </th>
-              <th scope="col">Verification</th>
-              <th scope="col">Legal status</th>
-              <th scope="col" className="num">
-                Sources
+              <th scope="col" role="columnheader">
+                Incident and status
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody role="rowgroup">
             {rows.map((r) => (
-              <tr key={r.id} data-record-id={r.id}>
-                <td className="whitespace-nowrap">
-                  <span className="tabular">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</span>
-                  <span className="block text-muted">{formatPlace(r.city, r.stateCode)}</span>
+              <tr key={r.id} data-record-id={r.id} className="row-link" role="row">
+                <td className="records-when" role="cell">
+                  <span className="tabular whitespace-nowrap">{formatDateRange(r.dateStart, r.dateEnd, r.datePrecision)}</span>
+                  <span className="block text-muted sm:whitespace-nowrap">{formatPlace(r.city, r.stateCode)}</span>
                 </td>
-                <td className="min-w-56">
-                  <Link href={incidentPath(r.id, r.slug)} className="font-semibold">
+                <td role="cell">
+                  <Link href={incidentPath(r.id, r.slug)} className="text-base leading-snug font-semibold text-text no-underline hover:underline">
                     <Highlight text={r.title} query={query} />
                   </Link>
-                  <span className="block text-sm text-muted tabular">
-                    {r.id}
-                    {r.isDemo ? ' · demo record' : ''}
+                  {/* Two lines of facts. Each item keeps its separator with it, so a line never starts or ends with a dot; a long list of types wraps inside its item. */}
+                  <span className="meta-line mono mt-1 text-muted">
+                    <span>{r.id}</span>
+                    <span className="whitespace-normal">{r.incidentTypes.map((t) => INCIDENT_TYPE_META[t].label).join(', ')}</span>
+                    {r.isDemo ? <span>demo record</span> : null}
+                  </span>
+                  <span className="meta-line mt-1.5 text-xs">
+                    <span className={r.verificationLevel === 'V3' ? 'text-confirmed' : 'text-reported'}>
+                      <VerificationMark level={r.verificationLevel} />
+                      <span className="ms-1 text-text">{verificationLabel(r.verificationLevel, r.sourceTypes)}</span>
+                    </span>
+                    <span>{legalLabel(r.legalStatus, r.hateCrimeCharged)}</span>
+                    <span className="text-muted">
+                      Severity {r.severity}, {SEVERITY_META[r.severity].label.toLowerCase()}
+                    </span>
+                    <span className="text-muted">{plural(r.sourceCount, 'source')}</span>
                   </span>
                 </td>
-                <td>{r.incidentTypes.map((t) => INCIDENT_TYPE_META[t].label).join(', ')}</td>
-                <td className="num" title={SEVERITY_META[r.severity].label}>
-                  {r.severity}
-                  <span className="sr-only">: {SEVERITY_META[r.severity].label}</span>
-                </td>
-                <td className="whitespace-nowrap">
-                  <span className={r.verificationLevel === 'V3' ? 'text-confirmed' : 'text-reported'}>
-                    <VerificationMark level={r.verificationLevel} />
-                  </span>{' '}
-                  {verificationLabel(r.verificationLevel, r.sourceTypes)}
-                </td>
-                <td>{legalLabel(r.legalStatus, r.hateCrimeCharged)}</td>
-                <td className="num">{r.sourceCount}</td>
               </tr>
             ))}
           </tbody>

@@ -26,7 +26,8 @@ if (!incidentRoutes.length) {
 }
 
 const env = { ...e2eEnv(), DATABASE_URL: DEAD, PUBLIC_DATABASE_URL: DEAD, MIGRATION_DATABASE_URL: DEAD }
-const server = spawn('npx', ['next', 'start', '-p', String(PORT)], { env, stdio: ['ignore', 'pipe', 'pipe'] })
+// Its own process group, so stopping it also stops the server npx starts.
+const server = spawn('npx', ['next', 'start', '-p', String(PORT)], { env, stdio: ['ignore', 'pipe', 'pipe'], detached: true })
 let log = ''
 server.stdout.on('data', (d) => (log += d))
 server.stderr.on('data', (d) => (log += d))
@@ -62,7 +63,7 @@ try {
   const explore = await fetch(`http://localhost:${PORT}/incidents`)
   console.log(`INFO ${explore.status} /incidents (searching needs the database; an error page is expected)`)
 } finally {
-  server.kill('SIGTERM')
+  process.kill(-server.pid!, 'SIGTERM')
 }
 if (failures) {
   console.error(`\n${failures} page(s) failed with the database down.\n${log.slice(-2000)}`)

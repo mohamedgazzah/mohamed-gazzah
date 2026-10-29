@@ -1,25 +1,31 @@
 import localFont from 'next/font/local'
 
 /**
- * Self-hosted fonts (no request to Google). The Latin files are preloaded by
+ * Self-hosted fonts (no request to Google). The Latin files load through
  * next/font with metric-matched fallbacks; other scripts (Latin Extended,
- * Cyrillic, Greek, Vietnamese) come from the @fontsource stylesheets in the
- * root layout and download only when a page uses them.
+ * Vietnamese) come from the @fontsource stylesheet in the root layout and
+ * download only when a page uses them.
+ *
+ * Instrument Sans for everything: headlines, reading text, interface and
+ * tables (it has tabular figures). Variable weight 400–700, 30 KB.
  */
-export const inter = localFont({
-  src: '../../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2',
-  weight: '100 900',
+export const instrument = localFont({
+  src: '../../node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-normal.woff2',
+  weight: '400 700',
   style: 'normal',
   display: 'swap',
-  variable: '--font-inter',
+  variable: '--font-instrument',
   adjustFontFallback: 'Arial',
 })
 
-export const sourceSerif = localFont({
-  src: '../../node_modules/@fontsource-variable/source-serif-4/files/source-serif-4-latin-wght-normal.woff2',
-  weight: '200 900',
-  style: 'normal',
+// Italics (emphasis, cited titles) use var(--typeface-italic). Not preloaded:
+// few pages use italics, and those fetch it only when they do.
+export const instrumentItalic = localFont({
+  src: '../../node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wght-italic.woff2',
+  weight: '400 700',
+  style: 'italic',
   display: 'swap',
-  variable: '--font-source-serif',
-  adjustFontFallback: 'Times New Roman',
+  preload: false,
+  variable: '--font-instrument-italic',
+  adjustFontFallback: 'Arial',
 })

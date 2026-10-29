@@ -21,7 +21,12 @@ if (!existsSync('.next-e2e/BUILD_ID')) {
   process.exit(1)
 }
 
-const server = spawn('npx', ['next', 'start', '-p', String(PORT)], { env: { ...e2eEnv(), NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}` }, stdio: 'ignore' })
+// Its own process group, so stopping it also stops the server npx starts.
+const server = spawn('npx', ['next', 'start', '-p', String(PORT)], {
+  env: { ...e2eEnv(), NEXT_PUBLIC_SITE_URL: `http://localhost:${PORT}` },
+  stdio: 'ignore',
+  detached: true,
+})
 for (let i = 0; i < 60; i++) {
   try {
     await fetch(`http://localhost:${PORT}/robots.txt`)
@@ -32,14 +37,16 @@ for (let i = 0; i < 60; i++) {
 }
 
 mkdirSync('reports/lighthouse', { recursive: true })
-const chrome = await chromeLauncher.launch({ chromePath: CHROME, chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu'] })
 const summary: Record<string, Record<string, number>> = {}
 let failed = false
 try {
   for (const page of PAGES) {
     const url = `http://localhost:${PORT}${page}`
     await fetch(url) // warm the server, as a CDN would
-    const result = await lighthouse(url, { port: chrome.port, output: ['html', 'json'], logLevel: 'error', onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'] })
+    // A fresh browser per page, as the Lighthouse CLI does: work left over from
+    // the previous page must not land in this page's trace.
+    const chrome = await chromeLauncher.launch({ chromePath: CHROME, chromeFlags: ['--headless=new', '--no-sandbox', '--disable-gpu'] })
+    const result = await lighthouse(url, { port: chrome.port, output: ['html', 'json'], logLevel: 'error', onlyCategories: ['performance', 'accessibility', 'best-practices', 'seo'] }).finally(() => chrome.kill())
     if (!result) throw new Error(`No Lighthouse result for ${url}`)
     const scores = Object.fromEntries(Object.entries(result.lhr.categories).map(([k, c]) => [k, Math.round((c.score ?? 0) * 100)]))
     summary[page] = scores
@@ -49,8 +56,7 @@ try {
     if ((scores.performance ?? 0) < 90 || (scores.accessibility ?? 0) < 90) failed = true
   }
 } finally {
-  await chrome.kill()
-  server.kill('SIGTERM')
+  process.kill(-server.pid!, 'SIGTERM')
 }
 writeFileSync('reports/lighthouse/summary.json', `${JSON.stringify({ date: new Date().toISOString(), formFactor: 'mobile', scores: summary }, null, 2)}\n`)
 if (failed) {

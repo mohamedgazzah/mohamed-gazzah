@@ -9,12 +9,13 @@ export const revalidate = 3600
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const lastUpdated = await lastUpdatedSafe()
   return (
-    <>
+    <div className="relative isolate">
+      <div aria-hidden="true" className="ambient" />
       <SiteHeader />
       <div id="main" tabIndex={-1} className="outline-none">
         {children}
       </div>
       <SiteFooter lastUpdated={lastUpdated} />
-    </>
+    </div>
   )
 }

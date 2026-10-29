@@ -12,6 +12,20 @@ import { correctionTickets, leads, submissionFiles, submissionPrivate, submissio
 import { REPORTER_RELATIONS, SLA } from '@/db/enums'
 import { encryptBytes, encryptText, sha256Hex } from '@/lib/crypto'
 import { stateByFips } from '@/lib/states'
+import {
+  CITY_MESSAGE,
+  EMAIL_MESSAGE,
+  LINKS_MESSAGE,
+  MAX_LENGTH,
+  MAX_LINKS,
+  RECORD_ID_MESSAGE,
+  WHAT_HAPPENED_MIN,
+  isEmail,
+  isLink,
+  splitLinks,
+  tooLong,
+  whatHappenedMessage,
+} from '@/lib/report-rules'
 import { isRecordId } from '@/lib/slug'
 import { putObject } from '../shared/storage'
 import { UPLOAD_LIMITS, sniffType, stripImageMetadata } from '../shared/uploads'
@@ -20,45 +34,51 @@ const optional = (max: number) =>
   z
     .string()
     .trim()
-    .max(max)
     .optional()
+    .refine((v) => !v || v.length <= max, { error: (iss) => tooLong(String(iss.input ?? '').length, max) })
     .transform((v) => (v ? v : null))
+
+/** Shared with the form, which runs the same check before sending so attachments are not lost. */
+export { WHAT_HAPPENED_MESSAGE, WHAT_HAPPENED_MIN, whatHappenedMessage } from '@/lib/report-rules'
 
 export const reportFields = z
   .object({
     mode: z.enum(['report', 'correction']),
-    whatHappened: z.string().trim().min(20, 'Please describe what happened in at least a sentence or two.').max(5000),
+    whatHappened: z
+      .string()
+      .trim()
+      .refine((v) => v.length <= MAX_LENGTH.whatHappened, { error: (iss) => tooLong(String(iss.input ?? '').length, MAX_LENGTH.whatHappened) }),
     incidentDate: z
       .string()
       .optional()
       .transform((v) => (v ? v : null))
       .refine((v) => v === null || /^\d{4}-\d{2}-\d{2}$/.test(v), 'Use the date picker or YYYY-MM-DD.'),
-    city: optional(100),
+    city: optional(MAX_LENGTH.city),
     stateFips: optional(2).refine((v) => v === null || !!stateByFips(v), 'Choose a state from the list.'),
-    address: optional(300),
+    address: optional(MAX_LENGTH.address),
+    // "www.freep.com/…" is accepted as https://www.freep.com/…
     links: z
       .string()
       .optional()
-      .transform((v) =>
-        (v ?? '')
-          .split(/\s+/)
-          .map((s) => s.trim())
-          .filter(Boolean),
-      )
-      .refine((l) => l.length <= 10, 'Add at most 10 links.')
-      .refine((l) => l.every((u) => /^https?:\/\/[^\s]+$/i.test(u) && u.length <= 2000), 'Links must start with http:// or https://'),
+      .transform((v) => splitLinks(v ?? ''))
+      .refine((l) => l.length <= MAX_LINKS, `Add at most ${MAX_LINKS} links.`)
+      .refine((l) => l.every(isLink), LINKS_MESSAGE),
     relation: z.enum(REPORTER_RELATIONS).optional().transform((v) => v ?? null),
-    contactName: optional(200),
-    contactEmail: optional(254).refine((v) => v === null || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), 'Check the email address.'),
-    contactPhone: optional(40),
+    contactName: optional(MAX_LENGTH.contactName),
+    contactEmail: optional(MAX_LENGTH.contactEmail).refine((v) => v === null || isEmail(v), EMAIL_MESSAGE),
+    contactPhone: optional(MAX_LENGTH.contactPhone),
     keepConsent: z.boolean(),
-    recordId: optional(40),
+    recordId: optional(MAX_LENGTH.recordId),
     privacyRequest: z.boolean(),
   })
   .superRefine((d, ctx) => {
-    if (d.mode === 'report' && !d.city) ctx.addIssue({ code: 'custom', path: ['city'], message: 'Enter the city or town.' })
+    // A removal request needs no explanation ("Please remove my details" is enough).
+    if (d.whatHappened.length < WHAT_HAPPENED_MIN && !(d.mode === 'correction' && d.privacyRequest)) {
+      ctx.addIssue({ code: 'custom', path: ['whatHappened'], message: whatHappenedMessage(d.mode, d.whatHappened.length) })
+    }
+    if (d.mode === 'report' && !d.city) ctx.addIssue({ code: 'custom', path: ['city'], message: CITY_MESSAGE })
     if (d.mode === 'correction' && !(d.recordId && isRecordId(d.recordId.toUpperCase()))) {
-      ctx.addIssue({ code: 'custom', path: ['recordId'], message: 'Enter the record id, for example US-2026-0412.' })
+      ctx.addIssue({ code: 'custom', path: ['recordId'], message: RECORD_ID_MESSAGE })
     }
   })
 
@@ -73,10 +93,10 @@ export async function prepareFiles(files: IncomingFile[]): Promise<PreparedFile[
   const real = files.filter((f) => f.bytes.length > 0)
   if (real.length > UPLOAD_LIMITS.maxFiles) throw new SubmissionError(`Attach at most ${UPLOAD_LIMITS.maxFiles} files.`)
   const total = real.reduce((n, f) => n + f.bytes.length, 0)
-  if (total > UPLOAD_LIMITS.maxTotalBytes) throw new SubmissionError('Files are too large together. The limit is 3.5 MB in total.')
+  if (total > UPLOAD_LIMITS.maxTotalBytes) throw new SubmissionError('The files are too large together: the limit is 3.5 MB in total. Remove one, or attach smaller copies.')
   const out: PreparedFile[] = []
   for (const f of real) {
-    if (f.bytes.length > UPLOAD_LIMITS.maxFileBytes) throw new SubmissionError(`“${f.name}” is larger than 3 MB.`)
+    if (f.bytes.length > UPLOAD_LIMITS.maxFileBytes) throw new SubmissionError(`“${f.name}” is larger than 3 MB. Remove it, or attach a screenshot instead.`)
     const type = sniffType(f.bytes)
     if (!type) throw new SubmissionError(`“${f.name}” is not a supported file. Use JPEG, PNG, WebP, GIF or PDF.`)
     if (type === 'application/pdf') {
@@ -85,7 +105,7 @@ export async function prepareFiles(files: IncomingFile[]): Promise<PreparedFile[
       try {
         out.push({ bytes: await stripImageMetadata(f.bytes, type), type, stripped: true, name: f.name })
       } catch {
-        throw new SubmissionError(`“${f.name}” could not be read as an image.`)
+        throw new SubmissionError(`“${f.name}” could not be read as an image. Remove it, or attach a screenshot instead.`)
       }
     }
   }

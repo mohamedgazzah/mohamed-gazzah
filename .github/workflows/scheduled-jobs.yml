@@ -12,11 +12,13 @@ on:
   schedule:
     - cron: '*/5 * * * *'   # archive new sources
     - cron: '20 5 * * *'    # nightly export + retention
+    - cron: '45 10 * * *'   # morning news scan: read what Vercel's 10:10 pass left
   workflow_dispatch:
     inputs:
       job:
-        description: 'Job to run (archive, export, retention, nightly)'
-        required: true
+        description: 'Job to run'
+        type: choice
+        options: [archive, export, retention, nightly, news-scan]
         default: archive
 
 permissions: {}
@@ -25,30 +27,55 @@ jobs:
   run:
     if: vars.ENABLE_SCHEDULED_JOBS == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
     steps:
-      - name: Choose jobs
+      - name: Choose the job
         id: pick
+        # Event values reach the script as environment variables, never as code.
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_JOB: ${{ github.event.inputs.job }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "jobs=${{ github.event.inputs.job }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = "*/5 * * * *" ]; then
-            echo "jobs=archive" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            job="$INPUT_JOB"
+          elif [ "$SCHEDULE" = "*/5 * * * *" ]; then
+            job=archive
+          elif [ "$SCHEDULE" = "45 10 * * *" ]; then
+            job=news-scan-rest
           else
-            echo "jobs=nightly" >> "$GITHUB_OUTPUT"
+            job=nightly
           fi
-      - name: Call job endpoints
+          case "$job" in
+            archive|export|retention|nightly|news-scan|news-scan-rest) echo "job=$job" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown job: $job"; exit 1 ;;
+          esac
+      - name: Call the job endpoint
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          JOB: ${{ steps.pick.outputs.job }}
         run: |
           if [ -z "$SITE_URL" ] || [ -z "$CRON_SECRET" ]; then
             echo "SITE_URL and CRON_SECRET secrets are not set; skipping."
             exit 0
           fi
-          for job in ${{ steps.pick.outputs.jobs }}; do
-            echo "Running $job"
+          echo "Running $JOB"
+          if [ "$JOB" = "news-scan" ] || [ "$JOB" = "news-scan-rest" ]; then
+            # One pass reads for up to five minutes; repeat (reading only) while articles wait.
+            query=""
+            [ "$JOB" = "news-scan-rest" ] && query="?collect=0"
+            for pass in 1 2 3 4 5 6; do
+              out=$(curl --fail-with-body --silent --show-error --max-time 320 \
+                -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/news-scan$query")
+              echo "$out"
+              remaining=$(echo "$out" | jq -r '.remaining // 0')
+              stopped=$(echo "$out" | jq -r '.stoppedAt // "done"')
+              if [ "$remaining" = "0" ] || [ "$stopped" = "daily_limit" ]; then break; fi
+              query="?collect=0"
+            done
+          else
             curl --fail-with-body --silent --show-error --max-time 90 \
-              -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/$job"
-            echo
-          done
+              -H "Authorization: Bearer $CRON_SECRET" "$SITE_URL/api/jobs/$JOB"
+          fi
+          echo

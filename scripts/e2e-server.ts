@@ -22,7 +22,6 @@ function run(cmd: string, args: string[]) {
 }
 
 run('npx', ['tsx', '--conditions=react-server', 'scripts/seed-demo.ts'])
-run('node', ['scripts/copy-vendor.mjs'])
 if (!process.env.E2E_SKIP_BUILD) run('npx', ['next', 'build'])
 const server = spawn('npx', ['next', 'start', '-p', String(E2E_PORT)], { env, stdio: 'inherit' })
 for (const sig of ['SIGINT', 'SIGTERM'] as const) process.on(sig, () => server.kill(sig))

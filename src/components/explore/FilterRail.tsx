@@ -1,8 +1,7 @@
+import { ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import {
-  INCIDENT_TYPES,
-  INCIDENT_TYPE_META,
   LEGAL_STATUSES,
   LEGAL_STATUS_META,
   PERPETRATOR_TYPES,
@@ -16,13 +15,13 @@ import {
   YES_NO_UNKNOWN,
   YES_NO_UNKNOWN_META,
 } from '@/db/enums'
-import type { Filters, ViewState } from '@/lib/filters'
+import { explorePath, type Filters, type ViewState } from '@/lib/filters'
 import { US_STATES, stateByCode } from '@/lib/states'
 
 function Group({ legend, open, children }: { legend: string; open: boolean; children: ReactNode }) {
   return (
-    <details open={open} className="border-b border-rule py-1">
-      <summary className="flex min-h-11 cursor-pointer items-center font-semibold">{legend}</summary>
+    <details open={open} className="filter-group border-t border-rule">
+      <summary>{legend}</summary>
       <fieldset className="pb-3">
         <legend className="sr-only">{legend}</legend>
         {children}
@@ -38,9 +37,10 @@ function Checks<T extends string | number>({ name, values, checked, label }: { n
         const id = `f-${name}-${v}`
         return (
           <li key={String(v)}>
-            <label htmlFor={id} className="flex min-h-9 cursor-pointer items-start gap-2 py-1 text-base">
-              <input id={id} type="checkbox" name={name} value={String(v)} defaultChecked={checked.includes(v)} className="mt-1 h-4 w-4 shrink-0 accent-accent" />
-              <span>{label(v)}</span>
+            <label htmlFor={id} className="flex min-h-9 cursor-pointer items-start gap-2.5 py-1 text-base hover:text-accent">
+              <input id={id} type="checkbox" name={name} value={String(v)} defaultChecked={checked.includes(v)} className="mt-[3px] h-4 w-4 shrink-0" />
+              {/* Plain wrapping: "pretty" left "V2 —" alone on the first line. */}
+              <span className="text-wrap">{label(v)}</span>
             </label>
           </li>
         )
@@ -56,47 +56,33 @@ function Checks<T extends string | number>({ name, values, checked, label }: { n
 export function FilterRail({ filters, view }: { filters: Filters; view: ViewState }) {
   const extraStates = filters.state.slice(1)
   return (
-    <form method="get" action="/incidents" aria-label="Filter incidents" className="space-y-1">
+    <form method="get" action="/incidents" aria-label="Filter incidents" className="filter-card card flex flex-col lg:max-h-[calc(100dvh-7rem)]">
       {view.sort !== 'newest' ? <input type="hidden" name="sort" value={view.sort} /> : null}
       {view.view !== 'table' ? <input type="hidden" name="view" value={view.view} /> : null}
+      {/* Dates and types are set in the bar above the map; keep them when applying these. */}
+      {filters.from ? <input type="hidden" name="from" value={filters.from} /> : null}
+      {filters.to ? <input type="hidden" name="to" value={filters.to} /> : null}
+      {filters.type.length ? <input type="hidden" name="type" value={filters.type.join(',')} /> : null}
+      {filters.q ? <input type="hidden" name="q" value={filters.q} /> : null}
 
-      <div className="pb-3">
-        <label htmlFor="f-q" className="label">
-          Search
-        </label>
-        <input id="f-q" name="q" type="search" defaultValue={filters.q ?? ''} className="control" placeholder="Places, case names, words" />
-        <p className="hint mt-1">Searches titles, summaries, places and case names. Small typos are tolerated.</p>
-      </div>
-
-      <Group legend="Date range" open={!!(filters.from || filters.to)}>
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label htmlFor="f-from" className="label">
-              From
-            </label>
-            <input id="f-from" name="from" type="date" min="2020-01-01" defaultValue={filters.from ?? ''} className="control" />
-          </div>
-          <div>
-            <label htmlFor="f-to" className="label">
-              To
-            </label>
-            <input id="f-to" name="to" type="date" min="2020-01-01" defaultValue={filters.to ?? ''} className="control" />
-          </div>
-        </div>
-      </Group>
+      <p className="kicker px-4 pt-4 pb-2 md:px-5">More filters</p>
+      <div className="filter-scroll min-h-0 flex-1 overflow-y-auto px-4 md:px-5">
 
       <Group legend="State and city" open={!!(filters.state.length || filters.city)}>
         <label htmlFor="f-state" className="label">
           State or territory
         </label>
-        <select id="f-state" name="state" defaultValue={filters.state[0] ?? ''} className="control">
-          <option value="">All states and territories</option>
-          {US_STATES.map((s) => (
-            <option key={s.code} value={s.code}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <div className="relative">
+          <select id="f-state" name="state" defaultValue={filters.state[0] ?? ''} className="control">
+            <option value="">All states and territories</option>
+            {US_STATES.map((s) => (
+              <option key={s.code} value={s.code}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown aria-hidden="true" size={16} className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-muted" />
+        </div>
         {extraStates.length ? (
           <div className="mt-2">
             <p className="hint">Also included:</p>
@@ -107,10 +93,6 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
           City
         </label>
         <input id="f-city" name="city" type="text" defaultValue={filters.city ?? ''} className="control" autoComplete="address-level2" />
-      </Group>
-
-      <Group legend="Incident type" open={filters.type.length > 0}>
-        <Checks name="type" values={INCIDENT_TYPES} checked={filters.type} label={(t) => INCIDENT_TYPE_META[t].label} />
       </Group>
 
       <Group legend="Target" open={filters.target.length > 0}>
@@ -150,12 +132,14 @@ export function FilterRail({ filters, view }: { filters: Filters; view: ViewStat
         <Checks name="src" values={SOURCE_TYPES} checked={filters.source} label={(s) => SOURCE_TYPE_META[s].label} />
       </Group>
 
-      <div className="sticky bottom-0 flex flex-wrap gap-2 border-t border-rule bg-bg py-3">
-        <button type="submit" className="btn">
+      </div>
+      <div className="grid grid-cols-[1fr_auto] gap-2 rounded-b-[var(--radius-md)] border-t border-rule bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:px-5">
+        <button type="submit" className="btn btn-sm">
           Apply filters
         </button>
-        <Link href="/incidents" className="btn btn-secondary">
-          Clear all
+        {/* Resets only what is set here: search, dates and types belong to the bar above the map. */}
+        <Link href={explorePath({ q: filters.q, from: filters.from, to: filters.to, type: filters.type }, { sort: view.sort, view: view.view })} className="btn btn-secondary btn-sm">
+          Reset<span className="sr-only"> these filters</span>
         </Link>
       </div>
     </form>

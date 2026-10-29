@@ -1,19 +1,25 @@
+import { ArrowLeft, ArrowRight, ChevronDown, Download, FileSpreadsheet, Printer, SearchX, Table2, X } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { EmptyState } from '@/components/EmptyState'
 import { IncidentCard } from '@/components/IncidentCard'
 import { IncidentTable } from '@/components/IncidentTable'
+import { PageHeader } from '@/components/PageHeader'
 import { Pagination } from '@/components/Pagination'
-import { legalLabel, verificationLabel } from '@/components/Badges'
-import { FilterDrawer } from '@/components/explore/FilterDrawer'
+import { BarList } from '@/components/charts/BarList'
+import { StateMap } from '@/components/charts/StateMap'
+import { DismissMenus } from '@/components/explore/DismissMenus'
+import { ExploreToolbar } from '@/components/explore/ExploreToolbar'
+import { FilterDrawer, FilterSheet } from '@/components/explore/FilterDrawer'
 import { FilterRail } from '@/components/explore/FilterRail'
-import { MapLoader } from '@/components/explore/MapLoader'
+import { ResultsBar } from '@/components/explore/ResultsBar'
+import { DEFAULT_VERIFICATION_LEVELS } from '@/db/enums'
 import {
   PAGE_SIZE,
   SORTS,
   SORT_LABELS,
   chips,
+  describeScope,
   explorePath,
   normalizeIncomingQuery,
   parseFilters,
@@ -21,15 +27,19 @@ import {
   serializeFilters,
   type View,
 } from '@/lib/filters'
-import { formatDateRange, formatNumber, formatPlace } from '@/lib/format'
-import { mapPoints, searchIncidents } from '@/server/public/incidents'
+import { formatDate, formatNumber, plural, todayIso } from '@/lib/format'
+import { absoluteUrl } from '@/lib/site'
+import { stateByCode } from '@/lib/states'
+import { stateShape } from '@/server/public/geo'
+import { searchIncidents } from '@/server/public/incidents'
+import { countsByCity, countsByState, countsByType } from '@/server/public/stats'
 
 export const metadata: Metadata = {
   title: 'Explore incidents',
-  description: 'Search and filter every published record. Filters are kept in the URL, so any view can be shared and cited.',
+  description: 'A map and list of every published record, filtered by date, place and type. Filters are kept in the URL, so any view can be shared, printed and downloaded.',
 }
 
-const VIEW_LABELS: Record<View, string> = { table: 'Table', cards: 'Cards', map: 'Map' }
+const VIEW_LABELS: Record<View, string> = { table: 'Table', cards: 'Cards' }
 
 export default async function ExplorePage(props: PageProps<'/incidents'>) {
   const sp = await props.searchParams
@@ -40,159 +50,470 @@ export default async function ExplorePage(props: PageProps<'/incidents'>) {
   const canonical = serializeFilters(filters, vs)
   if (canonical !== normalizeIncomingQuery(sp)) redirect(canonical ? `/incidents?${canonical}` : '/incidents')
 
-  const result = await searchIncidents(filters, { sort: vs.sort, page: vs.page })
+  const today = todayIso()
+  const focusCode = filters.state.length === 1 ? filters.state[0]! : null
+  const [result, byState, typeCounts, focusData, everyCity, everyState] = await Promise.all([
+    searchIncidents(filters, { sort: vs.sort, page: vs.page }),
+    countsByState(filters),
+    countsByType({ ...filters, type: [] }),
+    // Zoomed into one state: every city in it, so another city is one click away.
+    focusCode ? countsByCity({ ...filters, city: null }) : null,
+    // …and the largest city anywhere for the same filters, so circle sizes compare across states.
+    focusCode ? countsByCity({ ...filters, state: [], city: null }) : null,
+    // …and every state's own count, so the states around it give the number their link would show.
+    focusCode ? countsByState({ ...filters, state: [], city: null }) : null,
+  ])
   if (result.page !== vs.page && result.total > 0) redirect(explorePath(filters, { ...vs, page: result.page }))
-  const points = vs.view === 'map' ? await mapPoints(filters) : []
 
-  const active = chips(filters, vs)
+  const base = { ...vs, page: 1 }
+  const active = chips(filters, vs, today)
+  // The phone's "Filters" button counts only what is set inside its sheet.
+  const railCount = active.filter((c) => !c.key.startsWith('type-') && c.key !== 'dates' && c.key !== 'q').length
   const includesV1 = filters.v.includes('V1')
   const noun = includesV1 ? 'incident' : 'verified incident'
   const first = result.total ? (result.page - 1) * result.pageSize + 1 : 0
   const last = Math.min(result.page * result.pageSize, result.total)
-  const downloadQs = serializeFilters(filters)
+  const qs = serializeFilters(filters)
+  const withQs = (path: string) => (qs ? `${path}?${qs}` : path)
   const dateDesc = vs.sort === 'newest'
 
-  const mapLabels: Record<string, string> = {}
-  for (const p of points) {
-    mapLabels[`date:${p.id}`] = formatDateRange(p.dateStart, null, p.datePrecision)
-    mapLabels[`place:${p.id}`] = formatPlace(p.city, p.stateCode)
-    mapLabels[`badges:${p.id}`] = `${verificationLabel(p.verificationLevel, p.sourceTypes)} · ${legalLabel(p.legalStatus, p.hateCrimeCharged)}`
-  }
+  const stateCount = Object.keys(byState).length
+  const focusName = focusCode ? (stateByCode(focusCode)?.name ?? focusCode) : null
+  const stateHref = (code: string) => explorePath({ ...filters, state: [code], city: null }, base)
+  const allStatesHref = explorePath({ ...filters, state: [], city: null }, base)
+  // Zoomed in, the chosen state keeps the page's own count (its city included); the others give theirs.
+  const mapCounts = focusCode && everyState ? { ...everyState, [focusCode]: byState[focusCode] ?? 0 } : byState
+  const ranked = Object.entries(byState)
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([code, n]) => ({ key: code, label: stateByCode(code)?.name ?? code, value: n, href: stateHref(code) }))
+  const cities = focusData
+  const cityRows = (cities?.cities ?? []).map((c) => ({ key: c.city, label: c.city, value: c.count, href: explorePath({ ...filters, city: c.city }, base) }))
+  const sizeMax = Math.max(0, ...(everyCity?.cities ?? []).map((c) => c.count))
+  // "Matching “mosque” · Threat or vandalism · 2 states · all dates": what the count covers. An empty
+  // result names only the place and dates; the panel under it names the search and what to change.
+  const place = focusName ? `${filters.city ? `${filters.city}, ` : ''}${focusName}` : plural(stateCount, 'state')
+  const scope = describeScope(result.total ? filters : { ...filters, q: null, type: [] }, today, result.total || focusName ? place : null)
+
+  const listRows = focusName ? cityRows : ranked
+  const listLabel = focusName ? `Records by city in ${focusName}` : 'Records by state'
+  // A few rows, or all the same, read better as a sentence than as bars of equal length.
+  const asSentence = listRows.length > 0 && (listRows.length <= 3 || listRows.every((r) => r.value === listRows[0]!.value))
+  const zoomedEmpty = result.total === 0 && !!focusCode
+  // The empty panel's heading says what to change; the count above it already says there is nothing.
+  const datesSet = !!(filters.from || filters.to)
+  const othersSet = active.some((c) => c.key !== 'dates')
+  const tryInstead = datesSet ? (othersSet ? 'Try other dates or fewer filters' : 'Try other dates') : othersSet ? 'Try fewer filters' : 'Nothing is published yet'
+
+  // Each link's full name starts with its visible words, so speech input can say what it sees.
+  const downloads = [
+    { href: withQs('/incidents/download'), label: 'Incidents (CSV)', short: 'CSV', name: 'CSV file of these incidents', Icon: Download, download: true },
+    { href: withQs('/incidents/download/states'), label: 'Totals by state (CSV)', short: 'Totals by state', name: 'Totals by state (CSV)', Icon: FileSpreadsheet, download: true },
+    { href: withQs('/incidents/print'), label: 'Print or save as PDF', short: 'Print', name: 'Print or save as PDF', Icon: Printer, download: false },
+  ]
 
   return (
-    <main className="mx-auto max-w-content px-4 py-8 sm:px-6">
-      <h1 className="text-2xl sm:text-3xl">Explore incidents</h1>
-      <p className="mt-2 max-w-[72ch] text-base text-muted">
-        Every published record, with its sources and legal status. Filters are kept in the page address, so any view can be shared or
-        cited. <Link href="/methodology#inclusion">What is included</Link>.
-      </p>
+    <main className="wrap pt-6 md:pt-8">
+      <a href="#results-heading" className="sr-only-focusable rounded-full bg-surface px-4 py-2 font-semibold text-accent shadow">
+        Skip to results
+      </a>
+      <PageHeader compact title="Explore incidents">
+        Every published record, by date, place and type. <Link href="/methodology#inclusion">What is included</Link>.
+      </PageHeader>
 
-      <div className="mt-6 grid gap-8 md:grid-cols-[17rem_1fr]">
-        <aside aria-label="Filters" className="md:sticky md:top-4 md:max-h-[calc(100vh-2rem)] md:self-start md:overflow-y-auto md:pe-1">
-          <FilterDrawer activeCount={active.length}>
-            <FilterRail filters={filters} view={vs} />
-          </FilterDrawer>
-        </aside>
+      <DismissMenus />
+      <FilterSheet>
+        <div className="no-print mt-5">
+          <ExploreToolbar key={canonical} filters={filters} view={vs} today={today} typeCounts={typeCounts} sheetCount={railCount} />
+        </div>
 
-        <section aria-labelledby="results-heading" className="min-w-0">
-          <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-rule pb-3">
-            <h2 id="results-heading" className="font-sans text-lg font-semibold tabular" aria-live="polite">
-              {formatNumber(result.total)} {result.total === 1 ? noun : `${noun}s`}
-              {result.total > result.pageSize ? (
-                <span className="font-normal text-muted">
-                  {' '}
-                  · showing {formatNumber(first)}–{formatNumber(last)}
+        {/* The active filters sit with the controls, so the count below is always the same distance from the map. */}
+        {active.length ? (
+          <ul aria-label="Active filters" className="no-print mt-4 flex min-h-9 flex-wrap items-center gap-2">
+            {active.map((c) => (
+              <li key={c.key}>
+                <Link href={c.removeHref} className="chip" aria-label={`Remove filter: ${c.label}`}>
+                  {c.label}
+                  <X aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+            {active.length > 1 ? (
+              <li>
+                <Link href="/incidents" className="ms-1 text-sm font-semibold text-accent">
+                  Clear all
+                </Link>
+              </li>
+            ) : null}
+          </ul>
+        ) : (
+          // Holds the chips' place, so zooming into a state does not push the map down mid-zoom.
+          <div aria-hidden="true" className="no-print mt-4 hidden min-h-9 lg:block" />
+        )}
+
+        {/* Below 64rem the rail is a sheet, so its empty grid row must not add a gap. */}
+        <div className="explore-grid mt-6 grid gap-8 max-lg:gap-y-0 lg:grid-cols-[17rem_minmax(0,1fr)]">
+          <aside aria-label="More filters" className="no-print lg:sticky lg:top-[var(--sticky-top)] lg:self-start">
+            <FilterDrawer>
+              {/* Keyed by the filters, so after a link changes them the form shows the new values. */}
+              <FilterRail key={canonical} filters={filters} view={vs} />
+            </FilterDrawer>
+          </aside>
+
+          <div className="min-w-0">
+            <ResultsBar>
+              <h2 id="results-heading" tabIndex={-1} className="results-heading outline-none" aria-live="polite">
+                <span className="results-count">{result.total ? plural(result.total, noun) : `No ${noun}s`}</span>
+                {/* Cut short with an ellipsis when the bar sticks on wide screens; the tooltip has it all. */}
+                <span className="results-scope" title={scope.full}>
+                  {scope.short}
                 </span>
-              ) : null}
-            </h2>
-            <a href={`/incidents/download${downloadQs ? `?${downloadQs}` : ''}`} className="text-base font-semibold" download>
-              Download these results (CSV)
-            </a>
-          </div>
-
-          {active.length ? (
-            <ul aria-label="Active filters" className="mt-3 flex flex-wrap gap-2">
-              {active.map((c) => (
-                <li key={c.key}>
-                  <Link
-                    href={c.removeHref}
-                    className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-control bg-surface px-3 text-sm text-text no-underline hover:border-accent"
-                    aria-label={`Remove filter: ${c.label}`}
-                  >
-                    {c.label}
-                    <span aria-hidden="true" className="text-base leading-none">
-                      ×
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-base">
-            <nav aria-label="Sort order" className="flex flex-wrap items-center gap-1">
-              <span className="text-muted">Sort:</span>
-              {SORTS.map((s) => (
-                <Link
-                  key={s}
-                  href={explorePath(filters, { ...vs, sort: s, page: 1 })}
-                  aria-current={vs.sort === s ? 'true' : undefined}
-                  className={`inline-flex min-h-11 items-center rounded px-2 ${vs.sort === s ? 'font-semibold text-text no-underline' : ''}`}
-                >
-                  {SORT_LABELS[s]}
-                </Link>
-              ))}
-            </nav>
-            <nav aria-label="View" className="flex items-center gap-1">
-              <span className="text-muted">View:</span>
-              {(['table', 'cards', 'map'] as const).map((v) => (
-                <Link
-                  key={v}
-                  href={explorePath(filters, { ...vs, view: v, page: 1 })}
-                  aria-current={vs.view === v ? 'page' : undefined}
-                  className={`inline-flex min-h-11 items-center rounded px-2 ${vs.view === v ? 'font-semibold text-text no-underline' : ''}`}
-                >
-                  {VIEW_LABELS[v]}
-                </Link>
-              ))}
-            </nav>
-          </div>
-
-          <div className="mt-4">
-            {result.total === 0 ? (
-              <EmptyState>
-                {includesV1 ? 'No incidents match these filters.' : 'No verified incidents match these filters.'} Try widening the date
-                range or removing a filter.
-              </EmptyState>
-            ) : vs.view === 'cards' ? (
-              <ul className="grid gap-4 lg:grid-cols-2">
-                {result.rows.map((r) => (
-                  <li key={r.id}>
-                    <IncidentCard item={r} query={filters.q} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <>
-                {vs.view === 'map' ? (
-                  <div className="mb-6">
-                    <MapLoader
-                      points={points}
-                      labels={mapLabels}
-                      styleLight={process.env.NEXT_PUBLIC_MAP_STYLE_LIGHT ?? 'https://tiles.openfreemap.org/styles/positron'}
-                      styleDark={process.env.NEXT_PUBLIC_MAP_STYLE_DARK ?? 'https://tiles.openfreemap.org/styles/dark'}
-                    />
-                    <h3 className="mt-6 mb-2 font-sans text-base font-semibold">The same incidents as a list</h3>
+              </h2>
+              {result.total ? (
+                <>
+                  {/* Wide screens: three short buttons, each named in full for screen readers. */}
+                  <div className="no-print hidden items-center gap-1.5 xl:flex">
+                    {downloads.map(({ href, short, name, Icon, download }) =>
+                      download ? (
+                        <a key={href} href={href} className="btn btn-secondary btn-sm" aria-label={name} download>
+                          <Icon aria-hidden="true" className={short === 'CSV' ? 'nudge-down' : undefined} />
+                          {short}
+                        </a>
+                      ) : (
+                        <Link key={href} href={href} className="btn btn-secondary btn-sm" aria-label={name}>
+                          <Icon aria-hidden="true" />
+                          {short}
+                        </Link>
+                      ),
+                    )}
                   </div>
-                ) : null}
-                <IncidentTable
-                  rows={result.rows}
-                  query={filters.q}
-                  caption={`Incidents ${formatNumber(first)} to ${formatNumber(last)} of ${formatNumber(result.total)}`}
-                  dateSort={{
-                    label: dateDesc ? 'Date ↓' : vs.sort === 'oldest' ? 'Date ↑' : 'Date',
-                    href: explorePath(filters, { ...vs, sort: dateDesc ? 'oldest' : 'newest', page: 1 }),
-                    active: vs.sort !== 'severity',
-                    direction: vs.sort === 'oldest' ? 'ascending' : 'descending',
-                  }}
-                  severitySort={{
-                    label: vs.sort === 'severity' ? 'Severity ↓' : 'Severity',
-                    href: explorePath(filters, { ...vs, sort: 'severity', page: 1 }),
-                    active: vs.sort === 'severity',
-                    direction: 'descending',
-                  }}
-                />
-              </>
-            )}
-          </div>
+                  <details className="no-print results-menu relative xl:hidden">
+                    <summary className="btn btn-secondary btn-sm list-none">
+                      <Download aria-hidden="true" />
+                      Download or print
+                      <ChevronDown aria-hidden="true" />
+                    </summary>
+                    <div className="glass-strong results-menu-sheet">
+                      {downloads.map(({ href, label, Icon, download }) =>
+                        download ? (
+                          <a key={href} href={href} className="menu-item" download>
+                            <Icon aria-hidden="true" size={16} /> {label}
+                          </a>
+                        ) : (
+                          <Link key={href} href={href} className="menu-item">
+                            <Icon aria-hidden="true" size={16} /> {label}
+                          </Link>
+                        ),
+                      )}
+                    </div>
+                  </details>
+                </>
+              ) : null}
+            </ResultsBar>
 
-          <Pagination page={result.page} pages={result.pages} hrefFor={(n) => explorePath(filters, { ...vs, page: n })} />
-          <p className="mt-6 text-sm text-muted">
-            {PAGE_SIZE} records per page, in a stable order, so a page number can be cited. Counts include V2 and V3 records unless V1 is
-            selected.
-          </p>
-        </section>
-      </div>
+            <p className="print-only mt-3 text-xs">
+              <strong>Filters:</strong> {active.length ? active.map((c) => c.label).join(' · ') : 'none (all published records, V2 and V3)'}
+            </p>
+            {/* The page's own header and footer replace the browser's, which would carry the address and date. */}
+            <p className="print-only mt-1 text-xs text-muted">
+              Printed {formatDate(today)} from {absoluteUrl(canonical ? `/incidents?${canonical}` : '/incidents')}
+            </p>
+
+            {result.total === 0 && !focusCode ? (
+              <section aria-labelledby="empty-heading" className="panel mt-6">
+                <EmptyResult />
+              </section>
+            ) : (
+              <section id="map" aria-labelledby="map-heading" className="map-card mt-6">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+                  <h3 id="map-heading" tabIndex={-1} className="text-xl leading-tight outline-none">
+                    {focusName ? (zoomedEmpty ? focusName : `${focusName}, by city`) : 'By state'}
+                  </h3>
+                  {focusName ? (
+                    <nav aria-label="Map level" className="no-print map-crumbs text-sm">
+                      <Link href={allStatesHref} className="btn btn-secondary btn-sm" scroll={false}>
+                        <ArrowLeft aria-hidden="true" className="nudge-back" />
+                        All states
+                      </Link>
+                      {filters.city ? (
+                        <Link href={explorePath({ ...filters, city: null }, base)} className="btn btn-quiet btn-sm" scroll={false}>
+                          All of {focusName}
+                        </Link>
+                      ) : null}
+                    </nav>
+                  ) : (
+                    <p className="no-print text-sm text-muted">Select a state on the map or in the list to zoom in.</p>
+                  )}
+                </div>
+                <p className="sr-only">
+                  {zoomedEmpty
+                    ? `Map of ${focusName}. No records for these filters.`
+                    : focusName
+                      ? `Map of ${focusName} with a circle for each city, sized by the number of records. The list gives each city's count.`
+                      : 'Map of the United States with each state shaded by its number of records. The list gives every state with records.'}
+                </p>
+                <div className="min-w-0">
+                  {focusCode && !stateShape(focusCode) ? (
+                    <p className="text-muted">{focusName} is not drawn on this map. Its records are listed below.</p>
+                  ) : (
+                    <StateMap
+                      counts={mapCounts}
+                      stateHref={stateHref}
+                      focus={
+                        focusCode && stateShape(focusCode)
+                          ? {
+                              code: focusCode,
+                              name: focusName!,
+                              cities: cities?.cities ?? [],
+                              cityHref: (city) => explorePath({ ...filters, city }, base),
+                              selectedCity: filters.city,
+                              stateOnly: cities?.stateOnly ?? 0,
+                              sizeMax,
+                            }
+                          : null
+                      }
+                      // One noun for the map, its list and the sentences under it, with or without V1.
+                      noun="record"
+                    />
+                  )}
+                </div>
+                <div className="mt-6 border-t border-rule pt-5">
+                  {zoomedEmpty ? (
+                    <EmptyResult />
+                  ) : (
+                    <>
+                      <h4 className="mb-2 text-base font-semibold">
+                        {asSentence ? 'Where they happened' : focusName ? 'Cities with the most records' : 'States with the most records'}
+                      </h4>
+                      {listRows.length ? (
+                        asSentence ? (
+                          <ListSentence rows={listRows} selected={filters.city} />
+                        ) : (
+                          <BarList
+                            // The top ten, and the chosen city wherever it ranks.
+                            rows={[...listRows.slice(0, 10), ...listRows.slice(10).filter((r) => r.key === filters.city)]}
+                            label={listLabel}
+                            noun="records"
+                            scroll={false}
+                            current={filters.city}
+                          />
+                        )
+                      ) : (
+                        <p className="text-muted">None for these filters.</p>
+                      )}
+                      {focusName && cities?.stateOnly ? (
+                        <p className="mt-2 text-sm text-muted">{plural(cities.stateOnly, 'record')} with no city, not on the map.</p>
+                      ) : null}
+                      {listRows.length > 10 ? (
+                        <details className="mt-3">
+                          <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 text-sm font-semibold text-accent">
+                            <Table2 aria-hidden="true" size={16} />
+                            All {formatNumber(listRows.length)} {focusName ? `cities in ${focusName}` : 'states'} as a table
+                          </summary>
+                          <div className="table-scroll mt-2" role="region" aria-label={listLabel} tabIndex={0}>
+                            <table className="data-table">
+                              <thead>
+                                <tr>
+                                  <th scope="col">{focusName ? 'City' : 'State'}</th>
+                                  <th scope="col" className="num">
+                                    Records
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {listRows.map((r) => (
+                                  <tr key={r.key}>
+                                    <td>
+                                      <Link href={r.href} aria-current={filters.city === r.key ? 'true' : undefined}>
+                                        {r.label}
+                                      </Link>
+                                    </td>
+                                    <td className="num">{formatNumber(r.value)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      ) : null}
+                    </>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {result.total ? (
+              <section aria-labelledby="list-heading" className="mt-12">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 id="list-heading" className="text-xl leading-tight">
+                    The records
+                    {result.total > result.pageSize ? (
+                      <span className="mono ms-3 align-middle text-sm font-normal text-muted">
+                        {formatNumber(first)}–{formatNumber(last)} of {formatNumber(result.total)}
+                      </span>
+                    ) : null}
+                  </h3>
+                  <div className="no-print flex flex-wrap items-center gap-3">
+                    <nav aria-label="Sort order" className="flex flex-wrap items-center gap-2">
+                      <span className="kicker max-sm:sr-only">Sort</span>
+                      <span className="segmented">
+                        {/* On phones "first" is for screen readers only, so the three fit one row. */}
+                        {SORTS.map((s) => (
+                          <Link key={s} href={explorePath(filters, { ...vs, sort: s, page: 1 })} aria-current={vs.sort === s ? 'true' : undefined} scroll={false}>
+                            <span>
+                              {SORT_LABELS[s].replace(/ first$/, '')}
+                              <span className="max-sm:sr-only"> first</span>
+                            </span>
+                          </Link>
+                        ))}
+                      </span>
+                    </nav>
+                    <nav aria-label="View" className="flex items-center gap-2">
+                      <span className="kicker max-sm:sr-only">View</span>
+                      <span className="segmented">
+                        {(['table', 'cards'] as const).map((v) => (
+                          <Link key={v} href={explorePath(filters, { ...vs, view: v, page: 1 })} aria-current={vs.view === v ? 'page' : undefined} scroll={false}>
+                            {VIEW_LABELS[v]}
+                          </Link>
+                        ))}
+                      </span>
+                    </nav>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  {vs.view === 'cards' ? (
+                    <ul className="ledger">
+                      {result.rows.map((r) => (
+                        <li key={r.id}>
+                          <IncidentCard item={r} query={filters.q} headingLevel={3} />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <IncidentTable
+                      rows={result.rows}
+                      query={filters.q}
+                      sticky
+                      caption={`Incidents ${formatNumber(first)} to ${formatNumber(last)} of ${formatNumber(result.total)}`}
+                      dateSort={{
+                        label: 'Date',
+                        href: explorePath(filters, { ...vs, sort: dateDesc ? 'oldest' : 'newest', page: 1 }),
+                        active: vs.sort !== 'severity',
+                        direction: vs.sort === 'oldest' ? 'ascending' : 'descending',
+                      }}
+                    />
+                  )}
+                </div>
+
+                <Pagination page={result.page} pages={result.pages} hrefFor={(n) => explorePath(filters, { ...vs, page: n })} />
+                <p className="mt-8 max-w-[80ch] text-sm text-muted">
+                  {PAGE_SIZE} records per page, in a stable order, so a page number can be cited. Counts include V2 and V3 records unless V1 is
+                  selected. The CSV and the printable version include every matching record, not just this page.
+                </p>
+              </section>
+            ) : null}
+          </div>
+        </div>
+      </FilterSheet>
     </main>
+  )
+
+  /**
+   * No records: say so plainly, why that is not evidence, and offer only the ways out that apply.
+   * Zoomed into a state it sits in the map card, under its heading, and the card's "All states" is the way back.
+   */
+  function EmptyResult() {
+    const Heading = zoomedEmpty ? 'h4' : 'h3'
+    return (
+      <div className="empty-result">
+        <span className="icon-chip" aria-hidden="true">
+          <SearchX />
+        </span>
+        <div>
+          <Heading id="empty-heading" className={zoomedEmpty ? 'text-lg' : 'text-xl'}>
+            {focusName && !filters.q
+              ? `No records in ${filters.city ? `${filters.city}, ` : ''}${focusName} for these filters`
+              : filters.q
+                ? `Nothing matches “${filters.q}”`
+                : tryInstead}
+          </Heading>
+          <p className="mt-2 max-w-[62ch] text-muted">
+            {filters.q ? 'Search looks in titles, summaries, places and case names. Check the spelling, or try a city or case name. ' : ''}
+            The Record lists only incidents with published sources, so an empty result is not evidence that nothing happened.
+          </p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {filters.q ? (
+              <li>
+                <Link href={explorePath({ ...filters, q: null }, base)} className="btn btn-secondary btn-sm">
+                  Clear search
+                </Link>
+              </li>
+            ) : null}
+            {filters.from || filters.to ? (
+              <li>
+                <Link href={explorePath({ ...filters, from: null, to: null }, base)} className="btn btn-secondary btn-sm">
+                  Show all dates
+                </Link>
+              </li>
+            ) : null}
+            {!includesV1 ? (
+              <li>
+                <Link href={explorePath({ ...filters, v: ['V1', ...DEFAULT_VERIFICATION_LEVELS] }, base)} className="btn btn-secondary btn-sm">
+                  Include single-source (V1) reports
+                </Link>
+              </li>
+            ) : null}
+            {active.length > 1 ? (
+              <li>
+                <Link href="/incidents" className="btn btn-quiet btn-sm">
+                  Clear all filters
+                </Link>
+              </li>
+            ) : null}
+            <li>
+              <Link href="/report" className="btn btn-quiet btn-sm">
+                Report an incident <ArrowRight aria-hidden="true" className="nudge" />
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </div>
+    )
+  }
+}
+
+/** "One record each in California, Illinois and Texas." or "3 records in Riverside; 1 in Fresno." */
+function ListSentence({ rows, selected }: { rows: { key: string; label: string; value: number; href: string }[]; selected?: string | null }) {
+  const same = rows.every((r) => r.value === rows[0]!.value)
+  const link = (r: (typeof rows)[number]) => (
+    <Link href={r.href} scroll={false} aria-current={selected === r.key ? 'true' : undefined} data-count={r.value}>
+      {r.label}
+    </Link>
+  )
+  const list = (items: typeof rows) =>
+    items.map((r, i) => (
+      <span key={r.key}>
+        {i === 0 ? '' : i === items.length - 1 ? ' and ' : ', '}
+        {link(r)}
+      </span>
+    ))
+  if (same && rows.length > 1) {
+    const n = rows[0]!.value
+    return (
+      <p className="list-sentence text-base">
+        {n === 1 ? 'One record' : `${formatNumber(n)} records`} each in {list(rows)}.
+      </p>
+    )
+  }
+  return (
+    <p className="list-sentence text-base">
+      {rows.map((r, i) => (
+        <span key={r.key}>
+          {i ? '; ' : ''}
+          {i ? formatNumber(r.value) : plural(r.value, 'record')} in {link(r)}
+        </span>
+      ))}
+      .
+    </p>
   )
 }

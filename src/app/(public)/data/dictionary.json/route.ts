@@ -12,6 +12,9 @@ export function GET() {
       nullable: !!f.nullable,
       allowed_values: f.allowed ?? null,
       description: f.description,
+      // JSON arrays: the keys of each entry, and the allowed values of the coded ones.
+      item_keys: f.keys ?? null,
+      item_allowed_values: f.keyValues ?? null,
     })),
   })
 }

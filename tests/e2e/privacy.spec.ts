@@ -26,7 +26,9 @@ test('no public page, feed or download contains private data', async ({ page, re
     '/incidents',
     '/incidents?v=1,2,3',
     '/incidents?v=1,2,3&view=cards',
-    '/incidents?v=1,2,3&view=map',
+    '/incidents?v=1,2,3&state=CA',
+    '/incidents/print?v=1,2,3',
+    '/incidents/download/states?v=1,2,3',
     '/incidents?q=CANARY&v=1,2,3',
     '/incidents?q=Dearborn&v=1,2,3',
     '/incidents/download?v=1,2,3',
@@ -49,7 +51,7 @@ test('no public page, feed or download contains private data', async ({ page, re
     for (const f of forbidden) expect(body, `${url} contains ${f}`).not.toContain(f)
   }
   // Rendered pages too (client-side content included).
-  for (const url of ['/', '/incidents?v=1,2,3&view=map', recordUrls[0]!]) {
+  for (const url of ['/', '/incidents?v=1,2,3', '/incidents?v=1,2,3&state=CA', '/incidents/print?v=1,2,3', recordUrls[0]!]) {
     await page.goto(url)
     const html = await page.content()
     for (const f of forbidden) expect(html, `${url} contains ${f}`).not.toContain(f)
@@ -62,7 +64,7 @@ test('the unpublished V0 record has no public page', async ({ request }) => {
 })
 
 test('scheduled jobs refuse requests without the secret', async ({ request }) => {
-  for (const job of ['export', 'archive', 'retention', 'nightly']) {
+  for (const job of ['export', 'archive', 'retention', 'nightly', 'news-scan']) {
     expect((await request.get(`/api/jobs/${job}`)).status()).toBe(401)
     expect((await request.get(`/api/jobs/${job}`, { headers: { Authorization: 'Bearer wrong' } })).status()).toBe(401)
   }
@@ -74,6 +76,8 @@ test('admin pages and evidence files are not reachable without signing in', asyn
   expect(res.headers()['location']).toContain('/admin/login')
   const file = await request.get('/admin/files/00000000-0000-0000-0000-000000000000')
   expect(file.status()).toBe(404)
+  // First-run setup exists only on a site with no accounts and a setup token.
+  expect((await request.get('/admin/setup')).status()).toBe(404)
   const login = await request.get('/admin/login')
   expect(login.headers()['x-robots-tag']).toContain('noindex')
 })
@@ -85,5 +89,7 @@ test('security headers are set', async ({ request }) => {
   expect(h['x-content-type-options']).toBe('nosniff')
   expect(h['referrer-policy']).toBe('strict-origin-when-cross-origin')
   expect(h['x-powered-by']).toBeUndefined()
+  // The e2e build is a launched site (SITE_INDEXING=on); before launch every page is noindex.
+  expect(h['x-robots-tag']).toBeUndefined()
   expect(h['set-cookie']).toBeUndefined()
 })

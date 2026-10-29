@@ -1,4 +1,4 @@
-# The Record: Anti-Muslim Incidents in America
+# The Record: Anti-Muslim Incidents in the United States
 
 A public, searchable record of anti-Muslim incidents in the United States. Each
 incident is linked to its sources and tracked through its legal outcome. The
@@ -10,7 +10,7 @@ Incident pages, Methodology, the Report form, and the nightly CSV/JSON export.
 See [What is built](#what-is-built-phase-1) and [What remains](#what-remains).
 
 - Decisions made where the specification was silent: [`DECISIONS.md`](DECISIONS.md)
-- Deploying to Vercel and Supabase: [`docs/DEPLOY.md`](docs/DEPLOY.md)
+- Going live (Cloudflare, Supabase, Vercel, all on free plans): [`docs/DEPLOY.md`](docs/DEPLOY.md)
 - Acceptance tests and their results: [`docs/ACCEPTANCE.md`](docs/ACCEPTANCE.md)
 - Data dictionary (generated from the schema): [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md)
 
@@ -29,7 +29,9 @@ See [What is built](#what-is-built-phase-1) and [What remains](#what-remains).
 | Schema, migrations, types | Drizzle ORM + drizzle-kit, from one file: `src/db/schema.ts` |
 | Rules that must always hold | SQL triggers and functions: `drizzle/0002_rules.sql` |
 | Styling | Tailwind CSS 4 over the design tokens in `src/styles/tokens.css` |
-| Map | MapLibre GL JS (OpenFreeMap basemap by default, no key) |
+| Type and icons | Instrument Sans, one variable family for headlines, reading, interface and tables (`@fontsource-variable/instrument-sans`, self-hosted); icons from `lucide-react`, drawn on the server |
+| Map and charts | Server-drawn SVG: a state choropleth (US Census shapes via us-atlas, Albers USA) that zooms into states; no tile service |
+| Morning news scan | Google News, GDELT and CAIR feeds, read by Claude (Anthropic API, optional and paid per use) or a keyword rule |
 | Admin sign-in | Email + password, then mandatory TOTP two-factor authentication |
 | Spam protection | Cloudflare Turnstile (invisible), honeypot, Postgres rate limits |
 | Evidence storage | Private S3-compatible bucket; files encrypted before upload |
@@ -38,7 +40,7 @@ See [What is built](#what-is-built-phase-1) and [What remains](#what-remains).
 
 ## Quick start (local)
 
-Requirements: Node.js 20.9+ (22 recommended) and PostgreSQL 16 with PostGIS.
+Requirements: Node.js 22 and PostgreSQL 16 with PostGIS.
 
 ```bash
 # macOS: brew install postgresql@16 postgis
@@ -59,7 +61,8 @@ an authenticator app (or compute codes from it) for the second step.
 
 To create a real first admin instead: `npm run admin:create -- --email you@example.org --name "Your Name"`.
 It prints a temporary password; at first sign-in the person must enroll two-factor
-authentication and choose a new password.
+authentication and choose a new password. A new deployment can also create its
+first admin in the browser at `/admin/setup` (see `docs/DEPLOY.md`, step 7).
 
 Reset the local database at any time with `npm run db:setup -- --reset`.
 
@@ -71,15 +74,19 @@ Reset the local database at any time with `npm run db:setup -- --reset`.
 | `npm run typecheck` | Route types + `tsc --noEmit` |
 | `npm run db:generate` | Diff `src/db/schema.ts` into a new SQL migration |
 | `npm run db:setup [-- --reset]` | Local database: roles, extensions, migrations (development only) |
-| `npm run db:migrate` | Apply migrations as the schema owner (production deploys) |
+| `npm run db:migrate` | Apply migrations as the schema owner, then give the runtime roles their passwords from their URLs (every deploy) |
+| `npm run build:vercel` | What Vercel runs: `db:migrate`, `check:no-demo`, `build` |
 | `npm run db:seed` | Demo data (refuses in production) |
 | `npm run admin:create` | Create a user from the command line |
 | `npm run check:no-demo` | Fail if demo data exists (use before production deploys) |
 | `npm run dictionary` | Regenerate `docs/DATA_DICTIONARY.md` from the schema |
+| `npm run news:scan` | Run the morning news scan once, to completion, against the database in `.env` |
+| `npm run geo:build` | Rebuild the map shapes from us-atlas (only after upgrading it) |
 | `npm test` | Unit and database integration tests (Vitest) |
 | `npm run test:e2e` | End-to-end tests (Playwright): builds the app against a fresh `record_e2e` database |
 | `npm run test:db-down` | After `test:e2e`: incident pages load with the database unreachable |
 | `npm run test:lighthouse` | After `test:e2e`: mobile Lighthouse scores for Home, Explore, Incident |
+| `scripts/backup.sh` | Encrypted database backup to R2 (run daily by `.github/workflows/backup.yml`) |
 
 ## How it fits together
 
@@ -143,30 +150,39 @@ changed. The audit log, reviews, change log and publications are append-only.
   validation, sources with link auto-fill, legal events, statements, cases,
   live preview of the public page, summary checks and a side-by-side
   duplicate finder; review queue with the checklist; publish, unpublish,
-  exclude; leads inbox with triage; corrections queue with SLA timers; cases;
-  permanent audit log; user management.
+  exclude; leads inbox with triage, pre-filled from the morning scan's reading;
+  the scan log (every article read, including skipped ones, with tokens and
+  cost); corrections queue with SLA timers; cases; permanent audit log; user
+  management.
 - **Public**: Home (headline sentence, four stat tiles with as-of dates linking
-  to Explore, latest verified incidents); Explore with every filter in the URL,
-  table / cards / map views, CSV of the current results, 50-per-page
-  pagination; statically generated Incident pages with key facts, legal
+  to Explore, the state map, records per month and by type, latest verified
+  incidents; every chart element opens Explore with the same count); Explore
+  with every filter in the URL, date presets and incident-type toggles above a
+  state map that zooms into states and cities, table or cards, CSVs of the
+  records and of totals by state, a printable report, 50-per-page pagination; statically generated Incident pages with key facts, legal
   timeline, statements, numbered sources with archived copies, change log,
   related records and citations (APA, Chicago, BibTeX); Methodology; Data with
   nightly versioned downloads, checksums, changelog and dictionary; Report form
   (incident or correction) with Turnstile, EXIF stripping and encryption; About
   with a plain-language privacy policy; sitemap and robots.
 - **Jobs**: nightly CSV/JSON release with SHA-256 and changelog; source
-  archiving right after each save, with scheduled retries; 12-month retention purge.
-- **Design**: the Section 5 tokens exactly, light and dark themes (system or
-  manual toggle), WCAG 2.2 AA, logical CSS properties for future RTL.
+  archiving right after each save, with scheduled retries; 12-month retention purge;
+  the morning news scan, which sends possible incidents to the leads inbox and never
+  publishes (DECISIONS.md, items 57–61).
+- **Design**: the Section 5 colors exactly, one typeface (Instrument Sans) on one type
+  scale, "liquid glass" for the header, menus, toolbars and panels (solid when the reader
+  asks for reduced transparency), icons that respond on hover, light and dark themes
+  (system or manual toggle), WCAG 2.2 AA, logical CSS properties for future RTL. Three
+  rounds of page-by-page design critique are summarized in DECISIONS.md (items 62–73 and 74 on).
 
 ## What remains
 
 Phase 2 and 3 items from the specification, not built yet:
 
-- Trends and State pages, charts (Observable Plot), choropleth, Cases page.
+- Trends and State pages, Cases page.
 - Public API v1 (`/api/v1/incidents`, `/cases`, `/stats`) with OpenAPI docs and API keys.
-- Home map and the FBI/CAIR context figures (needs the first annual reconciliation).
-- News, press-release and docket monitors feeding the Leads inbox; record merge.
+- The FBI/CAIR context figures (needs the first annual reconciliation).
+- Docket monitors feeding the Leads inbox; record merge.
 - Arabic and Spanish translations; partner logins; embeddable charts.
 - Sentry error tracking (optional; not added to avoid a new third-party service without approval).
 

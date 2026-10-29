@@ -1,48 +1,97 @@
+import { ArrowRight, MessageSquarePlus } from 'lucide-react'
 import Link from 'next/link'
-import { SITE } from '@/lib/site'
+import { METHODOLOGY_VERSION } from '@/db/enums'
 import { formatTimestamp } from '@/lib/format'
+import { SITE } from '@/lib/site'
+import { BrandMark } from './BrandMark'
 import { ThemeToggle } from './ThemeToggle'
+
+const RECORD_LINKS = [
+  { href: '/incidents', label: 'Explore the record' },
+  { href: '/methodology', label: 'Methodology' },
+  { href: '/data', label: 'Data and downloads' },
+]
+
+const PROJECT_LINKS = [
+  { href: '/about', label: 'About' },
+  { href: '/report?mode=correction', label: 'Request a correction' },
+  { href: '/about#privacy', label: 'Privacy' },
+  { href: '/about#contact', label: 'Contact' },
+]
 
 export function SiteFooter({ lastUpdated }: { lastUpdated: string | null }) {
   return (
-    <footer className="mt-16 border-t border-rule bg-surface">
-      <div className="mx-auto grid max-w-content gap-6 px-4 py-8 text-sm sm:grid-cols-2 sm:px-6">
-        <div className="space-y-2">
-          <p className="font-serif text-lg font-semibold">{SITE.fullName}</p>
-          <p className="text-muted">
-            A public record. Every entry is sourced, and allegations are never presented as convictions.
+    <footer className="band mt-16 rounded-t-[32px] md:mt-24">
+      <div className="wrap pt-14 pb-8 md:pt-16">
+        <div className="grid gap-x-8 gap-y-12 md:grid-cols-12">
+          <div className="md:col-span-6 lg:col-span-5">
+            <p className="flex items-center gap-3 text-lg font-semibold tracking-[-0.02em]">
+              <span className="brand-mark brand-mark-band">
+                <BrandMark />
+              </span>
+              {SITE.name}
+            </p>
+            <p className="mt-4 max-w-[38ch] text-base leading-relaxed">
+              A public record of anti-Muslim incidents in the United States. Every entry is sourced, and allegations are never presented as
+              convictions.
+            </p>
+            <p className="mt-6">
+              <Link href="/report" className="btn btn-sm">
+                <MessageSquarePlus aria-hidden="true" />
+                Report an incident
+              </Link>
+            </p>
+          </div>
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-8 md:col-span-6 lg:col-span-5 lg:col-start-8">
+            <div>
+              <p className="kicker">The record</p>
+              <ul className="mt-3 space-y-2">
+                {RECORD_LINKS.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className="group inline-flex items-center gap-1.5 no-underline hover:underline">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="kicker">The project</p>
+              <ul className="mt-3 space-y-2">
+                {PROJECT_LINKS.map((l) => (
+                  <li key={l.href}>
+                    <Link href={l.href} className="no-underline hover:underline">
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </nav>
+        </div>
+        <div className="mt-14 flex flex-wrap items-center justify-between gap-x-8 gap-y-5 border-t border-band-rule pt-6 text-sm text-muted">
+          <div className="space-y-1.5">
+          {/* A dot between facts, never at the end of a line (globals.css, .meta-line); links get short lines of their own. */}
+          <p className="meta-line tabular">
+            <span>{lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'}</span>
+            <span>Methodology {METHODOLOGY_VERSION}</span>
           </p>
           <p>
             Data{' '}
             <a href={SITE.dataLicense.url} rel="license noopener">
               {SITE.dataLicense.name}
-            </a>
-            . Code{' '}
+            </a>{' '}
+            · Code{' '}
             <a href={SITE.codeLicense.url} rel="license noopener">
               {SITE.codeLicense.name}
             </a>
-            .
           </p>
-          <p className="text-muted tabular">{lastUpdated ? `Last updated ${formatTimestamp(lastUpdated)}` : 'Last updated: not available'}</p>
-        </div>
-        <div className="space-y-3">
-          <ul className="flex flex-wrap gap-x-4 gap-y-1">
-            <li>
-              <Link href="/methodology">Methodology</Link>
-            </li>
-            <li>
-              <Link href="/report?mode=correction">Request a correction</Link>
-            </li>
-            <li>
-              <Link href="/data">Data and downloads</Link>
-            </li>
-            <li>
-              <Link href="/about#privacy">Privacy</Link>
-            </li>
-            <li>
-              <Link href="/about">About</Link>
-            </li>
-          </ul>
+          <p>
+            <Link href="/methodology" className="inline-flex items-center gap-1">
+              How records are verified <ArrowRight aria-hidden="true" size={14} className="nudge" />
+            </Link>
+          </p>
+          </div>
           <ThemeToggle />
         </div>
       </div>

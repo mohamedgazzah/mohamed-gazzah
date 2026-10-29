@@ -4,9 +4,9 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 --> statement-breakpoint
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 --> statement-breakpoint
--- Runtime roles. They start without LOGIN; scripts/db-roles.ts (or the deploy
--- guide) gives them a password. Creating roles needs CREATEROLE, which the
--- migration owner has locally and on Supabase.
+-- Runtime roles. They start without LOGIN; `npm run db:migrate` then gives
+-- them the passwords in DATABASE_URL and PUBLIC_DATABASE_URL. Creating roles
+-- needs CREATEROLE, which the migration owner has locally and on Supabase.
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'record_app') THEN
