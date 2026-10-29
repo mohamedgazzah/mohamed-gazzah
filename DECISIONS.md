@@ -389,10 +389,15 @@ and components stand.
     JavaScript (the earlier catch-all route rendered it only in the browser). A missing
     record still goes through `notFound()` in a dynamic page, which Next.js 16 renders in the
     browser; the status is 404 either way.
+83. **Domain: antimuslimincidents.org**, registered at Cloudflare (October 2026) at the
+    registry's price, with the owner's details withheld from public WHOIS. It matches the
+    site's subtitle and reads one way only. The site takes its address from
+    `NEXT_PUBLIC_SITE_URL`, and the role addresses (editors@, corrections@, privacy@, legal@)
+    follow from it, so no code names the domain.
 
 ## Open questions (**Ask**)
 
 - Organizational home, media lawyer, and the contents of About (team, board, funding).
-- Final project name and domain; then the favicon in `src/lib/site.ts`. Suggested neutral `.org` names: antimuslimincidents.org (matches the working subtitle), amirecord.org ("Anti-Muslim Incident Record"), antimuslimincidentrecord.org. Avoid names that could be read either way, such as muslimincidents or antimuslimrecord.
+- Final project name; then the favicon in `src/lib/site.ts`. (The domain is settled: item 83.)
 - Whether submissions should create drafts directly (item 16).
 - A US Muslim population source for per-capita rates (Phase 2 choropleth).
